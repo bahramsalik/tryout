@@ -1,0 +1,26 @@
+[
+  {
+    "key": "olk_free_3b9e17c2d4",
+    "clientId": "cli_0141",
+    "name": "Fennimore Hardware (shipper, self-serve)",
+    "tier": "free"
+  },
+  {
+    "key": "olk_free_8a20f6e15b",
+    "clientId": "cli_0187",
+    "name": "Quarry Lane Ceramics (shipper, self-serve)",
+    "tier": "free"
+  },
+  {
+    "key": "olk_partner_51c7aa093e",
+    "clientId": "cli_0032",
+    "name": "Ridgeway Dispatch (partner app)",
+    "tier": "partner"
+  },
+  {
+    "key": "olk_ent_d06b4f92c8",
+    "clientId": "cli_0007",
+    "name": "Lakeshore Freight Co (carrier, enterprise)",
+    "tier": "enterprise"
+  }
+]

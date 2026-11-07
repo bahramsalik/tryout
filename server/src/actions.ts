@@ -1,0 +1,475 @@
+/**
+ * Mutations. Each one updates the in-memory db, persists it, then broadcasts its ServerEvents
+ * (and the notifications it created) over SSE — in that order, so a client refetching on an event
+ * always sees the new state.
+ */
+import {
+  PLATFORM_RULES,
+  REWARD_MODE_LABEL,
+  computeTotalScore,
+  rewardTotal,
+  type AwardResponse,
+  type Challenge,
+  type ChallengeView,
+  type CreateChallengeInput,
+  type CreateInviteInput,
+  type InterviewInvite,
+  type InviteStatus,
+  type InviteView,
+  type Notification,
+  type ScoreSubmissionInput,
+  type ServerEvent,
+  type SubmissionView,
+} from '../../shared/types.ts';
+import { practiceReview, synthesizeAiHints } from './ai.ts';
+import type { Participation, SubmissionRecord } from './db.ts';
+import { badRequest, conflict, forbidden, notFound } from './errors.ts';
+import { emit } from './events.ts';
+import { aliasCode, applyAward, assignAlias, computeAward, medal, ordinal, truncate, usd } from './logic.ts';
+import type { EmployerPersona, StudentPersona } from './persona.ts';
+import { randomId } from './rng.ts';
+import { getDb, persist, writeUpload } from './store.ts';
+import {
+  challengeById,
+  challengeView,
+  companyById,
+  inviteView,
+  isAcceptingWork,
+  participationOf,
+  studentById,
+  submissionOf,
+  submissionView,
+} from './views.ts';
+import { computeAutoChecks, inspectZip, looksLikeZip } from './zip.ts';
+
+const nowIso = () => new Date().toISOString();
+const shortTitle = (t: string) => truncate(t, 48);
+
+function commit(events: ServerEvent[]): void {
+  persist();
+  for (const e of events) emit(e);
+}
+
+function uniqueId(prefix: string, taken: (id: string) => boolean): string {
+  for (;;) {
+    const id = randomId(prefix);
+    if (!taken(id)) return id;
+  }
+}
+
+function notification(events: ServerEvent[], n: Omit<Notification, 'id' | 'createdAt' | 'read'>): Notification {
+  const db = getDb();
+  const created: Notification = {
+    id: uniqueId('ntf', (id) => db.notifications.some((x) => x.id === id)),
+    createdAt: nowIso(),
+    read: false,
+    ...n,
+  };
+  db.notifications.push(created);
+  events.push({ type: 'notification.created', payload: { notification: created } });
+  return created;
+}
+
+function rewardBlurb(ch: Pick<Challenge, 'reward'>): string {
+  const total = rewardTotal(ch.reward);
+  return ch.reward.mode === 'none' ? REWARD_MODE_LABEL.none : `${REWARD_MODE_LABEL[ch.reward.mode]} · ${usd(total)}`;
+}
+
+function addParticipation(ch: Challenge, studentId: string): Participation {
+  const db = getDb();
+  const taken = new Set(db.participations.filter((p) => p.challengeId === ch.id).map((p) => aliasCode(p.alias)));
+  const p: Participation = { challengeId: ch.id, studentId, joinedAt: nowIso(), alias: assignAlias(ch.id, studentId, taken) };
+  db.participations.push(p);
+  return p;
+}
+
+const participantCount = (challengeId: string) => getDb().participations.filter((p) => p.challengeId === challengeId).length;
+
+/* ───────────── challenges ───────────── */
+
+export function createChallenge(p: EmployerPersona, input: CreateChallengeInput): ChallengeView {
+  const db = getDb();
+  const events: ServerEvent[] = [];
+  const ch: Challenge = {
+    id: uniqueId('ch', (id) => db.challenges.some((c) => c.id === id)),
+    kind: 'live',
+    companyId: p.company.id,
+    title: input.title.trim(),
+    summary: input.summary.trim(),
+    type: input.type,
+    skills: input.skills.map((s) => s.trim()).filter(Boolean),
+    classroomConcepts: input.classroomConcepts ?? [],
+    difficulty: input.difficulty,
+    estHours: input.estHours,
+    brief: input.brief,
+    deliverables: input.deliverables.map((d) => d.trim()).filter(Boolean),
+    rubric: input.rubric,
+    reward: input.reward,
+    applicantCap: input.applicantCap,
+    deadline: new Date(input.deadline).toISOString(),
+    status: 'open',
+    hiringFor: input.hiringFor?.trim() || null,
+    starterFiles: [],
+    aiHints: synthesizeAiHints(input),
+    createdAt: nowIso(),
+    createdBy: p.id,
+    awardedAt: null,
+  };
+  db.challenges.push(ch);
+  events.push({ type: 'challenge.created', payload: { challenge: challengeView(ch, null) } });
+  // §5.5 #15: notify students whose interests include the type.
+  for (const s of db.students.filter((st) => st.interests.includes(ch.type))) {
+    notification(events, {
+      recipientId: s.id,
+      kind: 'new_challenge',
+      title: `New from ${p.company.name}`,
+      body: `${ch.title} · ${rewardBlurb(ch)} · ~${ch.estHours} h`,
+      link: `/challenges/${ch.id}`,
+    });
+  }
+  commit(events);
+  return challengeView(ch, p);
+}
+
+export function updateChallenge(p: EmployerPersona, ch: Challenge, patch: { status?: 'open' | 'reviewing'; deadline?: string }): ChallengeView {
+  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results are published; this challenge can no longer change.');
+  if (patch.status) ch.status = patch.status;
+  if (patch.deadline) ch.deadline = new Date(patch.deadline).toISOString();
+  commit([{ type: 'challenge.updated', payload: { challengeId: ch.id, companyId: ch.companyId, reason: 'updated', studentId: null } }]);
+  return challengeView(ch, p);
+}
+
+export function joinChallenge(p: StudentPersona, ch: Challenge): ChallengeView {
+  if (participationOf(ch.id, p.id) || submissionOf(ch.id, p.id)) throw conflict('ALREADY_JOINED', 'You already joined this challenge.');
+  if (!isAcceptingWork(ch)) throw conflict('CLOSED', 'This challenge is no longer accepting participants.');
+  if (ch.applicantCap !== null && participantCount(ch.id) >= ch.applicantCap) {
+    throw conflict('CAP_REACHED', `All ${ch.applicantCap} spots are taken.`);
+  }
+  const events: ServerEvent[] = [];
+  addParticipation(ch, p.id);
+  events.push({ type: 'challenge.updated', payload: { challengeId: ch.id, companyId: ch.companyId, reason: 'joined', studentId: p.id } });
+  if (ch.companyId && ch.kind === 'live' && ch.applicantCap !== null && participantCount(ch.id) >= ch.applicantCap) {
+    notification(events, {
+      recipientId: ch.companyId,
+      kind: 'cap_reached',
+      title: `${shortTitle(ch.title)} is full`,
+      body: `All ${ch.applicantCap} spots are claimed. New students can't join.`,
+      link: `/challenges/${ch.id}`,
+    });
+  }
+  commit(events);
+  return challengeView(ch, p);
+}
+
+/* ───────────── submissions ───────────── */
+
+/** Cheap checks that don't need the upload; run before multer reads the body. */
+export function assertCanSubmit(p: StudentPersona, ch: Challenge): void {
+  if (!isAcceptingWork(ch)) throw conflict('CLOSED', 'This challenge is closed to new submissions.');
+  if (submissionOf(ch.id, p.id)) throw conflict('ALREADY_SUBMITTED', 'You already submitted to this challenge (one submission per student).');
+  if (ch.kind === 'live' && !participationOf(ch.id, p.id)) throw forbidden('NOT_JOINED', 'Join the challenge (claim a spot) before submitting.');
+}
+
+export interface SubmitFields {
+  notes?: unknown;
+  demoUrl?: unknown;
+  aiDisclosure?: unknown;
+}
+
+/** Multipart field → string, with CRLF (as browsers send form fields) normalized to LF. */
+const asText = (v: unknown) =>
+  (typeof v === 'string' ? v : Array.isArray(v) && typeof v[0] === 'string' ? v[0] : '').replace(/\r\n?/g, '\n');
+
+export function submitWork(
+  p: StudentPersona,
+  ch: Challenge,
+  file: { originalname: string; size: number; buffer: Buffer } | undefined,
+  fields: SubmitFields,
+): SubmissionView {
+  assertCanSubmit(p, ch); // re-check: state may have changed while the upload streamed in
+  const notes = asText(fields.notes).trim();
+  if (notes.length < PLATFORM_RULES.minNotesChars) {
+    throw badRequest('NOTES_TOO_SHORT', `Approach notes need at least ${PLATFORM_RULES.minNotesChars} characters (got ${notes.length}).`);
+  }
+  if (!file) throw badRequest('NOT_ZIP', 'Attach your work as a .zip file in the "file" field.');
+  if (file.size > PLATFORM_RULES.maxUploadMb * 1024 * 1024) {
+    throw badRequest('FILE_TOO_LARGE', `Zips can be at most ${PLATFORM_RULES.maxUploadMb} MB.`);
+  }
+  const originalName = (file.originalname.split(/[\\/]/).pop() ?? 'submission.zip').replace(/[\u0000-\u001f]/g, '').slice(0, 120) || 'submission.zip';
+  const { extOk, magicOk } = looksLikeZip(originalName, file.buffer);
+  if (!extOk) throw badRequest('NOT_ZIP', 'The file must have a .zip extension.');
+  if (!magicOk) throw badRequest('NOT_ZIP', "That file isn't a real zip (missing the PK signature).");
+  let info: ReturnType<typeof inspectZip>;
+  try {
+    info = inspectZip(file.buffer);
+  } catch {
+    throw badRequest('NOT_ZIP', "That zip couldn't be read. Re-create it and try again.");
+  }
+
+  let demoUrl: string | null = asText(fields.demoUrl).trim() || null;
+  if (demoUrl) {
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(demoUrl)) demoUrl = `https://${demoUrl}`;
+    try {
+      const u = new URL(demoUrl);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('protocol');
+    } catch {
+      throw badRequest('INVALID_DEMO_URL', 'The demo/repo link must be an http(s) URL.');
+    }
+  }
+  const aiDisclosure = asText(fields.aiDisclosure).trim() || null;
+
+  const db = getDb();
+  const events: ServerEvent[] = [];
+  let participation = participationOf(ch.id, p.id);
+  if (!participation) {
+    participation = addParticipation(ch, p.id); // practice: auto-join on submit (§5.5 #3)
+    events.push({ type: 'challenge.updated', payload: { challengeId: ch.id, companyId: ch.companyId, reason: 'joined', studentId: p.id } });
+  }
+  const id = uniqueId('sub', (x) => db.submissions.some((s) => s.id === x));
+  writeUpload(id, file.buffer);
+  const autoChecks = computeAutoChecks(ch.type, info, file.size);
+  const sub: SubmissionRecord = {
+    id,
+    challengeId: ch.id,
+    studentId: p.id,
+    submittedAt: nowIso(),
+    notes,
+    demoUrl,
+    aiDisclosure,
+    file: { originalName, sizeBytes: file.size, fileCount: info.fileCount, tree: info.tree, readme: info.readme },
+    autoChecks,
+    status: 'submitted',
+    reviewer: null,
+    scores: null,
+    totalScore: null,
+    feedback: null,
+    scoredAt: null,
+    rank: null,
+    payout: null,
+    shortlisted: false,
+    alias: participation.alias,
+    scoredBy: null,
+  };
+
+  if (ch.kind === 'practice') {
+    // DUMMY-AI: instant Coach review (§5.5 #14).
+    const review = practiceReview(ch, { submissionId: id, notes, autoChecks });
+    Object.assign(sub, {
+      status: 'scored',
+      reviewer: 'coach',
+      scores: review.scores,
+      totalScore: review.totalScore,
+      feedback: review.feedback,
+      scoredAt: nowIso(),
+      scoredBy: 'coach',
+    } satisfies Partial<SubmissionRecord>);
+  }
+  db.submissions.push(sub);
+
+  const companyId = ch.companyId;
+  events.push({ type: 'submission.created', payload: { submissionId: id, challengeId: ch.id, studentId: p.id, companyId } });
+  if (ch.kind === 'practice') {
+    events.push({
+      type: 'submission.scored',
+      payload: { submissionId: id, challengeId: ch.id, studentId: p.id, companyId, totalScore: sub.totalScore ?? 0 },
+    });
+    notification(events, {
+      recipientId: p.id,
+      kind: 'coach_review',
+      title: `Coach reviewed ${shortTitle(ch.title)}`,
+      body: `You scored ${sub.totalScore}/100 · Coach review (preview). See your feedback.`,
+      link: `/challenges/${ch.id}`,
+    });
+  } else if (companyId) {
+    const awaiting = db.submissions.filter((s) => s.challengeId === ch.id && s.totalScore === null).length;
+    notification(events, {
+      recipientId: companyId,
+      kind: 'submission_received',
+      title: `New submission on ${shortTitle(ch.title)}`,
+      body: `${sub.alias} submitted · ${awaiting} awaiting review`,
+      link: `/challenges/${ch.id}/review/${id}`,
+    });
+  }
+  commit(events);
+  return submissionView(sub, p);
+}
+
+export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input: ScoreSubmissionInput): SubmissionView {
+  const ch = challengeById(sub.challengeId)!;
+  if (ch.kind === 'practice') throw conflict('PRACTICE_SUBMISSION', 'Practice submissions are reviewed by Coach, not scored by employers.');
+  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results are already published; scores are final.');
+  const issues: { path: string; message: string }[] = [];
+  const scores = input.scores ?? {};
+  const ids = new Set(ch.rubric.map((c) => c.id));
+  for (const k of Object.keys(scores)) if (!ids.has(k)) issues.push({ path: `scores.${k}`, message: 'Unknown rubric criterion' });
+  for (const c of ch.rubric) {
+    const v = scores[c.id];
+    if (v === undefined) issues.push({ path: `scores.${c.id}`, message: `Missing score for "${c.name}"` });
+    else if (!Number.isInteger(v) || v < PLATFORM_RULES.scoreMin || v > PLATFORM_RULES.scoreMax) {
+      issues.push({ path: `scores.${c.id}`, message: `Score must be an integer ${PLATFORM_RULES.scoreMin}–${PLATFORM_RULES.scoreMax}` });
+    }
+  }
+  if (issues.length) throw badRequest('INVALID_SCORES', `Score every criterion from ${PLATFORM_RULES.scoreMin} to ${PLATFORM_RULES.scoreMax}.`, issues);
+  const feedback = (input.feedback ?? '').trim();
+  if (feedback.length < PLATFORM_RULES.minFeedbackChars) {
+    throw badRequest('FEEDBACK_TOO_SHORT', `Written feedback needs at least ${PLATFORM_RULES.minFeedbackChars} characters (feedback is guaranteed to students).`);
+  }
+  const clean: Record<string, number> = {};
+  for (const c of ch.rubric) clean[c.id] = scores[c.id]!;
+  sub.scores = clean;
+  sub.totalScore = computeTotalScore(ch.rubric, clean);
+  sub.feedback = feedback;
+  sub.scoredAt = nowIso();
+  sub.status = 'scored';
+  sub.reviewer = 'employer';
+  sub.scoredBy = p.id;
+  if (typeof input.shortlisted === 'boolean') sub.shortlisted = input.shortlisted;
+  commit([
+    {
+      type: 'submission.scored',
+      payload: { submissionId: sub.id, challengeId: ch.id, studentId: sub.studentId, companyId: ch.companyId, totalScore: sub.totalScore },
+    },
+  ]);
+  return submissionView(sub, p);
+}
+
+export function setShortlisted(p: EmployerPersona, sub: SubmissionRecord, shortlisted: boolean): SubmissionView {
+  sub.shortlisted = shortlisted;
+  const ch = challengeById(sub.challengeId)!;
+  commit([{ type: 'challenge.updated', payload: { challengeId: ch.id, companyId: ch.companyId, reason: 'shortlisted', studentId: sub.studentId } }]);
+  return submissionView(sub, p);
+}
+
+export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse {
+  if (ch.kind === 'practice') throw conflict('PRACTICE_NOT_AWARDABLE', 'Practice tasks have no results to publish.');
+  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results for this challenge are already published.');
+  const db = getDb();
+  const subs = db.submissions.filter((s) => s.challengeId === ch.id);
+  const pending = subs.filter(
+    (s) => s.totalScore === null || !s.feedback || s.feedback.trim().length < PLATFORM_RULES.minFeedbackChars,
+  );
+  if (pending.length) {
+    throw conflict(
+      'UNSCORED_SUBMISSIONS',
+      `${pending.length} submission${pending.length === 1 ? '' : 's'} still need${pending.length === 1 ? 's' : ''} scores and written feedback before results can be published.`,
+    );
+  }
+  const lines = computeAward(ch, subs);
+  applyAward(lines);
+  ch.status = 'awarded';
+  ch.awardedAt = nowIso();
+
+  const events: ServerEvent[] = [
+    {
+      type: 'challenge.awarded',
+      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank, payout: l.payout })) },
+    },
+  ];
+  const companyName = companyById(ch.companyId)?.name ?? 'the employer';
+  for (const l of lines) {
+    if (l.payout > 0) {
+      notification(events, {
+        recipientId: l.sub.studentId,
+        kind: 'awarded',
+        title: `${medal(l.rank)} You placed ${ordinal(l.rank)} — ${usd(l.payout)} is on its way`,
+        body: `${ch.title} · ${companyName} · ${l.sub.totalScore}/100. Your feedback is ready.`,
+        link: `/challenges/${ch.id}`,
+      });
+    } else {
+      notification(events, {
+        recipientId: l.sub.studentId,
+        kind: 'results',
+        title: 'Results and feedback are in',
+        body: `${ch.title} · ${companyName} · You scored ${l.sub.totalScore}/100. See your feedback.`,
+        link: `/challenges/${ch.id}`,
+      });
+    }
+  }
+  commit(events);
+  return {
+    challenge: challengeView(ch, p),
+    results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: l.rank, payout: l.payout, status: l.status })),
+  };
+}
+
+/* ───────────── invites ───────────── */
+
+export function createInvite(p: EmployerPersona, input: CreateInviteInput): InviteView {
+  const db = getDb();
+  const student = studentById(input.studentId);
+  if (!student) throw notFound('STUDENT_NOT_FOUND', `No student ${input.studentId}.`);
+  let ch: Challenge | undefined;
+  if (input.challengeId) {
+    ch = challengeById(input.challengeId);
+    if (!ch) throw notFound('CHALLENGE_NOT_FOUND', `No challenge ${input.challengeId}.`);
+    if (ch.companyId !== p.company.id) throw forbidden('NOT_OWNER', 'You can only reference your own challenges in an invite.');
+  }
+  const message = input.message.trim();
+  if (message.length < 10) throw badRequest('VALIDATION_ERROR', 'Write a short message (at least 10 characters).', [{ path: 'message', message: 'At least 10 characters' }]);
+  const dup = db.invites.find(
+    (i) => i.companyId === p.company.id && i.studentId === student.id && (i.challengeId ?? null) === (input.challengeId ?? null) && i.status === 'pending',
+  );
+  if (dup) throw conflict('ALREADY_INVITED', `${student.name} already has a pending invite from ${p.company.name}.`);
+  const role = input.role?.trim() || ch?.hiringFor || p.company.hiringFor[0] || null;
+  const invite: InterviewInvite = {
+    id: uniqueId('inv', (id) => db.invites.some((i) => i.id === id)),
+    companyId: p.company.id,
+    studentId: student.id,
+    challengeId: input.challengeId ?? null,
+    role,
+    message,
+    createdAt: nowIso(),
+    status: 'pending',
+  };
+  db.invites.push(invite);
+  const events: ServerEvent[] = [{ type: 'invite.created', payload: { invite } }];
+  notification(events, {
+    recipientId: student.id,
+    kind: 'interview',
+    title: `${p.company.name} wants to interview you`,
+    body: `${role ? `${role} — ` : ''}${truncate(message, 140)}`,
+    link: '/work',
+  });
+  commit(events);
+  return inviteView(invite, { withStudent: true });
+}
+
+export function respondToInvite(p: StudentPersona, invite: InterviewInvite, status: Exclude<InviteStatus, 'pending'>): InterviewInvite {
+  if (invite.studentId !== p.id) throw forbidden('NOT_YOURS', 'This invite belongs to another student.');
+  if (invite.status !== 'pending') throw conflict('ALREADY_RESPONDED', `You already ${invite.status} this invite.`);
+  invite.status = status;
+  const events: ServerEvent[] = [{ type: 'invite.updated', payload: { invite } }];
+  const chTitle = invite.challengeId ? challengeById(invite.challengeId)?.title : null;
+  notification(events, {
+    recipientId: invite.companyId,
+    kind: 'invite_response',
+    title: `${p.student.name} ${status} your interview invite`,
+    body: [invite.role, chTitle ? `via ${shortTitle(chTitle)}` : null].filter(Boolean).join(' · ') || 'Interview invite',
+    link: `/candidates/${p.student.handle}`,
+  });
+  commit(events);
+  return invite;
+}
+
+/* ───────────── notifications ───────────── */
+
+export function markAllRead(recipientId: string): void {
+  let changed = false;
+  for (const n of getDb().notifications) {
+    if (n.recipientId === recipientId && !n.read) {
+      n.read = true;
+      changed = true;
+    }
+  }
+  if (changed) persist();
+}
+
+export function markRead(recipientId: string, id: string): Notification {
+  const n = getDb().notifications.find((x) => x.id === id && x.recipientId === recipientId);
+  if (!n) throw notFound('NOTIFICATION_NOT_FOUND', `No notification ${id}.`);
+  if (!n.read) {
+    n.read = true;
+    persist();
+  }
+  return n;
+}

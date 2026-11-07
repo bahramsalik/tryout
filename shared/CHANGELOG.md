@@ -1,0 +1,13 @@
+# shared/ contract changelog
+
+`shared/types.ts` is the contract between server/, apps/student and apps/employer.
+Only the API session (S1) edits it, and only additively. Log every change here, newest first.
+
+| Date/time | Change | Why | Frontends need to… |
+|---|---|---|---|
+| 2026-11-07 (S1) | `Challenge.awardedAt?: string \| null` (also on `ChallengeView`) | When results were published; drives "Results published 2 d ago" and the employer activity feed | Optional: show it on awarded challenges |
+| 2026-11-07 (S1) | `ChallengeView.avgScore?: number \| null` | Employer challenge header needs "average score"; only sent to the owning company's employers | Employer: use it instead of averaging submissions |
+| 2026-11-07 (S1) | `InviteView.student?: Student`; `GET /me/invites` also works for employers (their company's invites, with `student`) | Lets the employer UI know who was already invited (disable "Invite to interview") | Employer: optional |
+| 2026-11-07 (S1) | `ApiError.error.issues?: { path; message }[]` | Field-level details for `400 VALIDATION_ERROR` (e.g. the Add-challenge wizard) | Optional: show per-field messages |
+| 2026-11-07 (S1) | `challenge.updated` payload gains `reason?: 'joined' \| 'updated' \| 'shortlisted'` and `studentId?` | Employer can toast "A student joined …" without refetching first | Optional |
+| 2026-11-07 | v1 created (main session) | Initial contract | — |
