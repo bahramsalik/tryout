@@ -11,12 +11,12 @@ function RadarTip({ active, payload }: { active?: boolean; payload?: { payload: 
   if (!active || !payload?.length) return null;
   const p = payload[0].payload;
   return (
-    <div className="rounded-xl border border-line bg-white px-3 py-2 text-xs shadow-lg">
-      <div className="font-bold text-ink">{p.field}</div>
-      <div className="text-slate-600">
+    <div className="rounded-md bg-bg1 px-3 py-2 text-caption shadow-16">
+      <div className="font-semibold text-fg1">{p.field}</div>
+      <div className="text-fg2">
         {p.count > 0 ? (
           <>
-            Avg <span className="font-semibold tabular-nums text-ink">{p.score}</span>/100 · {p.count} task{p.count === 1 ? '' : 's'}
+            Avg <span className="font-semibold tabular-nums text-fg1">{p.score}</span>/100 · {p.count} task{p.count === 1 ? '' : 's'}
           </>
         ) : (
           'No scored work yet'
@@ -38,21 +38,14 @@ export function SkillsRadar({ stats }: { stats: StudentStats }) {
       <div className="h-[260px] w-full" role="img" aria-label={`Skills radar: ${scored.map((d) => `${d.field} ${d.score}`).join(', ') || 'no scored work yet'}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data} outerRadius="72%" margin={{ top: 8, right: 24, bottom: 8, left: 24 }}>
-            <PolarGrid stroke="#E2E8F0" />
-            <PolarAngleAxis dataKey="field" tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }} />
+            <PolarGrid stroke="var(--colorNeutralStroke2)" />
+            <PolarAngleAxis dataKey="field" tick={{ fill: 'var(--colorNeutralForeground3)', fontSize: 12 }} />
             <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} tickCount={5} />
-            <Radar dataKey="score" stroke="#4F46E5" strokeWidth={2} fill="#4F46E5" fillOpacity={0.18} dot={{ r: 4, fill: '#4F46E5', stroke: '#fff', strokeWidth: 2 }} isAnimationActive />
+            <Radar dataKey="score" stroke="var(--colorBrandBackground)" strokeWidth={2} fill="var(--colorBrandBackground)" fillOpacity={0.15} dot={{ r: 3, fill: 'var(--colorBrandBackground)' }} isAnimationActive={false} />
             <Tooltip content={<RadarTip />} cursor={false} />
           </RadarChart>
         </ResponsiveContainer>
       </div>
-      <ul className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-slate-500">
-        {scored.map((d) => (
-          <li key={d.field}>
-            {d.field} <span className="font-semibold tabular-nums text-ink">{d.score}</span>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

@@ -18,19 +18,13 @@ export interface CoachMessage {
 
 export const EXPLORE_KEY = 'explore';
 
-export const TASK_PROMPTS: { key: CoachQuickPrompt; label: string; emoji: string }[] = [
-  { key: 'testing', label: 'What is this really testing?', emoji: '🎯' },
-  { key: 'steps', label: 'Break it into steps', emoji: '🪜' },
-  { key: 'greatLooksLike', label: 'What does great look like?', emoji: '🌟' },
-  { key: 'pitfalls', label: 'Common pitfalls', emoji: '⚠️' },
+export const TASK_PROMPTS: { key: CoachQuickPrompt; label: string }[] = [
+  { key: 'steps', label: 'Break it into steps' },
+  { key: 'greatLooksLike', label: 'What scores well?' },
+  { key: 'pitfalls', label: 'Common pitfalls' },
 ];
 
-export const EXPLORE_PROMPTS: string[] = [
-  'I want to be a backend engineer',
-  'I love working with data',
-  "I'm into product design",
-  "I'm new — where should I start?",
-];
+export const EXPLORE_PROMPTS: string[] = ['I want to be a backend engineer', 'I love working with data', 'Where should I start?'];
 
 interface OpenOptions {
   /** Force a context; defaults to the challenge in the URL (or Explore mode). */
@@ -115,7 +109,7 @@ export function CoachProvider({ children }: { children: ReactNode }) {
         append(key, {
           id: nextId(),
           role: 'coach',
-          text: `Hmm, I couldn't reach Coach just now. ${errorMessage(err)}`,
+          text: `Coach is unavailable. ${errorMessage(err)}`,
           error: true,
           retry: { text: trimmed, quickPrompt },
         });

@@ -12,13 +12,6 @@ export function ordinal(n: number): string {
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
 }
 
-export function medal(rank: number | null | undefined): string | null {
-  if (rank === 1) return '🥇';
-  if (rank === 2) return '🥈';
-  if (rank === 3) return '🥉';
-  return null;
-}
-
 export function bytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(n < 10 * 1024 ? 1 : 0)} KB`;
@@ -68,11 +61,10 @@ export function countdown(deadline: string, now = Date.now()): CountdownInfo {
   const d = Math.floor(totalSec / 86400);
   const h = Math.floor((totalSec % 86400) / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
   let label: string;
   if (d >= 1) label = `${d}d ${h}h`;
   else if (h >= 1) label = `${h}h ${m}m`;
-  else label = `${m}m ${String(s).padStart(2, '0')}s`;
+  else label = `${Math.max(1, m)}m`;
   const urgency = ms < 6 * 3600_000 ? 'urgent' : ms < 36 * 3600_000 ? 'soon' : 'calm';
   return { label, ms, passed: false, urgency };
 }
@@ -105,10 +97,3 @@ export function firstName(name: string | undefined | null): string {
   return (name ?? '').trim().split(/\s+/)[0] ?? '';
 }
 
-export function greeting(date = new Date()): string {
-  const h = date.getHours();
-  if (h < 5) return 'Up late';
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}

@@ -8,7 +8,7 @@ export function ProfilePage() {
   const student = useCurrentStudent();
   const q = useStudentProfile(student?.id);
   if (me.isError) return <ErrorState message={errorMessage(me.error)} onRetry={() => void me.refetch()} />;
-  if (q.isError) return <ErrorState title="Couldn't load your Proof Profile" message={errorMessage(q.error)} onRetry={() => void q.refetch()} />;
+  if (q.isError) return <ErrorState message={errorMessage(q.error)} onRetry={() => void q.refetch()} />;
   if (!q.data) return <ProofProfileSkeleton />;
-  return <ProofProfile profile={q.data} own />;
+  return <ProofProfile profile={q.data} />;
 }
