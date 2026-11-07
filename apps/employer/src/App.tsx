@@ -1,7 +1,6 @@
 import { createBrowserRouter, useLocation, useParams, useRouteError } from 'react-router';
-import { Compass, TriangleAlert } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { ButtonLink, Card, EmptyState } from '@/components/ui';
+import { ButtonLink, EmptyState, MessageBar } from '@/components/ui';
 import { useDocumentTitle } from '@/lib/hooks';
 import { CandidatePage } from '@/pages/Candidate';
 import { ChallengePage } from '@/pages/Challenge';
@@ -12,35 +11,17 @@ import { TalentPage } from '@/pages/Talent';
 
 function NotFound() {
   useDocumentTitle('Not found');
-  return (
-    <Card className="mx-auto max-w-xl">
-      <EmptyState
-        icon={<Compass className="size-5" aria-hidden />}
-        title="This page doesn’t exist"
-        body="The link may be from the student site, or from before a demo reset."
-        action={<ButtonLink to="/">Go to dashboard</ButtonLink>}
-      />
-    </Card>
-  );
+  return <EmptyState title="Page not found" action={<ButtonLink to="/">Dashboard</ButtonLink>} />;
 }
 
 function RouteError() {
   const error = useRouteError();
   console.error(error);
   return (
-    <div className="flex min-h-dvh items-center justify-center p-6">
-      <Card className="max-w-md">
-        <EmptyState
-          icon={<TriangleAlert className="size-5" aria-hidden />}
-          title="Something went wrong on this page"
-          body={error instanceof Error ? error.message : 'An unexpected error occurred.'}
-          action={
-            <a href="/" className="text-sm font-semibold text-primary hover:underline">
-              Reload the dashboard
-            </a>
-          }
-        />
-      </Card>
+    <div className="mx-auto max-w-md p-6">
+      <MessageBar intent="error" action={<a href="/" className="text-sm underline">Reload</a>}>
+        {error instanceof Error ? error.message : 'Something went wrong.'}
+      </MessageBar>
     </div>
   );
 }

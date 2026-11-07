@@ -21,10 +21,11 @@ createRoot(document.getElementById('root')!).render(
           mobileOffset={{ top: 64, right: 12, left: 12 }}
           toastOptions={{
             classNames: {
-              toast: 'font-sans !rounded-xl !shadow-pop',
-              title: '!text-[13px] !font-semibold',
-              description: '!text-xs',
-              actionButton: '!bg-primary !text-white !font-semibold',
+              toast: '!font-sans !rounded-[var(--borderRadiusMedium)] !border-0 !shadow-[var(--shadow8)] !bg-[var(--colorNeutralBackground1)] !text-[var(--colorNeutralForeground1)]',
+              title: '!text-sm !font-semibold',
+              description: '!text-sm !text-[var(--colorNeutralForeground2)]',
+              actionButton:
+                '!bg-[var(--colorBrandBackground)] !text-white !font-semibold !rounded-[var(--borderRadiusMedium)] !h-6 !text-xs',
             },
           }}
         />
