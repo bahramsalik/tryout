@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { ChevronRight, File, FileCode2, FileJson, FileSpreadsheet, FileText, Folder, FolderOpen, Image as ImageIcon } from 'lucide-react';
+import { ChevronRight, File, FileCode2, FileJson, FileSpreadsheet, FileText, Folder, FolderOpen, Image as ImageIcon } from '@/components/icons';
 import { ApiError } from '@/lib/api';
 import { useFilePreview } from '@/lib/queries';
 import { Markdown } from './Markdown';
-import { Segmented, Skeleton, cn } from './ui';
+import { Skeleton, cn } from './ui';
 
 interface TreeNode {
   name: string;
@@ -71,7 +71,7 @@ export function FileBrowser({ submissionId, paths }: { submissionId: string; pat
   const [selected, setSelected] = useState<string | null>(() => defaultFile(paths));
 
   if (fileCount === 0) {
-    return <p className="px-4 py-6 text-center text-sm text-slate-500">The zip has no files to preview.</p>;
+    return <p className="px-4 py-6 text-center text-sm text-slate-500">No files.</p>;
   }
 
   return (
@@ -83,7 +83,7 @@ export function FileBrowser({ submissionId, paths }: { submissionId: string; pat
         {selected ? (
           <FilePreviewPane key={selected} submissionId={submissionId} path={selected} />
         ) : (
-          <p className="px-4 py-10 text-center text-sm text-slate-500">Select a file to preview it.</p>
+          <p className="px-4 py-10 text-center text-sm text-slate-500">Select a file.</p>
         )}
       </div>
     </div>
@@ -114,15 +114,15 @@ function TreeList({
               type="button"
               onClick={() => onSelect(n.path)}
               className={cn(
-                'flex w-full items-center gap-1.5 py-1 pr-2 text-left text-[12.5px] transition-colors',
-                selected === n.path ? 'bg-indigo-50 font-semibold text-indigo-800' : 'text-slate-700 hover:bg-slate-50',
+                'flex w-full items-center gap-1.5 py-1 pr-2 text-left text-xs transition-colors',
+                selected === n.path ? 'bg-[var(--colorNeutralBackground1Selected)] font-semibold text-slate-900' : 'text-slate-700 hover:bg-[var(--colorNeutralBackground1Hover)]',
               )}
               style={{ paddingLeft: 10 + depth * 14 + 16 }}
               title={n.path}
             >
               {(() => {
                 const Icon = fileIcon(n.name);
-                return <Icon className={cn('size-3.5 shrink-0', selected === n.path ? 'text-indigo-500' : 'text-slate-400')} aria-hidden />;
+                return <Icon className={cn('size-3.5 shrink-0', 'text-slate-500')} aria-hidden />;
               })()}
               <span className="truncate font-mono">{n.name}</span>
             </button>
@@ -153,14 +153,14 @@ function FolderItem({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-1 py-1 pr-2 text-left text-[12.5px] font-medium text-slate-700 hover:bg-slate-50"
+        className="flex w-full items-center gap-1 py-1 pr-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
         style={{ paddingLeft: 10 + depth * 14 }}
       >
         <ChevronRight className={cn('size-3.5 shrink-0 text-slate-400 transition-transform', open && 'rotate-90')} aria-hidden />
         {open ? (
-          <FolderOpen className="size-3.5 shrink-0 text-amber-500" aria-hidden />
+          <FolderOpen className="size-3.5 shrink-0 text-slate-500" aria-hidden />
         ) : (
-          <Folder className="size-3.5 shrink-0 text-amber-500" aria-hidden />
+          <Folder className="size-3.5 shrink-0 text-slate-500" aria-hidden />
         )}
         <span className="truncate font-mono">{node.name}</span>
       </button>
@@ -174,28 +174,15 @@ function FolderItem({
 function FilePreviewPane({ submissionId, path }: { submissionId: string; path: string }) {
   const { data, isPending, isError, error } = useFilePreview(submissionId, path);
   const isMd = /\.(md|markdown)$/i.test(path);
-  const [mode, setMode] = useState<'rendered' | 'raw'>(isMd ? 'rendered' : 'raw');
   const lines = data?.content.split('\n') ?? [];
 
   return (
     <div className="flex min-h-0 flex-col">
-      <div className="flex min-h-10 items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-1.5">
+      <div className="flex min-h-10 items-center gap-2 border-b border-slate-100 px-3 py-1.5">
         <span className="min-w-0 flex-1 truncate font-mono text-xs font-medium text-slate-700" title={path}>
           {path}
         </span>
-        {data?.truncated && <span className="text-[11px] font-medium text-amber-700">Truncated</span>}
-        {isMd && data && (
-          <Segmented
-            label="Markdown view"
-            size="sm"
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: 'rendered', label: 'Rendered' },
-              { value: 'raw', label: 'Raw' },
-            ]}
-          />
-        )}
+        {data?.truncated && <span className="text-xs font-medium text-amber-700">Truncated</span>}
       </div>
       {isPending ? (
         <div className="space-y-2 p-4">
@@ -208,19 +195,18 @@ function FilePreviewPane({ submissionId, path }: { submissionId: string; path: s
           {error instanceof ApiError && error.status !== 0
             ? `${error.message || 'Preview isn’t available for this file.'}`
             : 'Couldn’t load this file.'}
-          <span className="mt-1 block text-xs text-slate-400">Binary and large files can be checked in the downloaded zip.</span>
         </p>
-      ) : isMd && mode === 'rendered' ? (
+      ) : isMd ? (
         <div className="scrollbar-thin max-h-[30rem] overflow-auto px-4 py-3">
           <Markdown>{data?.content ?? ''}</Markdown>
         </div>
       ) : (
-        <div className="scrollbar-thin max-h-[30rem] overflow-auto bg-slate-950">
-          <pre className="py-3 font-mono text-[12px] leading-[1.6] text-slate-200">
+        <div className="scrollbar-thin max-h-[30rem] overflow-auto bg-[var(--colorNeutralBackground3)]">
+          <pre className="py-3 font-mono text-xs leading-[1.6] text-slate-900">
             <code>
               {lines.map((line, i) => (
                 <div key={i} className="flex">
-                  <span className="sticky left-0 w-10 shrink-0 bg-slate-950 pr-3 text-right text-slate-600 select-none">{i + 1}</span>
+                  <span className="sticky left-0 w-10 shrink-0 bg-[var(--colorNeutralBackground3)] pr-3 text-right text-slate-400 select-none">{i + 1}</span>
                   <span className="pr-4 whitespace-pre">{line || ' '}</span>
                 </div>
               ))}
