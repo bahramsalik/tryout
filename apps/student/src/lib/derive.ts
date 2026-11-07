@@ -28,24 +28,12 @@ export function recommendedLive(list: ChallengeView[] | undefined, interests: Ch
   return [...matches.sort(byDeadline), ...rest.sort((a, b) => b.rewardTotal - a.rewardTotal)];
 }
 
-export function practiceToDo(list: ChallengeView[] | undefined, interests: ChallengeType[] | undefined): ChallengeView[] {
-  const practice = (list ?? []).filter((c) => c.kind === 'practice' && c.status === 'open' && !c.viewer?.submissionId);
-  return [...practice.filter((c) => interests?.includes(c.type)), ...practice.filter((c) => !interests?.includes(c.type))];
-}
-
 /** Results are visible to the student: published live results, or an instant Coach review. */
 export function hasVisibleResult(s: SubmissionView): boolean {
   return s.status === 'awarded' || s.status === 'not_selected' || (s.reviewer === 'coach' && s.totalScore !== null);
 }
 
 export type SortKey = 'newest' | 'bounty' | 'deadline' | 'spots';
-
-export const SORT_LABEL: Record<SortKey, string> = {
-  newest: 'Newest',
-  bounty: 'Highest bounty',
-  deadline: 'Closing soon',
-  spots: 'Most spots left',
-};
 
 export function sortChallenges(list: ChallengeView[], sort: SortKey): ChallengeView[] {
   const arr = [...list];

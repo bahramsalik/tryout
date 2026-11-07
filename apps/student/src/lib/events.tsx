@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import type { ChallengeView, InterviewInvite, InviteView, Notification, ServerEvent, ServerEventType } from '@shared/types';
 import { api, eventsUrl } from './api';
-import { celebrate, pop } from './confetti';
-import { medal, money, ordinal } from './format';
+import { celebrate } from './confetti';
+import { money, ordinal } from './format';
 import { usePersona } from './persona';
 import { findChallengeAnywhere, qk, useCurrentStudent } from './queries';
 
@@ -85,10 +85,9 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const interests = interestsRef.current;
           if (challenge.kind === 'live' && interests?.includes(challenge.type)) {
             const from = challenge.company?.name ?? 'Tryout';
-            const reward = challenge.rewardTotal > 0 ? `${money(challenge.rewardTotal)} bounty` : 'Feedback guaranteed';
-            toast(`New from ${from}`, {
-              description: `${challenge.title} · ${reward} · ~${challenge.estHours} h`,
-              icon: '✨',
+            const reward = challenge.rewardTotal > 0 ? money(challenge.rewardTotal) : 'No bounty';
+            toast(`New challenge · ${from}`, {
+              description: `${challenge.title} · ${reward}`,
               duration: 9000,
               action: { label: 'View', onClick: () => navigateRef.current(`/challenges/${challenge.id}`) },
             });
@@ -132,21 +131,19 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           if (!iSubmitted) return;
           const info = findChallengeAnywhere(queryClient, me, challengeId);
           const title = info?.title ?? 'your challenge';
-          const company = info?.company?.name;
           const go = () => navigateRef.current(`/challenges/${challengeId}`);
           if (mine && mine.payout > 0) {
             celebrate();
-            toast.success(`${medal(mine.rank) ?? '🏆'} You placed ${ordinal(mine.rank)} — ${money(mine.payout)} is on its way`, {
-              description: `${title}${company ? ` · Feedback from ${company} is ready` : ''}`,
+            toast.success(`${ordinal(mine.rank)} place · ${money(mine.payout)}`, {
+              description: title,
               duration: 12000,
-              action: { label: 'See results', onClick: go },
+              action: { label: 'View', onClick: go },
             });
           } else {
-            toast('Results and feedback are in', {
-              description: `${title}${mine?.rank ? ` · You placed ${ordinal(mine.rank)}` : ''}${company ? ` · Feedback from ${company}` : ''}`,
-              icon: '📬',
+            toast(mine?.rank ? `Results in · ${ordinal(mine.rank)} place` : 'Results in', {
+              description: title,
               duration: 10000,
-              action: { label: 'Read feedback', onClick: go },
+              action: { label: 'View', onClick: go },
             });
           }
           return;
@@ -168,12 +165,10 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           } catch {
             inv(['invites']);
           }
-          pop({ x: 0.85, y: 0.12 });
-          toast.success(`${company} wants to interview you`, {
-            description: role ? `${role} · Respond in My work` : 'Respond in My work',
-            icon: '🎉',
+          toast(`Interview invite · ${company}`, {
+            description: role ?? undefined,
             duration: 12000,
-            action: { label: 'View invite', onClick: () => navigateRef.current('/work') },
+            action: { label: 'View', onClick: () => navigateRef.current('/work') },
           });
           return;
         }
@@ -191,7 +186,6 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
 
         case 'system.reset': {
           void queryClient.invalidateQueries();
-          toast('Demo data was reset', { icon: '🔄', description: 'Everything is fresh again.' });
           return;
         }
       }
