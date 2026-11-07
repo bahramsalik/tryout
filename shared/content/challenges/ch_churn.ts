@@ -555,7 +555,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_fernhill',
     title: 'Why are patients cancelling their telehealth plans?',
-    summary: 'Cancellations jumped from 2.8% to 4.6% a month. Use member data and exit surveys to find the real driver and tell us what to fix first.',
+    summary: 'Cancellations rose from 2.8% to 4.6% a month. Find the real driver and what to fix.',
     type: 'data',
     skills: ['Python', 'pandas', 'SQL', 'Segmentation', 'Survey analysis', 'Data storytelling'],
     classroomConcepts: [

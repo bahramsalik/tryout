@@ -587,7 +587,7 @@ const mod: ChallengeModule = {
     kind: 'practice',
     companyId: null,
     title: 'Synthesize six user-interview transcripts into insights',
-    summary: 'Turn six roommate interviews for a grocery-splitting app into evidence-backed themes, a clear priority order and a next bet.',
+    summary: 'Turn six user interviews into evidence-backed themes, a priority order and a next bet.',
     type: 'product',
     skills: ['User research', 'Thematic analysis', 'Affinity mapping', 'Prioritization', 'Product strategy'],
     classroomConcepts: [

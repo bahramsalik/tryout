@@ -461,7 +461,7 @@ const mod: ChallengeModule = {
     kind: 'practice',
     companyId: null,
     title: 'Accessibility audit of a checkout page',
-    summary: "A small tea shop's checkout blocks keyboard and screen reader users. Find the issues, map them to WCAG 2.2 and rank the fixes.",
+    summary: 'Audit a checkout page against WCAG 2.2 and rank the fixes for the shop owner.',
     type: 'design',
     skills: ['Accessibility', 'WCAG 2.2', 'Usability testing', 'HTML & CSS', 'UX writing'],
     classroomConcepts: [

@@ -473,7 +473,7 @@ const mod: ChallengeModule = {
     kind: 'practice',
     companyId: 'co_cobalt',
     title: 'Build a 3-statement model for a coffee subscription startup',
-    summary: 'Build an 8-quarter linked model for a coffee subscription startup and tell the bank when its $250K line gets drawn and how far.',
+    summary: 'Build an 8-quarter linked model and tell the bank when its $250K line gets drawn.',
     type: 'finance',
     skills: ['3-statement modeling', 'Working capital', 'Cash flow forecasting', 'Scenario analysis', 'Excel / Sheets', 'Credit analysis'],
     classroomConcepts: [

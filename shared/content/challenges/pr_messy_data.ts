@@ -599,7 +599,7 @@ const mod: ChallengeModule = {
     kind: 'practice',
     companyId: 'co_fernhill',
     title: 'Reconcile two messy clinic-visit exports',
-    summary: 'Scheduling shows 50 visits and billing shows 48. Clean both exports, match every visit and explain each gap to Finance.',
+    summary: 'Scheduling shows 50 visits, billing shows 48. Match every visit and explain each gap.',
     type: 'data',
     skills: ['Python', 'pandas', 'SQL', 'Data cleaning', 'Record linkage'],
     classroomConcepts: [

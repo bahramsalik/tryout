@@ -1154,7 +1154,7 @@ const mod: ChallengeModule = {
     kind: 'practice',
     companyId: null,
     title: 'Fix a flaky test suite',
-    summary: 'A Node service fails CI one run in five, on a different test each time. Find the three flaky tests, fix the causes, prove it.',
+    summary: 'A Node service fails CI one run in five. Find the three flaky tests and fix them.',
     type: 'software',
     skills: ['JavaScript', 'Node.js', 'Debugging', 'Automated testing', 'Async programming'],
     classroomConcepts: [

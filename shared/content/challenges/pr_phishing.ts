@@ -448,7 +448,7 @@ const mod: ChallengeModule = {
     kind: 'practice',
     companyId: 'co_ironvale',
     title: 'Dissect a phishing email and write the staff advisory',
-    summary: 'Pull apart a reported payroll phish: headers, SPF/DKIM/DMARC, the lookalike domain and link, then warn staff in plain words.',
+    summary: 'Pull apart a reported payroll phish, then warn staff in plain words.',
     type: 'security',
     skills: ['Email header analysis', 'SPF/DKIM/DMARC', 'Phishing triage', 'IOC extraction', 'Security awareness writing'],
     classroomConcepts: [

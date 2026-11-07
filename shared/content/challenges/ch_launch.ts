@@ -479,7 +479,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_sproutly',
     title: 'Launch plan for chickpea crisps on a $10k budget',
-    summary: 'Plan the first 6 weeks of our chickpea crisp launch in 180 stores: pick channels, split $10,000 and set KPIs from last launch data.',
+    summary: 'Plan a 6-week chickpea crisp launch: pick channels, split $10k, set KPIs.',
     type: 'marketing',
     skills: ['Go-to-market planning', 'Budget allocation', 'Audience research', 'Retail marketing', 'KPI design'],
     classroomConcepts: [

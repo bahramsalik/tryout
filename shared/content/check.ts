@@ -118,6 +118,9 @@ const EMPLOYERS: [string, string, string, string][] = [
 const BRIEF_SECTIONS = ['## Context', '## The task', '## Constraints', '## What we provide'];
 const MAX_FILE_BYTES = 15 * 1024;
 
+/** Text budget (SPEC-FLUENT §6). */
+const TEXT = { summaryChars: 90, criterionWords: 12, notificationTitleWords: 6, notificationBodyWords: 8 };
+
 /* ───────────────────────────── Helpers ───────────────────────────── */
 
 const errors: string[] = [];
@@ -130,12 +133,15 @@ const warnIf = (bad: unknown, msg: string): void => {
 };
 const words = (s: string): number => s.trim().split(/\s+/).filter(Boolean).length;
 const sentences = (s: string): number => (s.trim().match(/[.!?](?=\s|$)/g) ?? []).length;
+/** Words for the text budget: like `words`, but bare separators (`·`, `—`, `+`) don't count. */
+const budgetWords = (s: string): number => s.trim().split(/\s+/).filter((t) => t && !/^[·—–\-+|/]$/.test(t)).length;
+const NO_EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u;
 const bytes = (s: string): number => new TextEncoder().encode(s).length;
 const between = (n: number, lo: number, hi: number): boolean => n >= lo && n <= hi;
 const dupes = (xs: string[]): string[] => xs.filter((x, i) => xs.indexOf(x) !== i);
 const key = (challengeId: string, studentId: string): string => `${challengeId}:${studentId}`;
 
-function checkRubric(where: string, rubric: RubricCriterion[], min = 4, max = 5): void {
+function checkRubric(where: string, rubric: RubricCriterion[], min = 4, max = 5, maxDescWords = Infinity): void {
   check(between(rubric.length, min, max), `${where}: rubric has ${rubric.length} criteria (want ${min}–${max})`);
   const sum = rubric.reduce((s, c) => s + c.weight, 0);
   check(sum === 100, `${where}: rubric weights sum to ${sum}, not 100`);
@@ -144,6 +150,7 @@ function checkRubric(where: string, rubric: RubricCriterion[], min = 4, max = 5)
     check(/^[a-z][a-z0-9_]*$/.test(c.id), `${where}: criterion id "${c.id}" should be snake_case`);
     check(Number.isInteger(c.weight) && c.weight > 0, `${where}: criterion ${c.id} weight ${c.weight} must be a positive integer`);
     check(c.name.trim().length > 0 && c.description.trim().length >= 15, `${where}: criterion ${c.id} needs a name and description`);
+    check(budgetWords(c.description) <= maxDescWords, `${where}: criterion ${c.id} description is ${budgetWords(c.description)} words (max ${maxDescWords})`);
   }
 }
 
@@ -284,7 +291,7 @@ function run(content: SeedContent): void {
       check(c.seed.participants === p && c.seed.submissions === s && c.seed.scored === sc, `${w}: seed ${JSON.stringify(c.seed)} ≠ ${p}/${s}/${sc}`);
     }
     check(Number.isInteger(c.estHours) && between(c.estHours, PLATFORM_RULES.minEstHours, PLATFORM_RULES.maxEstHours), `${w}: estHours must be an integer 1–5`);
-    check(c.summary.length <= 140 && c.summary.length >= 30, `${w}: summary is ${c.summary.length} chars (want 30–140)`);
+    check(c.summary.length <= TEXT.summaryChars && c.summary.length >= 30, `${w}: summary is ${c.summary.length} chars (want 30–${TEXT.summaryChars})`);
     checkBrief(w, c.brief, 250, 450);
     check(between(c.deliverables.length, 3, 5), `${w}: ${c.deliverables.length} deliverables (want 3–5)`);
     check(between(c.skills.length, 3, 6), `${w}: ${c.skills.length} skills (want 3–6)`);
@@ -509,6 +516,9 @@ function run(content: SeedContent): void {
   for (const n of content.seedNotifications) {
     check(recipients.has(n.recipientId), `notification for unknown recipient ${n.recipientId}`);
     check(n.daysAgo >= 0, `notification "${n.title}" has negative daysAgo`);
+    check(budgetWords(n.title) <= TEXT.notificationTitleWords, `notification title "${n.title}" is over ${TEXT.notificationTitleWords} words`);
+    check(budgetWords(n.body) <= TEXT.notificationBodyWords, `notification body "${n.body}" is over ${TEXT.notificationBodyWords} words`);
+    check(!NO_EMOJI.test(n.title + n.body) && !/!/.test(n.title + n.body), `notification "${n.title}" has an emoji or exclamation mark`);
     const m = n.link?.match(/^\/challenges\/([a-z0-9_]+)/);
     if (m) check(byId.has(m[1]!), `notification links to unknown challenge ${m[1]}`);
   }
@@ -518,14 +528,14 @@ function run(content: SeedContent): void {
     const p = content.coachPacks[t];
     check(p, `coachPacks.${t} missing`);
     if (p) {
-      check(between(sentences(p.fieldIntro), 2, 4), `coachPacks.${t}: fieldIntro should be 2–4 sentences (has ~${sentences(p.fieldIntro)})`);
+      check(sentences(p.fieldIntro) === 1 && budgetWords(p.fieldIntro) <= 20, `coachPacks.${t}: fieldIntro should be 1 sentence of ≤ 20 words (has ~${sentences(p.fieldIntro)})`);
       check(p.learningPath.length === 4, `coachPacks.${t}: learning path should have 4 steps`);
       check(between(p.keywords.length, 8, 15), `coachPacks.${t}: ${p.keywords.length} keywords (want 8–15)`);
       check(p.keywords.every((k) => k === k.toLowerCase()), `coachPacks.${t}: keywords should be lowercase`);
     }
     const r = content.rubricTemplates[t];
     check(r, `rubricTemplates.${t} missing`);
-    if (r) checkRubric(`rubricTemplates.${t}`, r);
+    if (r) checkRubric(`rubricTemplates.${t}`, r, 4, 5, TEXT.criterionWords);
   }
   const allKeywords = CHALLENGE_TYPES.flatMap((t) => content.coachPacks[t]?.keywords ?? []);
   warnIf(dupes(allKeywords).length > 0, `coach keywords shared across fields: ${[...new Set(dupes(allKeywords))].join(', ')}`);
@@ -539,14 +549,14 @@ function run(content: SeedContent): void {
     const w = `wizardExamples.${id}`;
     check(ex.deadlineInDays === 7, `${w}: deadlineInDays should be 7`);
     check(!seededTitles.has(ex.title.toLowerCase()), `${w}: copies a seeded challenge`);
-    check(ex.summary.length <= 140, `${w}: summary is ${ex.summary.length} chars`);
+    check(ex.summary.length <= TEXT.summaryChars, `${w}: summary is ${ex.summary.length} chars (max ${TEXT.summaryChars})`);
     check(Number.isInteger(ex.estHours) && between(ex.estHours, 1, 5), `${w}: estHours must be 1–5`);
     check(CHALLENGE_TYPES.includes(ex.type), `${w}: bad type`);
     checkBrief(w, ex.brief, 200, 450);
     check(between(ex.deliverables.length, 3, 5), `${w}: want 3–5 deliverables`);
     check(between(ex.skills.length, 3, 6), `${w}: want 3–6 skills`);
     check(between(ex.classroomConcepts?.length ?? 0, 2, 4), `${w}: want 2–4 classroom concepts`);
-    checkRubric(w, ex.rubric);
+    checkRubric(w, ex.rubric, 4, 5, TEXT.criterionWords);
     checkReward(w, ex.reward);
     check(ex.applicantCap === null || (Number.isInteger(ex.applicantCap) && ex.applicantCap > 0), `${w}: bad applicantCap`);
     const roles = companyById.get(id)?.hiringFor ?? [];

@@ -1027,7 +1027,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_orbitline',
     title: 'Build a CSV shipment-import validator',
-    summary: 'Bad rows in shipper CSV uploads fail silently. Build a validator that tells ops which row and field is wrong, and how to fix it.',
+    summary: 'Build a CSV validator that tells ops which row and field is wrong, and how to fix it.',
     type: 'software',
     skills: ['Node.js', 'CSV parsing', 'Data validation', 'Error messages', 'Automated testing', 'CLI tools'],
     classroomConcepts: [

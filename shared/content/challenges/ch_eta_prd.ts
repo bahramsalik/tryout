@@ -508,7 +508,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_orbitline',
     title: 'Write the PRD for live delivery-ETA notifications',
-    summary: 'WISMO is our carriers\' #1 support driver. Write a PRD for delivery-ETA notifications that work with an imperfect ETA model.',
+    summary: 'WISMO is our #1 support driver. Write a PRD for ETA alerts on an imperfect model.',
     type: 'product',
     skills: ['PRD writing', 'Problem framing', 'User stories', 'Success metrics', 'Edge-case analysis'],
     classroomConcepts: [
