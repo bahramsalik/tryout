@@ -87,12 +87,12 @@ export function ProofProfile({ profile: p, publicView }: { profile: StudentProfi
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Card className="p-5">
+        <Card className="min-w-0 p-5">
           <SectionTitle>Skills</SectionTitle>
           {s.typeScores.length > 0 ? <SkillsRadar stats={s} /> : <p className="py-8 text-center text-body text-fg3">No scored work yet</p>}
         </Card>
 
-        <Card className="px-5 pt-5">
+        <Card className="min-w-0 px-5 pt-5">
           <SectionTitle className="mb-0">History</SectionTitle>
           {history.length === 0 ? (
             <EmptyState title="No work yet" className="my-5" />

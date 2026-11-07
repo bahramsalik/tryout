@@ -115,7 +115,7 @@ export function ChallengeMeta({ c, level, spots = true, className }: { c: Challe
       {spots && c.kind === 'live' ? (
         <Meta icon={People16Regular}>{c.applicantCap ? `${c.spotsLeft ?? 0} spots left` : `${c.participantCount} joined`}</Meta>
       ) : null}
-      {c.kind === 'live' ? <Countdown deadline={c.deadline} /> : null}
+      {c.kind === 'live' && c.status === 'open' ? <Countdown deadline={c.deadline} /> : null}
     </div>
   );
 }

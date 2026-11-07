@@ -236,7 +236,7 @@ export function SubmitPage() {
         </Link>
         <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
           <h1 className="text-title2 font-semibold text-fg1">Submit</h1>
-          {c.kind === 'live' ? <Countdown deadline={c.deadline} /> : null}
+          {c.kind === 'live' && c.status === 'open' ? <Countdown deadline={c.deadline} /> : null}
         </div>
       </header>
 
