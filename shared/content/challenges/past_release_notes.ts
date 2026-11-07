@@ -418,7 +418,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_kitebird',
     title: 'Write release notes + an in-app announcement for Groups',
-    summary: 'Turn a jargon-heavy changelog into launch copy for Groups: app store notes, an in-app card and a help article, all within hard limits.',
+    summary: 'Turn a jargon-heavy changelog into launch copy for Groups, within hard limits.',
     type: 'product',
     skills: ['UX writing', 'Release notes', 'Content design', 'Product communication', 'Editing'],
     classroomConcepts: [

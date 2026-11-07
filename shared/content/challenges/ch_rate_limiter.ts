@@ -1436,7 +1436,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_orbitline',
     title: 'Add rate limiting to our Shipment Tracking API',
-    summary: 'One API key flooded our tracking API at 1,800 req/min. Add per-key, tier-aware limits with 429s, Retry-After and tests.',
+    summary: 'One key flooded our API. Add per-key, tier-aware rate limits with 429s and tests.',
     type: 'software',
     skills: ['Node.js', 'Express', 'API design', 'Rate limiting', 'Automated testing', 'HTTP'],
     classroomConcepts: [

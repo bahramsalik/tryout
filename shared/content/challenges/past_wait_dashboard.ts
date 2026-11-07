@@ -723,7 +723,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_fernhill',
     title: 'Build a clinic wait-time dashboard',
-    summary: 'Turn two weeks of check-in timestamps from 4 clinics into a one-page wait-time dashboard managers can act on before their huddle.',
+    summary: 'Turn check-in timestamps from 4 clinics into a wait-time dashboard managers can use.',
     type: 'data',
     skills: ['SQL', 'Python', 'Data visualization', 'Dashboard design', 'Healthcare operations'],
     classroomConcepts: [

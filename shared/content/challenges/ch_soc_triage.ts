@@ -676,7 +676,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_ironvale',
     title: 'Triage a night of SIEM alerts',
-    summary: 'Work 12 overnight alerts for a credit union: clear false positives with evidence, find the one real incident, write the escalation.',
+    summary: 'Work 12 overnight alerts, clear false positives and escalate the one real incident.',
     type: 'security',
     skills: ['Alert triage', 'SIEM', 'Identity & MFA', 'Log correlation', 'Incident escalation', 'Detection tuning'],
     classroomConcepts: [

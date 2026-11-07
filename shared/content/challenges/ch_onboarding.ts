@@ -556,7 +556,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_kitebird',
     title: 'Redesign first-run onboarding to get new users to a first post',
-    summary: 'Only 18% of new users post in week one. Redesign our 7-screen onboarding so more people land in a community and post.',
+    summary: 'Only 18% of new users post in week one. Redesign onboarding so more of them post.',
     type: 'design',
     skills: ['UX design', 'User flows', 'Wireframing', 'UX writing', 'Product metrics', 'Research synthesis'],
     classroomConcepts: [

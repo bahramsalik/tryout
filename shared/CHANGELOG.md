@@ -5,6 +5,7 @@ Only the API session (S1) edits it, and only additively. Log every change here, 
 
 | Date/time | Change | Why | Frontends need to… |
 |---|---|---|---|
+| 2026-11-07 (S8) | Values only: `TYPE_META` colors → Fluent palette (≥ 4.5:1 on white and on `softBg`), matching light `softBg`, `blurb` ≤ 5 words with no period | SPEC-FLUENT §6 text diet + Fluent 2 | Nothing; don't add a period after `blurb` |
 | 2026-11-07 (S1) | `Challenge.awardedAt?: string \| null` (also on `ChallengeView`) | When results were published; drives "Results published 2 d ago" and the employer activity feed | Optional: show it on awarded challenges |
 | 2026-11-07 (S1) | `ChallengeView.avgScore?: number \| null` | Employer challenge header needs "average score"; only sent to the owning company's employers | Employer: use it instead of averaging submissions |
 | 2026-11-07 (S1) | `InviteView.student?: Student`; `GET /me/invites` also works for employers (their company's invites, with `student`) | Lets the employer UI know who was already invited (disable "Invite to interview") | Employer: optional |

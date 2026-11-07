@@ -72,34 +72,34 @@ const DELIVERABLE_PATH = /\.(pdf|md|docx?|pptx?|key|xlsx?|csv|fig|sketch|png|jpe
 
 /** Cheap, honest signals shown next to each submission (SPEC §7.7). */
 export function computeAutoChecks(type: ChallengeType, z: Pick<ZipInspection, 'tree' | 'readme' | 'fileCount'>, sizeBytes: number): AutoCheck[] {
-  const checks: AutoCheck[] = [{ label: 'README included', passed: z.readme !== null }];
+  const checks: AutoCheck[] = [{ label: 'README', passed: z.readme !== null }];
   const nonReadme = z.tree.filter((p) => !/^readme(\.[a-z0-9]+)?$/i.test(p.split('/').pop() ?? ''));
   if (type === 'software') {
-    checks.push({ label: 'Tests detected', passed: z.tree.some((p) => TEST_PATH.test(p)) });
-    checks.push({ label: 'Setup instructions found', passed: !!z.readme && SETUP_HINT.test(z.readme) });
+    checks.push({ label: 'Tests', passed: z.tree.some((p) => TEST_PATH.test(p)) });
+    checks.push({ label: 'Setup steps', passed: !!z.readme && SETUP_HINT.test(z.readme) });
   } else if (type === 'data') {
-    checks.push({ label: 'Analysis code or notebook included', passed: z.tree.some((p) => ANALYSIS_PATH.test(p)) });
-    checks.push({ label: 'Setup instructions found', passed: !!z.readme && SETUP_HINT.test(z.readme) });
+    checks.push({ label: 'Analysis code', passed: z.tree.some((p) => ANALYSIS_PATH.test(p)) });
+    checks.push({ label: 'Setup steps', passed: !!z.readme && SETUP_HINT.test(z.readme) });
   } else {
-    checks.push({ label: 'Deliverable files included', passed: nonReadme.some((p) => DELIVERABLE_PATH.test(p)) });
+    checks.push({ label: 'Deliverables', passed: nonReadme.some((p) => DELIVERABLE_PATH.test(p)) });
   }
-  checks.push({ label: 'Reasonable size (< 25 MB)', passed: sizeBytes < 25 * 1024 * 1024 && z.fileCount <= 500 });
+  checks.push({ label: 'Size OK', passed: sizeBytes < 25 * 1024 * 1024 && z.fileCount <= 500 });
   return checks;
 }
 
 /** Text preview of one file inside a zip (≤ 100 KB, truncated beyond). */
 export function previewZipFile(buf: Buffer, requestedPath: string): FilePreview {
   const wanted = requestedPath.replace(/\\/g, '/').replace(/^\.?\/+/, '');
-  if (!wanted) throw new HttpError(400, 'PATH_REQUIRED', 'Pass ?path=<file inside the zip>.');
+  if (!wanted) throw new HttpError(400, 'PATH_REQUIRED', 'Pass ?path=<file in zip>.');
   const zip = new AdmZip(buf);
   const entry = zip.getEntries().find((e) => e.entryName.replace(/\\/g, '/').replace(/^\.\//, '') === wanted);
   if (!entry || entry.isDirectory) throw new HttpError(404, 'FILE_NOT_FOUND', `No file "${wanted}" in this submission.`);
   if (entry.header.size > 5 * 1024 * 1024) {
-    throw new HttpError(413, 'PREVIEW_TOO_LARGE', 'That file is too large to preview. Download the zip instead.');
+    throw new HttpError(413, 'PREVIEW_TOO_LARGE', 'Too large to preview. Download the zip.');
   }
   const data = entry.getData();
   const head = data.subarray(0, Math.min(data.length, 8000));
-  if (head.includes(0)) throw new HttpError(415, 'NOT_TEXT', 'That file is binary and cannot be previewed.');
+  if (head.includes(0)) throw new HttpError(415, 'NOT_TEXT', "Binary file. Can't preview.");
   return {
     path: wanted,
     content: data.subarray(0, PREVIEW_MAX_BYTES).toString('utf8'),

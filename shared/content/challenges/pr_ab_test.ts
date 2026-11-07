@@ -362,7 +362,7 @@ const mod: ChallengeModule = {
     kind: 'practice',
     companyId: null,
     title: 'Design and size an email A/B test',
-    summary: 'A plant shop wants to test a welcome-email subject line and know by Friday. Size the test properly and give them an honest answer.',
+    summary: 'Size a welcome-email subject test properly and give an honest answer on timing.',
     type: 'marketing',
     skills: ['A/B testing', 'Sample size & power', 'Email marketing', 'Experiment design', 'Stakeholder communication'],
     classroomConcepts: [

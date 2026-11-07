@@ -28,7 +28,7 @@ import {
   type SubmissionView,
 } from '../../shared/types.ts';
 import type { SubmissionRecord } from './db.ts';
-import { truncate, usd } from './logic.ts';
+import { clipWords, truncate, usd } from './logic.ts';
 import type { EmployerPersona, Persona } from './persona.ts';
 import { getDb } from './store.ts';
 
@@ -276,7 +276,8 @@ export function inviteView(inv: InterviewInvite, opts: { withStudent?: boolean }
 
 /* ───────────── employer dashboard ───────────── */
 
-const shortTitle = (t: string) => truncate(t, 48);
+/** Feed lines are ≤ 8 words (SPEC-FLUENT §6). */
+const feedTitle = (t: string, words: number) => clipWords(t, words);
 
 export function activityFeed(companyId: string, limit = 30): ActivityItem[] {
   const db = getDb();
@@ -287,12 +288,12 @@ export function activityFeed(companyId: string, limit = 30): ActivityItem[] {
   for (const p of db.participations) {
     const ch = live.get(p.challengeId);
     if (!ch) continue;
-    items.push({ id: `act_join_${ch.id}_${p.studentId}`, kind: 'join', text: `${p.alias} joined ${shortTitle(ch.title)}`, challengeId: ch.id, studentId: p.studentId, at: p.joinedAt });
+    items.push({ id: `act_join_${ch.id}_${p.studentId}`, kind: 'join', text: `${p.alias} joined ${feedTitle(ch.title, 5)}`, challengeId: ch.id, studentId: p.studentId, at: p.joinedAt });
   }
   for (const s of db.submissions) {
     const ch = live.get(s.challengeId);
     if (!ch) continue;
-    items.push({ id: `act_sub_${s.id}`, kind: 'submission', text: `${s.alias} submitted to ${shortTitle(ch.title)}`, challengeId: ch.id, studentId: s.studentId, at: s.submittedAt });
+    items.push({ id: `act_sub_${s.id}`, kind: 'submission', text: `${s.alias} submitted ${feedTitle(ch.title, 5)}`, challengeId: ch.id, studentId: s.studentId, at: s.submittedAt });
     if (s.scoredAt && s.reviewer === 'employer' && s.totalScore !== null) {
       items.push({ id: `act_score_${s.id}`, kind: 'scored', text: `${nameOf(s.scoredBy)} scored ${s.alias} · ${s.totalScore}`, challengeId: ch.id, studentId: s.studentId, at: s.scoredAt });
     }
@@ -301,15 +302,13 @@ export function activityFeed(companyId: string, limit = 30): ActivityItem[] {
     if (!ch.awardedAt) continue;
     const paid = db.submissions.filter((s) => s.challengeId === ch.id && (s.payout ?? 0) > 0);
     const total = paid.reduce((sum, s) => sum + (s.payout ?? 0), 0);
-    const text = paid.length
-      ? `Results published for ${shortTitle(ch.title)} · ${paid.length} paid (${usd(total)})`
-      : `Results published for ${shortTitle(ch.title)}`;
+    const text = paid.length ? `Results out · ${feedTitle(ch.title, 4)} · ${usd(total)}` : `Results out · ${feedTitle(ch.title, 6)}`;
     items.push({ id: `act_award_${ch.id}`, kind: 'award', text, challengeId: ch.id, studentId: null, at: ch.awardedAt });
   }
   for (const inv of db.invites) {
     if (inv.companyId !== companyId) continue;
     const name = studentById(inv.studentId)?.name ?? 'a candidate';
-    items.push({ id: `act_inv_${inv.id}`, kind: 'invite', text: `Interview invite sent to ${name}`, challengeId: inv.challengeId, studentId: inv.studentId, at: inv.createdAt });
+    items.push({ id: `act_inv_${inv.id}`, kind: 'invite', text: `Invite sent to ${name}`, challengeId: inv.challengeId, studentId: inv.studentId, at: inv.createdAt });
   }
   return items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.id.localeCompare(b.id)).slice(0, limit);
 }

@@ -5,9 +5,7 @@
  */
 import {
   PLATFORM_RULES,
-  REWARD_MODE_LABEL,
   computeTotalScore,
-  rewardTotal,
   type AwardResponse,
   type Challenge,
   type ChallengeView,
@@ -25,14 +23,13 @@ import { practiceReview, synthesizeAiHints } from './ai.ts';
 import type { Participation, SubmissionRecord } from './db.ts';
 import { badRequest, conflict, forbidden, notFound } from './errors.ts';
 import { emit } from './events.ts';
-import { aliasCode, applyAward, assignAlias, computeAward, medal, ordinal, truncate, usd } from './logic.ts';
+import { aliasCode, applyAward, assignAlias, clipWords, computeAward, countWords, ordinal, usd } from './logic.ts';
 import type { EmployerPersona, StudentPersona } from './persona.ts';
 import { randomId } from './rng.ts';
 import { getDb, persist, writeUpload } from './store.ts';
 import {
   challengeById,
   challengeView,
-  companyById,
   inviteView,
   isAcceptingWork,
   participationOf,
@@ -43,7 +40,8 @@ import {
 import { computeAutoChecks, inspectZip, looksLikeZip } from './zip.ts';
 
 const nowIso = () => new Date().toISOString();
-const shortTitle = (t: string) => truncate(t, 48);
+/** Notification bodies are ≤ 8 words (SPEC-FLUENT §6); a clipped challenge title is usually the whole body. */
+const bodyTitle = (t: string, words = 8) => clipWords(t, words);
 
 function commit(events: ServerEvent[]): void {
   persist();
@@ -70,10 +68,6 @@ function notification(events: ServerEvent[], n: Omit<Notification, 'id' | 'creat
   return created;
 }
 
-function rewardBlurb(ch: Pick<Challenge, 'reward'>): string {
-  const total = rewardTotal(ch.reward);
-  return ch.reward.mode === 'none' ? REWARD_MODE_LABEL.none : `${REWARD_MODE_LABEL[ch.reward.mode]} · ${usd(total)}`;
-}
 
 function addParticipation(ch: Challenge, studentId: string): Participation {
   const db = getDb();
@@ -123,7 +117,7 @@ export function createChallenge(p: EmployerPersona, input: CreateChallengeInput)
       recipientId: s.id,
       kind: 'new_challenge',
       title: `New from ${p.company.name}`,
-      body: `${ch.title} · ${rewardBlurb(ch)} · ~${ch.estHours} h`,
+      body: bodyTitle(ch.title),
       link: `/challenges/${ch.id}`,
     });
   }
@@ -132,7 +126,7 @@ export function createChallenge(p: EmployerPersona, input: CreateChallengeInput)
 }
 
 export function updateChallenge(p: EmployerPersona, ch: Challenge, patch: { status?: 'open' | 'reviewing'; deadline?: string }): ChallengeView {
-  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results are published; this challenge can no longer change.');
+  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results are out. This challenge is locked.');
   if (patch.status) ch.status = patch.status;
   if (patch.deadline) ch.deadline = new Date(patch.deadline).toISOString();
   commit([{ type: 'challenge.updated', payload: { challengeId: ch.id, companyId: ch.companyId, reason: 'updated', studentId: null } }]);
@@ -140,8 +134,8 @@ export function updateChallenge(p: EmployerPersona, ch: Challenge, patch: { stat
 }
 
 export function joinChallenge(p: StudentPersona, ch: Challenge): ChallengeView {
-  if (participationOf(ch.id, p.id) || submissionOf(ch.id, p.id)) throw conflict('ALREADY_JOINED', 'You already joined this challenge.');
-  if (!isAcceptingWork(ch)) throw conflict('CLOSED', 'This challenge is no longer accepting participants.');
+  if (participationOf(ch.id, p.id) || submissionOf(ch.id, p.id)) throw conflict('ALREADY_JOINED', 'Already joined.');
+  if (!isAcceptingWork(ch)) throw conflict('CLOSED', 'This challenge is closed.');
   if (ch.applicantCap !== null && participantCount(ch.id) >= ch.applicantCap) {
     throw conflict('CAP_REACHED', `All ${ch.applicantCap} spots are taken.`);
   }
@@ -152,8 +146,8 @@ export function joinChallenge(p: StudentPersona, ch: Challenge): ChallengeView {
     notification(events, {
       recipientId: ch.companyId,
       kind: 'cap_reached',
-      title: `${shortTitle(ch.title)} is full`,
-      body: `All ${ch.applicantCap} spots are claimed. New students can't join.`,
+      title: `Challenge full · ${ch.applicantCap} spots`,
+      body: bodyTitle(ch.title),
       link: `/challenges/${ch.id}`,
     });
   }
@@ -165,9 +159,9 @@ export function joinChallenge(p: StudentPersona, ch: Challenge): ChallengeView {
 
 /** Cheap checks that don't need the upload; run before multer reads the body. */
 export function assertCanSubmit(p: StudentPersona, ch: Challenge): void {
-  if (!isAcceptingWork(ch)) throw conflict('CLOSED', 'This challenge is closed to new submissions.');
-  if (submissionOf(ch.id, p.id)) throw conflict('ALREADY_SUBMITTED', 'You already submitted to this challenge (one submission per student).');
-  if (ch.kind === 'live' && !participationOf(ch.id, p.id)) throw forbidden('NOT_JOINED', 'Join the challenge (claim a spot) before submitting.');
+  if (!isAcceptingWork(ch)) throw conflict('CLOSED', 'This challenge is closed.');
+  if (submissionOf(ch.id, p.id)) throw conflict('ALREADY_SUBMITTED', 'You already submitted. One per student.');
+  if (ch.kind === 'live' && !participationOf(ch.id, p.id)) throw forbidden('NOT_JOINED', 'Join the challenge first.');
 }
 
 export interface SubmitFields {
@@ -189,21 +183,21 @@ export function submitWork(
   assertCanSubmit(p, ch); // re-check: state may have changed while the upload streamed in
   const notes = asText(fields.notes).trim();
   if (notes.length < PLATFORM_RULES.minNotesChars) {
-    throw badRequest('NOTES_TOO_SHORT', `Approach notes need at least ${PLATFORM_RULES.minNotesChars} characters (got ${notes.length}).`);
+    throw badRequest('NOTES_TOO_SHORT', `Notes need ${PLATFORM_RULES.minNotesChars}+ characters (${notes.length} now).`);
   }
-  if (!file) throw badRequest('NOT_ZIP', 'Attach your work as a .zip file in the "file" field.');
+  if (!file) throw badRequest('NOT_ZIP', 'Attach a .zip file.');
   if (file.size > PLATFORM_RULES.maxUploadMb * 1024 * 1024) {
-    throw badRequest('FILE_TOO_LARGE', `Zips can be at most ${PLATFORM_RULES.maxUploadMb} MB.`);
+    throw badRequest('FILE_TOO_LARGE', `Max zip size is ${PLATFORM_RULES.maxUploadMb} MB.`);
   }
   const originalName = (file.originalname.split(/[\\/]/).pop() ?? 'submission.zip').replace(/[\u0000-\u001f]/g, '').slice(0, 120) || 'submission.zip';
   const { extOk, magicOk } = looksLikeZip(originalName, file.buffer);
-  if (!extOk) throw badRequest('NOT_ZIP', 'The file must have a .zip extension.');
-  if (!magicOk) throw badRequest('NOT_ZIP', "That file isn't a real zip (missing the PK signature).");
+  if (!extOk) throw badRequest('NOT_ZIP', 'Upload a .zip file.');
+  if (!magicOk) throw badRequest('NOT_ZIP', "That file isn't a real zip.");
   let info: ReturnType<typeof inspectZip>;
   try {
     info = inspectZip(file.buffer);
   } catch {
-    throw badRequest('NOT_ZIP', "That zip couldn't be read. Re-create it and try again.");
+    throw badRequest('NOT_ZIP', "That zip can't be read. Re-zip and retry.");
   }
 
   let demoUrl: string | null = asText(fields.demoUrl).trim() || null;
@@ -213,7 +207,7 @@ export function submitWork(
       const u = new URL(demoUrl);
       if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('protocol');
     } catch {
-      throw badRequest('INVALID_DEMO_URL', 'The demo/repo link must be an http(s) URL.');
+      throw badRequest('INVALID_DEMO_URL', 'Use an http(s) link.');
     }
   }
   const aiDisclosure = asText(fields.aiDisclosure).trim() || null;
@@ -276,8 +270,8 @@ export function submitWork(
     notification(events, {
       recipientId: p.id,
       kind: 'coach_review',
-      title: `Coach reviewed ${shortTitle(ch.title)}`,
-      body: `You scored ${sub.totalScore}/100 · Coach review (preview). See your feedback.`,
+      title: `Coach review · ${sub.totalScore}/100`,
+      body: bodyTitle(ch.title),
       link: `/challenges/${ch.id}`,
     });
   } else if (companyId) {
@@ -285,8 +279,8 @@ export function submitWork(
     notification(events, {
       recipientId: companyId,
       kind: 'submission_received',
-      title: `New submission on ${shortTitle(ch.title)}`,
-      body: `${sub.alias} submitted · ${awaiting} awaiting review`,
+      title: `New submission · ${awaiting} to review`,
+      body: `${sub.alias} · ${bodyTitle(ch.title, 8 - countWords(sub.alias))}`,
       link: `/challenges/${ch.id}/review/${id}`,
     });
   }
@@ -296,8 +290,8 @@ export function submitWork(
 
 export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input: ScoreSubmissionInput): SubmissionView {
   const ch = challengeById(sub.challengeId)!;
-  if (ch.kind === 'practice') throw conflict('PRACTICE_SUBMISSION', 'Practice submissions are reviewed by Coach, not scored by employers.');
-  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results are already published; scores are final.');
+  if (ch.kind === 'practice') throw conflict('PRACTICE_SUBMISSION', 'Coach reviews practice work.');
+  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results are out. Scores are final.');
   const issues: { path: string; message: string }[] = [];
   const scores = input.scores ?? {};
   const ids = new Set(ch.rubric.map((c) => c.id));
@@ -309,10 +303,10 @@ export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input
       issues.push({ path: `scores.${c.id}`, message: `Score must be an integer ${PLATFORM_RULES.scoreMin}–${PLATFORM_RULES.scoreMax}` });
     }
   }
-  if (issues.length) throw badRequest('INVALID_SCORES', `Score every criterion from ${PLATFORM_RULES.scoreMin} to ${PLATFORM_RULES.scoreMax}.`, issues);
+  if (issues.length) throw badRequest('INVALID_SCORES', `Score every criterion ${PLATFORM_RULES.scoreMin}–${PLATFORM_RULES.scoreMax}.`, issues);
   const feedback = (input.feedback ?? '').trim();
   if (feedback.length < PLATFORM_RULES.minFeedbackChars) {
-    throw badRequest('FEEDBACK_TOO_SHORT', `Written feedback needs at least ${PLATFORM_RULES.minFeedbackChars} characters (feedback is guaranteed to students).`);
+    throw badRequest('FEEDBACK_TOO_SHORT', `Feedback needs ${PLATFORM_RULES.minFeedbackChars}+ characters.`);
   }
   const clean: Record<string, number> = {};
   for (const c of ch.rubric) clean[c.id] = scores[c.id]!;
@@ -341,8 +335,8 @@ export function setShortlisted(p: EmployerPersona, sub: SubmissionRecord, shortl
 }
 
 export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse {
-  if (ch.kind === 'practice') throw conflict('PRACTICE_NOT_AWARDABLE', 'Practice tasks have no results to publish.');
-  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results for this challenge are already published.');
+  if (ch.kind === 'practice') throw conflict('PRACTICE_NOT_AWARDABLE', 'Practice tasks have no results.');
+  if (ch.status === 'awarded') throw conflict('ALREADY_AWARDED', 'Results are already out.');
   const db = getDb();
   const subs = db.submissions.filter((s) => s.challengeId === ch.id);
   const pending = subs.filter(
@@ -351,7 +345,7 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
   if (pending.length) {
     throw conflict(
       'UNSCORED_SUBMISSIONS',
-      `${pending.length} submission${pending.length === 1 ? '' : 's'} still need${pending.length === 1 ? 's' : ''} scores and written feedback before results can be published.`,
+      `Score ${pending.length} more submission${pending.length === 1 ? '' : 's'} first.`,
     );
   }
   const lines = computeAward(ch, subs);
@@ -365,22 +359,21 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
       payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank, payout: l.payout })) },
     },
   ];
-  const companyName = companyById(ch.companyId)?.name ?? 'the employer';
   for (const l of lines) {
     if (l.payout > 0) {
       notification(events, {
         recipientId: l.sub.studentId,
         kind: 'awarded',
-        title: `${medal(l.rank)} You placed ${ordinal(l.rank)} — ${usd(l.payout)} is on its way`,
-        body: `${ch.title} · ${companyName} · ${l.sub.totalScore}/100. Your feedback is ready.`,
+        title: `${ordinal(l.rank)} place · ${usd(l.payout)}`,
+        body: bodyTitle(ch.title),
         link: `/challenges/${ch.id}`,
       });
     } else {
       notification(events, {
         recipientId: l.sub.studentId,
         kind: 'results',
-        title: 'Results and feedback are in',
-        body: `${ch.title} · ${companyName} · You scored ${l.sub.totalScore}/100. See your feedback.`,
+        title: 'Results are in',
+        body: `${l.sub.totalScore}/100 · ${bodyTitle(ch.title, 7)}`,
         link: `/challenges/${ch.id}`,
       });
     }
@@ -402,14 +395,14 @@ export function createInvite(p: EmployerPersona, input: CreateInviteInput): Invi
   if (input.challengeId) {
     ch = challengeById(input.challengeId);
     if (!ch) throw notFound('CHALLENGE_NOT_FOUND', `No challenge ${input.challengeId}.`);
-    if (ch.companyId !== p.company.id) throw forbidden('NOT_OWNER', 'You can only reference your own challenges in an invite.');
+    if (ch.companyId !== p.company.id) throw forbidden('NOT_OWNER', 'Use one of your own challenges.');
   }
   const message = input.message.trim();
-  if (message.length < 10) throw badRequest('VALIDATION_ERROR', 'Write a short message (at least 10 characters).', [{ path: 'message', message: 'At least 10 characters' }]);
+  if (message.length < 10) throw badRequest('VALIDATION_ERROR', 'Message needs 10+ characters.', [{ path: 'message', message: 'At least 10 characters' }]);
   const dup = db.invites.find(
     (i) => i.companyId === p.company.id && i.studentId === student.id && (i.challengeId ?? null) === (input.challengeId ?? null) && i.status === 'pending',
   );
-  if (dup) throw conflict('ALREADY_INVITED', `${student.name} already has a pending invite from ${p.company.name}.`);
+  if (dup) throw conflict('ALREADY_INVITED', `${student.name} already has an invite.`);
   const role = input.role?.trim() || ch?.hiringFor || p.company.hiringFor[0] || null;
   const invite: InterviewInvite = {
     id: uniqueId('inv', (id) => db.invites.some((i) => i.id === id)),
@@ -426,8 +419,8 @@ export function createInvite(p: EmployerPersona, input: CreateInviteInput): Invi
   notification(events, {
     recipientId: student.id,
     kind: 'interview',
-    title: `${p.company.name} wants to interview you`,
-    body: `${role ? `${role} — ` : ''}${truncate(message, 140)}`,
+    title: `Interview invite · ${p.company.name}`,
+    body: bodyTitle(role ?? message),
     link: '/work',
   });
   commit(events);
@@ -435,16 +428,16 @@ export function createInvite(p: EmployerPersona, input: CreateInviteInput): Invi
 }
 
 export function respondToInvite(p: StudentPersona, invite: InterviewInvite, status: Exclude<InviteStatus, 'pending'>): InterviewInvite {
-  if (invite.studentId !== p.id) throw forbidden('NOT_YOURS', 'This invite belongs to another student.');
-  if (invite.status !== 'pending') throw conflict('ALREADY_RESPONDED', `You already ${invite.status} this invite.`);
+  if (invite.studentId !== p.id) throw forbidden('NOT_YOURS', 'Not your invite.');
+  if (invite.status !== 'pending') throw conflict('ALREADY_RESPONDED', `Already ${invite.status}.`);
   invite.status = status;
   const events: ServerEvent[] = [{ type: 'invite.updated', payload: { invite } }];
   const chTitle = invite.challengeId ? challengeById(invite.challengeId)?.title : null;
   notification(events, {
     recipientId: invite.companyId,
     kind: 'invite_response',
-    title: `${p.student.name} ${status} your interview invite`,
-    body: [invite.role, chTitle ? `via ${shortTitle(chTitle)}` : null].filter(Boolean).join(' · ') || 'Interview invite',
+    title: `${p.student.name.split(' ')[0]} ${status} your invite`,
+    body: bodyTitle(invite.role ?? chTitle ?? 'Interview invite'),
     link: `/candidates/${p.student.handle}`,
   });
   commit(events);

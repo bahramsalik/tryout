@@ -437,7 +437,7 @@ const mod: ChallengeModule = {
     kind: 'live',
     companyId: 'co_cobalt',
     title: 'Explain the Q3 budget miss to the CFO',
-    summary: 'Consumer Banking missed Q3 pre-tax budget by $3.6M. Find the real drivers and write the one-pager the CFO takes to the board.',
+    summary: 'Consumer Banking missed Q3 by $3.6M. Find the drivers and write the CFO one-pager.',
     type: 'finance',
     skills: ['Variance analysis', 'Price/volume analysis', 'Excel / Sheets', 'Bank P&L', 'Executive memo writing'],
     classroomConcepts: [

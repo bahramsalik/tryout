@@ -99,7 +99,7 @@ function mustSubmissionAccess(req: Request, id: string) {
   const ch = mustChallenge(sub.challengeId);
   if (p.kind === 'student' && p.id !== sub.studentId) throw forbidden('NOT_YOURS', 'You can only open your own submissions.');
   if (p.kind === 'employer' && !isOwner(p, ch)) {
-    throw forbidden('NOT_OWNER', "Files are only visible to the company that posted the challenge. You can see this candidate's score and feedback excerpt on their profile.");
+    throw forbidden('NOT_OWNER', 'Only the posting company can see files.');
   }
   return { p, sub, ch };
 }
@@ -108,7 +108,7 @@ function readUpload(id: string): Buffer {
   try {
     return fs.readFileSync(uploadPath(id));
   } catch {
-    throw notFound('FILE_MISSING', 'The zip for this submission is missing on the server (try reseeding).');
+    throw notFound('FILE_MISSING', 'Zip missing on the server. Try reseeding.');
   }
 }
 
@@ -357,9 +357,9 @@ export function createApp() {
     const ch = mustChallenge(param(req, 'id'));
     const p = requirePersona(req);
     const owner = isOwner(p, ch);
-    if (p.kind === 'employer' && !owner) throw forbidden('NOT_OWNER', 'Only the company that posted the challenge can see its leaderboard.');
+    if (p.kind === 'employer' && !owner) throw forbidden('NOT_OWNER', 'Only the posting company can see this.');
     if (p.kind === 'student' && !(ch.kind === 'live' && ch.status === 'awarded')) {
-      throw forbidden('RESULTS_NOT_PUBLISHED', 'The leaderboard is visible once results are published.');
+      throw forbidden('RESULTS_NOT_PUBLISHED', 'Leaderboard opens when results are out.');
     }
     const ranked = rankScored(getDb().submissions.filter((s) => s.challengeId === ch.id));
     res.json(
@@ -560,7 +560,7 @@ export function createApp() {
     } else if (err instanceof multer.MulterError) {
       status = 400;
       if (err.code === 'LIMIT_FILE_SIZE') error = { code: 'FILE_TOO_LARGE', message: `Zips can be at most ${PLATFORM_RULES.maxUploadMb} MB.` };
-      else if (err.code === 'LIMIT_UNEXPECTED_FILE') error = { code: 'UNEXPECTED_FIELD', message: 'Send exactly one zip in a multipart field named "file".' };
+      else if (err.code === 'LIMIT_UNEXPECTED_FILE') error = { code: 'UNEXPECTED_FIELD', message: 'Send one zip in the "file" field.' };
       else error = { code: 'UPLOAD_ERROR', message: err.message };
     } else if (e?.type === 'entity.parse.failed') {
       status = 400;

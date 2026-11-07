@@ -20,6 +20,7 @@ import {
 } from '../../shared/types.ts';
 import { AI_LATENCY_MAX_MS, AI_LATENCY_MIN_MS } from './config.ts';
 import { notFound } from './errors.ts';
+import { clipWords, countWords } from './logic.ts';
 import { makeRng } from './rng.ts';
 import { getDb } from './store.ts';
 import { isAcceptingWork, submissionOf } from './views.ts';
@@ -95,7 +96,9 @@ function recommend(types: ChallengeType[], student: Student): string[] {
   return out;
 }
 
-const LEAD_INS = ['Good question!', 'Happy to help.', "Let's dig in.", 'Great thing to ask before you start.'];
+/** Coach replies stay inside SPEC-FLUENT §6's budget. */
+export const COACH_MAX_WORDS = 60;
+const ITEM_MAX_WORDS = 12;
 
 function routeFreeText(message: string): CoachQuickPrompt | 'overview' {
   const m = message.toLowerCase();
@@ -105,38 +108,93 @@ function routeFreeText(message: string): CoachQuickPrompt | 'overview' {
   return 'overview';
 }
 
-const numbered = (items: string[]) => items.map((s, i) => `${i + 1}. ${s}`).join('\n');
-const bullets = (items: string[]) => items.map((s) => `- ${s}`).join('\n');
-const rubricSummary = (rubric: RubricCriterion[]) =>
-  bullets([...rubric].sort((a, b) => b.weight - a.weight).map((c) => `**${c.name}** (${c.weight}%): ${c.description}`));
+/** The lead clause of a hint ("Limiting by IP address: every test…" → "Limiting by IP address"), at most ITEM_MAX_WORDS. */
+export function leadClause(item: string): string {
+  let s = item.trim().split(/(?<=[.!?])\s+(?=[A-Z])/)[0]!.replace(/[.!?]$/, '');
+  const cuts: [RegExp, number][] = [
+    [/:\s|;\s|\s[—–]\s|\s\(/, 3], // strong separators
+    [/,?\s(?:so that|so|then|which|because|instead of|rather than|without|before|until|while|especially)\s/, 3],
+    [/,\s(?:and|or|but)\s/, 4],
+    [/,\s/, 4],
+  ];
+  for (const [re, minWords] of cuts) {
+    if (countWords(s) <= ITEM_MAX_WORDS) break;
+    const head = s.split(re)[0]!;
+    // Skip intro phrases ("For each alert, …") that aren't a clause on their own.
+    if (countWords(head) >= minWords && !INTRO.test(head)) s = tidy(head);
+  }
+  if (countWords(s) > ITEM_MAX_WORDS) {
+    // Last resort: end at the latest connector word that keeps the clause whole ("…and compare" → "…").
+    const tokens = s.split(/\s+/);
+    for (let i = Math.min(ITEM_MAX_WORDS, tokens.length - 1); i >= 4; i--) {
+      if (CONNECTORS.has(tokens[i]!.toLowerCase())) return tidy(tokens.slice(0, i).join(' '));
+    }
+  }
+  return clipWords(s, ITEM_MAX_WORDS);
+}
 
-// DUMMY-AI: Coach chat (recommend mode without a challenge, task mode with one).
+const INTRO = /^(for|on|if|when|after|before|once|in|with|using|as)\b[^,]*$/i;
+const CONNECTORS = new Set(['and', 'or', 'to', 'with', 'for', 'by', 'when', 'if', 'after']);
+const DANGLING = /\s+(?:a|an|the|of|to|and|or|that|with|for|by|in|on|at|as|from|into|just|noting|only|even|which|when)$/i;
+const tidy = (s: string) => {
+  let out = s.replace(/[,;:]$/, '');
+  while (DANGLING.test(out)) out = out.replace(DANGLING, '');
+  return out;
+};
+
+/** Tight list items, dropping trailing ones once the reply would pass COACH_MAX_WORDS. */
+function fitList(items: string[], format: (s: string, i: number) => string): string {
+  const out: string[] = [];
+  let used = 0;
+  for (const raw of items) {
+    const line = format(leadClause(raw), out.length);
+    const n = countWords(line);
+    if (out.length && used + n > COACH_MAX_WORDS) break;
+    out.push(line);
+    used += n;
+  }
+  return out.join('\n');
+}
+
+/** Whole sentences from the start of `text`, up to `max` words. */
+function firstSentences(text: string, max: number): string {
+  const sentences = text.trim().match(/[^.!?]+[.!?]+(\s|$)/g) ?? [text];
+  let out = '';
+  for (const s of sentences) {
+    const next = `${out}${s}`;
+    if (out && countWords(next) > max) break;
+    out = next;
+  }
+  return clipWords(out.trim(), max);
+}
+
+const numbered = (s: string, i: number) => `${i + 1}. ${s}`;
+const bullet = (s: string) => `- ${s}`;
+const rubricList = (rubric: RubricCriterion[]) =>
+  [...rubric].sort((a, b) => b.weight - a.weight).map((c) => `- **${c.name}** · ${c.weight}%`).join('\n');
+
+// DUMMY-AI: Coach chat (recommend mode without a challenge, task mode with one). Replies ≤ 60 words.
 export function coachReply(req: CoachRequest, student: Student): CoachResponse {
   const message = (req.message ?? '').trim();
-  const rng = makeRng(`${message}:${req.challengeId ?? ''}:${req.quickPrompt ?? ''}`);
 
   if (req.challengeId) {
     const ch = getDb().challenges.find((c) => c.id === req.challengeId);
     if (!ch) throw notFound('CHALLENGE_NOT_FOUND', `No challenge ${req.challengeId}.`);
     const hints: ChallengeAiHints = ch.aiHints;
     const mode = req.quickPrompt ?? (message ? routeFreeText(message) : 'overview');
-    const lead = req.quickPrompt ? '' : `${rng.pick(LEAD_INS)} `;
     let reply: string;
     switch (mode) {
       case 'testing':
-        reply = `${lead}Here's what **${ch.title}** is really testing:\n\n${hints.testing}`;
-        break;
-      case 'steps':
-        reply = `${lead}Here's how I'd break it into steps (aim for about ${ch.estHours} h in total):\n\n${numbered(hints.steps)}`;
+        reply = firstSentences(hints.testing, 40);
         break;
       case 'greatLooksLike':
-        reply = `${lead}What a great submission looks like:\n\n${hints.greatLooksLike}\n\n**How you'll be judged**\n${rubricSummary(ch.rubric)}`;
+        reply = rubricList(ch.rubric);
         break;
       case 'pitfalls':
-        reply = `${lead}Common pitfalls to avoid:\n\n${bullets(hints.pitfalls)}`;
+        reply = fitList(hints.pitfalls, bullet);
         break;
-      default:
-        reply = `${lead}${hints.testing}\n\n**A good way to tackle it**\n${numbered(hints.steps)}`;
+      default: // 'steps' and 'overview'
+        reply = fitList(hints.steps, numbered);
     }
     return { reply, recommendedChallengeIds: [] };
   }
@@ -144,17 +202,13 @@ export function coachReply(req: CoachRequest, student: Student): CoachResponse {
   const types = rankTypes(message, student);
   const primary = types[0] ?? student.interests[0] ?? 'software';
   const pack = getDb().content.coachPacks[primary];
-  const ids = recommend(types.length ? types : [primary], student);
-  const joinedOpen = ids
-    .map((id) => getDb().challenges.find((c) => c.id === id))
-    .find((c) => c && getDb().participations.some((p) => p.challengeId === c.id && p.studentId === student.id));
-  const parts = [
-    `**${TYPE_META[primary].label}** looks like a great fit. ${pack?.fieldIntro ?? TYPE_META[primary].blurb}`,
-    pack?.learningPath?.length ? `**Your learning path**\n${numbered(pack.learningPath)}` : '',
-    joinedOpen ? `You've already joined **${joinedOpen.title}**, so finishing that one is the fastest way to add verified hours.` : '',
-    ids.length ? `Here are ${ids.length} task${ids.length === 1 ? '' : 's'} that match:` : 'No open tasks match right now. Check back soon!',
-  ].filter(Boolean);
-  return { reply: parts.join('\n\n'), recommendedChallengeIds: ids };
+  const found = recommend(types.length ? types : [primary], student);
+  // A challenge the student already joined goes first: finishing it is the fastest verified hours.
+  const joined = found.find((id) => getDb().participations.some((p) => p.challengeId === id && p.studentId === student.id));
+  const ids = joined ? [joined, ...found.filter((id) => id !== joined)] : found;
+  const intro = firstSentences(pack?.fieldIntro ?? `${TYPE_META[primary].label}: ${TYPE_META[primary].blurb}.`, 30);
+  const reply = `${intro} ${ids.length ? 'Start here:' : 'No open tasks match right now.'}`;
+  return { reply, recommendedChallengeIds: ids };
 }
 
 // DUMMY-AI: "Suggest rubric" — the field's rubric template.
@@ -191,10 +245,10 @@ export function synthesizeAiHints(input: CreateChallengeInput): ChallengeAiHints
       first ? ` It's judged most on **${first.name}** (${first.weight}%)${second ? ` and **${second.name}** (${second.weight}%)` : ''}.` : ''
     }`,
     steps: [
-      'Read the brief twice and list exactly what you need to hand in',
-      ...input.deliverables.slice(0, 4).map((d) => `Produce: ${d}`),
-      'Check your work against each rubric criterion',
-      "Write approach notes: what you built, key decisions and trade-offs, and what you'd do with more time",
+      'List exactly what you need to hand in',
+      ...input.deliverables.slice(0, 4).map((d) => `Produce ${d.charAt(0).toLowerCase()}${d.slice(1)}`),
+      'Check your work against the rubric',
+      'Write notes on your decisions and trade-offs',
     ],
     greatLooksLike: `A great submission covers every deliverable, stays inside the ${input.estHours}-hour time box and makes its trade-offs explicit. ${top
       .slice(0, 3)
@@ -236,5 +290,5 @@ export function practiceReview(
   ]
     .filter(Boolean)
     .join('\n\n');
-  return { scores, totalScore, feedback: feedback.length >= PLATFORM_RULES.minFeedbackChars ? feedback : `${feedback} Keep practicing!` };
+  return { scores, totalScore, feedback: feedback.length >= PLATFORM_RULES.minFeedbackChars ? feedback : `${feedback} Use the rubric as a checklist next time.` };
 }
