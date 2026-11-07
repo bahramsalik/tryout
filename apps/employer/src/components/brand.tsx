@@ -1,19 +1,14 @@
-import { useEffect, useState, type ComponentType, type CSSProperties, type SVGProps } from 'react';
+import { useEffect, useState, type ComponentType, type CSSProperties } from 'react';
 import {
-  Calculator,
-  Check,
-  Clock,
-  Code,
-  Compass,
-  Database,
-  EyeOff,
-  Lock,
-  Megaphone,
-  Palette,
-  ShieldCheck,
-  Trophy,
-  Users,
-} from 'lucide-react';
+  Code20Regular,
+  DataBarVertical20Regular,
+  DesignIdeas20Regular,
+  Lightbulb20Regular,
+  Megaphone20Regular,
+  Money20Regular,
+  Shield20Regular,
+} from '@fluentui/react-icons';
+import { Check, Clock, EyeOff, Lock, Trophy, TrophyFilled } from '@/components/icons';
 import {
   REWARD_MODE_LABEL,
   TYPE_META,
@@ -22,82 +17,58 @@ import {
   type ChallengeType,
   type Company,
   type Reward,
-  type TypeMeta,
 } from '@shared/types';
 import { initials, money, timeLeft } from '@/lib/format';
-import { cn } from './ui';
+import { Badge, cn } from './ui';
 
-/* ───────────────────────────── Logo ───────────────────────────── */
+/* ───────────────────────────── Brand mark ─────────────────────────────
+   24 px brand square, radius 4, white checkmark + "tryout" wordmark (600). Same on both sites. */
 
-export function LogoMark({ size = 28, className }: { size?: number; className?: string }) {
+export function LogoMark({ size = 24, className }: { size?: number; className?: string }) {
   return (
     <span
-      className={cn('inline-flex shrink-0 items-center justify-center rounded-lg shadow-sm', className)}
-      style={{ width: size, height: size, background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}
+      className={cn('inline-flex shrink-0 items-center justify-center rounded-[var(--borderRadiusMedium)] bg-[var(--colorBrandBackground)]', className)}
+      style={{ width: size, height: size }}
       aria-hidden
     >
-      <Check className="text-white" style={{ width: size * 0.62, height: size * 0.62 }} strokeWidth={3.25} />
+      <Check className="text-[var(--colorNeutralForegroundOnBrand)]" style={{ width: size * 0.7, height: size * 0.7 }} />
     </span>
   );
 }
 
-export function Wordmark({ dark, className }: { dark?: boolean; className?: string }) {
-  return (
-    <span
-      className={cn(
-        'text-[20px] leading-none font-extrabold tracking-[-0.045em]',
-        dark ? 'text-white' : 'text-slate-900',
-        className,
-      )}
-    >
-      tryout
-    </span>
-  );
+export function Wordmark({ className }: { dark?: boolean; className?: string }) {
+  return <span className={cn('text-base leading-none font-semibold text-[var(--colorNeutralForeground1)]', className)}>tryout</span>;
 }
 
 export function EmployerPill({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex h-[18px] items-center rounded-full bg-white/10 px-2 text-[10px] font-semibold tracking-wide text-indigo-200 ring-1 ring-white/15 ring-inset',
-        className,
-      )}
-    >
-      for employers
-    </span>
-  );
+  return <span className={cn('text-sm text-[var(--colorNeutralForeground3)]', className)}>Employers</span>;
 }
 
-/* ───────────────────────────── Types ───────────────────────────── */
+/* ───────────────────────────── Challenge types ───────────────────────────── */
 
-const TYPE_ICONS: Record<TypeMeta['icon'], ComponentType<SVGProps<SVGSVGElement>>> = {
-  Code,
-  Database,
-  Palette,
-  Compass,
-  Megaphone,
-  Calculator,
-  ShieldCheck,
+const TYPE_ICONS: Record<ChallengeType, ComponentType<{ className?: string; style?: CSSProperties }>> = {
+  software: Code20Regular,
+  data: DataBarVertical20Regular,
+  design: DesignIdeas20Regular,
+  product: Lightbulb20Regular,
+  marketing: Megaphone20Regular,
+  finance: Money20Regular,
+  security: Shield20Regular,
 };
 
 export function TypeIcon({ type, className, style }: { type: ChallengeType; className?: string; style?: CSSProperties }) {
-  const meta = TYPE_META[type] ?? TYPE_META.software;
-  const Icon = TYPE_ICONS[meta.icon] ?? Code;
+  const Icon = TYPE_ICONS[type] ?? Code20Regular;
   return <Icon className={className} style={style} aria-hidden />;
 }
 
-export function TypeChip({ type, className, size = 'md' }: { type: ChallengeType; className?: string; size?: 'sm' | 'md' }) {
+export function TypeChip({ type, className }: { type: ChallengeType; className?: string; size?: 'sm' | 'md' }) {
   const meta = TYPE_META[type] ?? TYPE_META.software;
   return (
     <span
-      className={cn(
-        'inline-flex shrink-0 items-center gap-1 rounded-md font-semibold whitespace-nowrap',
-        size === 'sm' ? 'h-5 px-1.5 text-[11px]' : 'h-6 px-2 text-xs',
-        className,
-      )}
+      className={cn('inline-flex h-5 shrink-0 items-center gap-1 rounded-[var(--borderRadiusCircular)] px-2 text-xs font-semibold whitespace-nowrap', className)}
       style={{ backgroundColor: meta.softBg, color: meta.color }}
     >
-      <TypeIcon type={type} className={size === 'sm' ? 'size-3' : 'size-3.5'} />
+      <TypeIcon type={type} className="size-3" />
       {meta.label}
     </span>
   );
@@ -105,28 +76,14 @@ export function TypeChip({ type, className, size = 'md' }: { type: ChallengeType
 
 /* ───────────────────────────── Money ───────────────────────────── */
 
-export function RewardBadge({ reward, className, size = 'md' }: { reward: Reward; className?: string; size?: 'sm' | 'md' }) {
+export function RewardBadge({ reward, className }: { reward: Reward; className?: string; size?: 'sm' | 'md' }) {
   const total = rewardTotal(reward);
-  const text = size === 'sm' ? 'text-[11px] h-5 px-1.5' : 'text-xs h-6 px-2';
-  if (reward.mode === 'none' || total === 0) {
-    return (
-      <span className={cn('inline-flex items-center gap-1 rounded-md bg-slate-100 font-semibold text-slate-600', text, className)}>
-        No bounty
-      </span>
-    );
-  }
+  if (reward.mode === 'none' || total === 0) return <Badge className={className}>No reward</Badge>;
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 rounded-md bg-amber-50 font-semibold whitespace-nowrap text-amber-800 ring-1 ring-amber-200 ring-inset',
-        text,
-        className,
-      )}
-    >
-      <Trophy className={size === 'sm' ? 'size-3' : 'size-3.5'} aria-hidden />
+    <Badge className={className} icon={<Trophy />}>
       <span className="tabular-nums">{money(total)}</span>
-      <span className="font-medium text-amber-700/80">· {reward.mode === 'winner' ? 'Winner' : 'Top 3'}</span>
-    </span>
+      <span className="font-normal">· {reward.mode === 'winner' ? 'Winner' : 'Top 3'}</span>
+    </Badge>
   );
 }
 
@@ -147,21 +104,14 @@ export function EscrowChip({
 }) {
   if (amount <= 0) return null;
   return (
-    <span
-      className={cn(
-        'inline-flex h-6 items-center gap-1 rounded-md bg-emerald-50 px-2 text-xs font-semibold whitespace-nowrap text-emerald-700 ring-1 ring-emerald-200 ring-inset',
-        className,
-      )}
-      title={state === 'escrowed' ? 'Held in escrow until you publish results' : 'Paid out to winners'}
-    >
-      <Lock className="size-3" aria-hidden />
+    <Badge tone={state === 'paid' ? 'emerald' : 'slate'} icon={<Lock />} className={className}>
       <span className="tabular-nums">{money(amount)}</span> {state === 'escrowed' ? 'escrowed' : 'paid'}
-    </span>
+    </Badge>
   );
 }
 
 export function Money({ amount, className }: { amount: number; className?: string }) {
-  return <span className={cn('font-semibold text-emerald-700 tabular-nums', className)}>{money(amount)}</span>;
+  return <span className={cn('font-semibold tabular-nums', className)}>{money(amount)}</span>;
 }
 
 /* ───────────────────────────── People & companies ───────────────────────────── */
@@ -175,26 +125,15 @@ export function CompanyLogo({
   size?: number;
   className?: string;
 }) {
-  if (!company) {
-    return (
-      <span
-        className={cn('inline-flex shrink-0 items-center justify-center rounded-lg', className)}
-        style={{ width: size, height: size, background: 'linear-gradient(135deg, #4F46E5, #7C3AED)' }}
-        aria-hidden
-      >
-        <LogoMark size={size * 0.7} className="shadow-none" />
-      </span>
-    );
-  }
+  if (!company) return <LogoMark size={size} className={className} />;
   return (
     <span
-      className={cn('inline-flex shrink-0 items-center justify-center rounded-lg font-bold text-white', className)}
+      className={cn('inline-flex shrink-0 items-center justify-center rounded-[var(--borderRadiusMedium)] font-semibold text-white', className)}
       style={{
         width: size,
         height: size,
         backgroundColor: company.logoColor,
         fontSize: Math.max(9, Math.round(size * 0.38)),
-        letterSpacing: '-0.02em',
       }}
       title={company.name}
       aria-hidden
@@ -221,7 +160,7 @@ export function Avatar({
   if (blind) {
     return (
       <span
-        className={cn('inline-flex shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500', className)}
+        className={cn('inline-flex shrink-0 items-center justify-center rounded-full bg-[var(--colorNeutralBackground6)] text-[var(--colorNeutralForeground3)]', className)}
         style={{ width: size, height: size }}
         aria-hidden
       >
@@ -232,7 +171,7 @@ export function Avatar({
   return (
     <span
       className={cn('inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white', className)}
-      style={{ width: size, height: size, backgroundColor: color ?? '#64748B', fontSize: Math.round(size * 0.38) }}
+      style={{ width: size, height: size, backgroundColor: color ?? 'var(--colorNeutralForeground3)', fontSize: Math.round(size * 0.38) }}
       aria-hidden
     >
       {initials(name)}
@@ -243,23 +182,16 @@ export function Avatar({
 /* ───────────────────────────── Status & progress ───────────────────────────── */
 
 export function StatusBadge({ status, className }: { status: ChallengeStatus; className?: string }) {
-  const map: Record<ChallengeStatus, { label: string; cls: string }> = {
-    open: { label: 'Open', cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
-    reviewing: { label: 'Reviewing', cls: 'bg-amber-50 text-amber-800 ring-amber-200' },
-    awarded: { label: 'Awarded', cls: 'bg-violet-50 text-violet-700 ring-violet-200' },
+  const map: Record<ChallengeStatus, { label: string; tone: 'emerald' | 'amber' | 'slate' }> = {
+    open: { label: 'Open', tone: 'emerald' },
+    reviewing: { label: 'Reviewing', tone: 'slate' },
+    awarded: { label: 'Awarded', tone: 'slate' },
   };
   const s = map[status] ?? map.open;
   return (
-    <span
-      className={cn(
-        'inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-[11px] font-semibold ring-1 ring-inset',
-        s.cls,
-        className,
-      )}
-    >
-      <span className={cn('size-1.5 rounded-full bg-current', status === 'open' && 'animate-pulse')} aria-hidden />
+    <Badge tone={s.tone} className={className}>
       {s.label}
-    </span>
+    </Badge>
   );
 }
 
@@ -278,21 +210,20 @@ export function SpotsBar({
   const full = cap != null && joined >= cap;
   return (
     <div className={cn('min-w-0', className)}>
-      <div className={cn('flex items-center justify-between gap-2 text-xs', compact && 'text-[11px]')}>
+      <div className={cn('flex items-center justify-between gap-2 text-xs', compact && 'text-xs')}>
         <span className="flex items-center gap-1 text-slate-600 tabular-nums">
-          {!compact && <Users className="size-3.5 text-slate-400" aria-hidden />}
           <span className="font-semibold text-slate-800">{joined}</span>
           {cap != null ? <span className="text-slate-400">/ {cap}</span> : <span className="text-slate-400">joined</span>}
         </span>
         {!compact && cap != null && (
-          <span className={cn('text-[11px]', full ? 'font-semibold text-amber-700' : 'text-slate-400')}>
+          <span className={cn('text-xs', full ? 'font-semibold text-amber-700' : 'text-slate-400')}>
             {full ? 'Full' : `${cap - joined} left`}
           </span>
         )}
       </div>
       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
         <div
-          className={cn('h-full rounded-full transition-[width] duration-700', full ? 'bg-amber-500' : 'bg-primary')}
+          className={cn('h-full rounded-full transition-[width]', full ? 'bg-amber-500' : 'bg-primary')}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -342,58 +273,34 @@ export function Countdown({
 
 export function scoreTone(score: number): { text: string; bg: string; ring: string; bar: string } {
   if (score >= 85) return { text: 'text-emerald-700', bg: 'bg-emerald-50', ring: 'ring-emerald-200', bar: 'bg-emerald-500' };
-  if (score >= 70) return { text: 'text-indigo-700', bg: 'bg-indigo-50', ring: 'ring-indigo-200', bar: 'bg-indigo-500' };
-  if (score >= 60) return { text: 'text-amber-800', bg: 'bg-amber-50', ring: 'ring-amber-200', bar: 'bg-amber-500' };
-  return { text: 'text-slate-700', bg: 'bg-slate-100', ring: 'ring-slate-200', bar: 'bg-slate-400' };
+  return { text: 'text-slate-900', bg: 'bg-slate-100', ring: 'ring-slate-200', bar: 'bg-primary' };
 }
 
 export function ScorePill({ score, className }: { score: number; className?: string }) {
-  const t = scoreTone(score);
-  return (
-    <span
-      className={cn(
-        'inline-flex h-6 min-w-9 items-center justify-center rounded-md px-1.5 text-[13px] font-bold tabular-nums ring-1 ring-inset',
-        t.text,
-        t.bg,
-        t.ring,
-        className,
-      )}
-    >
-      {score}
-    </span>
-  );
+  return <span className={cn('inline-block min-w-8 text-sm font-semibold tabular-nums', className)}>{score}</span>;
 }
 
 export function NeedsReview({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        'inline-flex h-6 items-center gap-1 rounded-md bg-amber-50 px-2 text-xs font-semibold whitespace-nowrap text-amber-800 ring-1 ring-amber-200 ring-inset',
-        className,
-      )}
-    >
-      <span className="size-1.5 rounded-full bg-amber-500" aria-hidden />
-      Needs review
-    </span>
+    <Badge tone="indigo" className={className}>
+      To review
+    </Badge>
   );
 }
 
+const ORDINAL = ['', '1st', '2nd', '3rd'];
+/* Fluent shared-color palette: gold / silver / bronze foregrounds. */
+const MEDAL_COLOR: Record<number, string> = { 1: '#C19C00', 2: '#7A7574', 3: '#A74109' };
+
+/** `1st` / `2nd` / `3rd` badge with a colored Fluent trophy; plain rank number after that. */
 export function MedalBadge({ rank, className }: { rank: number; className?: string }) {
-  const styles: Record<number, string> = {
-    1: 'bg-gradient-to-br from-amber-300 to-amber-500 text-amber-950 ring-amber-400',
-    2: 'bg-gradient-to-br from-slate-200 to-slate-400 text-slate-800 ring-slate-300',
-    3: 'bg-gradient-to-br from-orange-300 to-orange-500 text-orange-950 ring-orange-400',
-  };
+  if (rank > 3) {
+    return <span className={cn('inline-block w-10 text-sm text-[var(--colorNeutralForeground3)] tabular-nums', className)}>#{rank}</span>;
+  }
   return (
-    <span
-      className={cn(
-        'inline-flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ring-1',
-        styles[rank] ?? 'bg-slate-100 text-slate-600 ring-slate-200',
-        className,
-      )}
-      aria-label={`Rank ${rank}`}
-    >
-      {rank}
+    <span className={cn('inline-flex w-10 shrink-0 items-center gap-1 text-sm font-semibold', className)} aria-label={`Rank ${rank}`}>
+      <TrophyFilled className="size-4" style={{ color: MEDAL_COLOR[rank] }} aria-hidden />
+      {ORDINAL[rank]}
     </span>
   );
 }

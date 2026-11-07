@@ -1,102 +1,126 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter';
+@import '../../../shared/fluent-tokens.css';
 @plugin '@tailwindcss/typography';
 
-/* Tryout shared brand tokens (SPEC §8) + employer "pro tool" mood. */
+/* Fluent 2: Tailwind's theme is mapped onto the Fluent tokens in shared/fluent-tokens.css.
+   Palette names (slate / indigo / emerald / amber / red) are aliases for Fluent neutral / brand / status roles. */
 @theme {
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: var(--fontFamilyBase);
+  --font-mono: var(--fontFamilyMonospace);
 
-  --color-primary: #4f46e5;
-  --color-accent: #7c3aed;
-  --color-gold: #f59e0b;
-  --color-success: #10b981;
-  --color-danger: #ef4444;
-  --color-ink: #0f172a;
-  --color-muted: #475569;
-  --color-line: #e2e8f0;
-  --color-canvas: #f8fafc;
-  --color-sidebar: #0f172a;
+  --font-weight-medium: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 600;
 
-  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 1px rgb(15 23 42 / 0.02);
-  --shadow-pop: 0 12px 32px -8px rgb(15 23 42 / 0.22), 0 2px 6px rgb(15 23 42 / 0.08);
+  --tracking-tight: 0;
+  --tracking-tighter: 0;
+  --tracking-wide: 0;
 
-  --animate-fade-in: fade-in 160ms ease-out both;
-  --animate-pop-in: pop-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
-  --animate-slide-down: slide-down 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-flash: flash 1.6s ease-out both;
-  --animate-reveal: reveal 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-shimmer: shimmer 1.4s linear infinite;
-  --animate-bounce-dot: bounce-dot 1s ease-in-out infinite;
+  /* Fluent web type ramp */
+  --text-xs: 12px;
+  --text-xs--line-height: 16px;
+  --text-sm: 14px;
+  --text-sm--line-height: 20px;
+  --text-base: 14px;
+  --text-base--line-height: 20px;
+  --text-lg: 16px;
+  --text-lg--line-height: 22px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  --text-3xl: 28px;
+  --text-3xl--line-height: 36px;
 
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  @keyframes pop-in {
-    from {
-      opacity: 0;
-      transform: translateY(6px) scale(0.98);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-  @keyframes slide-down {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  @keyframes flash {
-    0% {
-      background-color: rgb(16 185 129 / 0.18);
-    }
-    100% {
-      background-color: transparent;
-    }
-  }
-  @keyframes reveal {
-    0% {
-      opacity: 0;
-      transform: rotateX(80deg);
-      filter: blur(4px);
-    }
-    100% {
-      opacity: 1;
-      transform: rotateX(0);
-      filter: blur(0);
-    }
-  }
-  @keyframes shimmer {
-    from {
-      background-position: -200% 0;
-    }
-    to {
-      background-position: 200% 0;
-    }
-  }
-  @keyframes bounce-dot {
-    0%,
-    80%,
-    100% {
-      transform: translateY(0);
-      opacity: 0.4;
-    }
-    40% {
-      transform: translateY(-4px);
-      opacity: 1;
-    }
-  }
+  --radius-sm: var(--borderRadiusSmall);
+  --radius-md: var(--borderRadiusMedium);
+  --radius-lg: var(--borderRadiusMedium);
+  --radius-xl: var(--borderRadiusXLarge);
+  --radius-2xl: var(--borderRadiusXLarge);
+
+  --shadow-sm: var(--shadow2);
+  --shadow: var(--shadow4);
+  --shadow-md: var(--shadow8);
+  --shadow-lg: var(--shadow16);
+  --shadow-xl: var(--shadow28);
+  --shadow-card: var(--shadow4);
+  --shadow-pop: var(--shadow16);
+  --shadow-dialog: var(--shadow64);
+
+  --default-transition-duration: var(--durationNormal);
+  --default-transition-timing-function: var(--curveEasyEase);
+
+  --color-*: initial;
+  --color-white: var(--colorNeutralBackground1);
+  --color-black: #000;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-primary: var(--colorBrandBackground);
+  --color-brand: var(--colorBrandBackground);
+  --color-canvas: var(--colorNeutralBackground2);
+  --color-ink: var(--colorNeutralForeground1);
+
+  /* neutrals */
+  --color-slate-50: var(--colorNeutralBackground2);
+  --color-slate-100: var(--colorNeutralBackground3);
+  --color-slate-200: var(--colorNeutralStroke2);
+  --color-slate-300: var(--colorNeutralStroke1);
+  --color-slate-400: var(--colorNeutralForeground4);
+  --color-slate-500: var(--colorNeutralForeground3);
+  --color-slate-600: var(--colorNeutralForeground3);
+  --color-slate-700: var(--colorNeutralForeground2);
+  --color-slate-800: var(--colorNeutralForeground1);
+  --color-slate-900: var(--colorNeutralForeground1);
+  --color-slate-950: var(--colorNeutralBackgroundInverted);
+
+  /* brand */
+  --color-indigo-50: var(--colorBrandBackground2);
+  --color-indigo-100: var(--colorBrandBackground2);
+  --color-indigo-200: var(--colorBrandStroke2);
+  --color-indigo-300: var(--colorBrandStroke2);
+  --color-indigo-400: var(--colorBrandBackground);
+  --color-indigo-500: var(--colorBrandBackground);
+  --color-indigo-600: var(--colorBrandBackground);
+  --color-indigo-700: var(--colorBrandForeground2);
+  --color-indigo-800: var(--colorBrandBackgroundPressed);
+  --color-indigo-900: var(--colorBrandBackgroundPressed);
+
+  /* success */
+  --color-emerald-50: var(--colorStatusSuccessBackground1);
+  --color-emerald-100: var(--colorStatusSuccessBackground1);
+  --color-emerald-200: var(--colorStatusSuccessBorder1);
+  --color-emerald-300: var(--colorStatusSuccessBorder1);
+  --color-emerald-400: var(--colorStatusSuccessBackground3);
+  --color-emerald-500: var(--colorStatusSuccessBackground3);
+  --color-emerald-600: var(--colorStatusSuccessBackground3);
+  --color-emerald-700: var(--colorStatusSuccessForeground1);
+  --color-emerald-800: var(--colorStatusSuccessForeground1);
+  --color-emerald-900: var(--colorStatusSuccessForeground1);
+
+  /* warning */
+  --color-amber-50: var(--colorStatusWarningBackground1);
+  --color-amber-100: var(--colorStatusWarningBackground1);
+  --color-amber-200: var(--colorStatusWarningBorder1);
+  --color-amber-300: var(--colorStatusWarningBorder1);
+  --color-amber-400: var(--colorStatusWarningBackground3);
+  --color-amber-500: var(--colorStatusWarningBackground3);
+  --color-amber-600: var(--colorStatusWarningForeground1);
+  --color-amber-700: var(--colorStatusWarningForeground1);
+  --color-amber-800: var(--colorStatusWarningForeground1);
+  --color-amber-900: var(--colorStatusWarningForeground1);
+
+  /* danger */
+  --color-red-50: var(--colorStatusDangerBackground1);
+  --color-red-100: var(--colorStatusDangerBackground1);
+  --color-red-200: var(--colorStatusDangerBorder1);
+  --color-red-300: var(--colorStatusDangerBorder1);
+  --color-red-400: var(--colorStatusDangerBackground3);
+  --color-red-500: var(--colorStatusDangerBackground3);
+  --color-red-600: var(--colorStatusDangerForeground1);
+  --color-red-700: var(--colorStatusDangerForeground1);
+  --color-red-800: var(--colorStatusDangerForeground1);
 }
 
 @layer base {
@@ -105,13 +129,15 @@
     color-scheme: light;
   }
   body {
-    @apply bg-canvas text-ink antialiased;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    background: var(--colorNeutralBackground2);
+    color: var(--colorNeutralForeground1);
+    font: var(--type-body1);
+    -webkit-font-smoothing: antialiased;
     min-width: 320px;
   }
   :focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
+    outline: 2px solid var(--colorStrokeFocus2);
+    outline-offset: 1px;
   }
   button,
   [role='button'] {
@@ -121,51 +147,64 @@
     cursor: not-allowed;
   }
   ::selection {
-    background: rgb(79 70 229 / 0.18);
+    background: var(--colorBrandBackground2);
   }
 }
 
 @layer components {
   .skeleton {
-    background: linear-gradient(90deg, #eef2f7 25%, #e2e8f0 37%, #eef2f7 63%);
-    background-size: 400% 100%;
-    animation: var(--animate-shimmer);
-    border-radius: 0.5rem;
+    background: var(--colorNeutralBackground3);
+    border-radius: var(--borderRadiusMedium);
   }
 
-  /* Rendered markdown (briefs, READMEs, approach notes) — dense pro-tool flavor of `prose`. */
+  /* Rendered markdown (briefs, READMEs, approach notes). */
   .md {
-    @apply prose prose-sm prose-slate max-w-none;
-    --tw-prose-body: #334155;
-    --tw-prose-headings: #0f172a;
-    --tw-prose-links: #4f46e5;
-    --tw-prose-code: #0f172a;
-    --tw-prose-bullets: #94a3b8;
+    @apply prose prose-sm max-w-none;
+    --tw-prose-body: var(--colorNeutralForeground1);
+    --tw-prose-headings: var(--colorNeutralForeground1);
+    --tw-prose-links: var(--colorBrandForegroundLink);
+    --tw-prose-bold: var(--colorNeutralForeground1);
+    --tw-prose-code: var(--colorNeutralForeground1);
+    --tw-prose-bullets: var(--colorNeutralForeground4);
+    --tw-prose-counters: var(--colorNeutralForeground3);
+    --tw-prose-hr: var(--colorNeutralStroke2);
+    --tw-prose-quotes: var(--colorNeutralForeground2);
+    --tw-prose-quote-borders: var(--colorNeutralStroke1);
+    --tw-prose-th-borders: var(--colorNeutralStroke1);
+    --tw-prose-td-borders: var(--colorNeutralStroke2);
+    font-size: 14px;
+    line-height: 20px;
   }
   .md :where(h1) {
-    @apply mt-0 text-lg font-bold;
+    margin-top: 0;
+    font: var(--type-subtitle1);
   }
   .md :where(h2) {
-    @apply mt-5 mb-2 text-base font-semibold;
+    margin: 20px 0 8px;
+    font: var(--type-subtitle2);
   }
   .md :where(h3) {
-    @apply mt-4 mb-1.5 text-sm font-semibold;
-  }
-  .md :where(p, li) {
-    @apply leading-relaxed;
+    margin: 16px 0 4px;
+    font: var(--type-body1-strong);
   }
   .md :where(code):not(:where(pre *)) {
-    @apply rounded bg-slate-100 px-1 py-0.5 text-[0.85em] font-medium;
+    border-radius: var(--borderRadiusSmall);
+    background: var(--colorNeutralBackground3);
+    padding: 1px 4px;
+    font-size: 0.9em;
+    font-weight: 400;
   }
   .md :where(code):not(:where(pre *))::before,
   .md :where(code):not(:where(pre *))::after {
     content: none;
   }
   .md :where(pre) {
-    @apply rounded-lg border border-slate-800 bg-slate-900 text-[12.5px] leading-relaxed text-slate-100;
-  }
-  .md :where(table) {
-    @apply text-[13px];
+    border-radius: var(--borderRadiusMedium);
+    border: 1px solid var(--colorNeutralStroke2);
+    background: var(--colorNeutralBackground3);
+    color: var(--colorNeutralForeground1);
+    font-size: 12px;
+    line-height: 16px;
   }
   .md :where(> :first-child) {
     margin-top: 0;
@@ -176,32 +215,23 @@
 
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-  }
-  .scrollbar-dark {
-    scrollbar-width: thin;
-    scrollbar-color: #334155 transparent;
+    scrollbar-color: var(--colorNeutralStroke1) transparent;
   }
 }
 
-/* Native <dialog> modal. */
+/* Native <dialog> modal: Fluent dialog surface. */
 dialog.tryout-dialog {
   margin: auto;
   padding: 0;
   border: 0;
   background: transparent;
-  max-width: min(100vw - 1.5rem, var(--dialog-w, 32rem));
+  max-width: min(100vw - 2rem, var(--dialog-w, 32rem));
   width: 100%;
   max-height: calc(100dvh - 2rem);
   overflow: visible;
 }
 dialog.tryout-dialog::backdrop {
-  background: rgb(15 23 42 / 0.55);
-  backdrop-filter: blur(2px);
-  animation: fade-in 160ms ease-out;
-}
-dialog.tryout-dialog[open] > .dialog-panel {
-  animation: pop-in 220ms cubic-bezier(0.2, 0.9, 0.3, 1.15) both;
+  background: rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -209,7 +239,6 @@ dialog.tryout-dialog[open] > .dialog-panel {
   *::before,
   *::after {
     animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
   }
 }
