@@ -59,13 +59,13 @@ export interface TypeMeta {
 
 /** Labels, colors and icons for the 7 fields. Use these on both sites so they match. */
 export const TYPE_META: Record<ChallengeType, TypeMeta> = {
-  software: { label: 'Software', color: '#2563EB', softBg: '#EFF6FF', icon: 'Code', blurb: 'Build, fix and test real code.' },
-  data: { label: 'Data', color: '#0891B2', softBg: '#ECFEFF', icon: 'Database', blurb: 'Turn messy data into decisions.' },
-  design: { label: 'Design', color: '#DB2777', softBg: '#FDF2F8', icon: 'Palette', blurb: 'Design flows people can actually use.' },
-  product: { label: 'Product', color: '#7C3AED', softBg: '#F5F3FF', icon: 'Compass', blurb: 'Decide what to build, and why.' },
-  marketing: { label: 'Marketing', color: '#EA580C', softBg: '#FFF7ED', icon: 'Megaphone', blurb: 'Get the right message to the right people.' },
-  finance: { label: 'Finance', color: '#059669', softBg: '#ECFDF5', icon: 'Calculator', blurb: 'Model, explain and forecast the numbers.' },
-  security: { label: 'Security', color: '#DC2626', softBg: '#FEF2F2', icon: 'ShieldCheck', blurb: 'Find threats before they find you.' },
+  software: { label: 'Software', color: '#0F6CBD', softBg: '#EBF3FC', icon: 'Code', blurb: 'Build, fix and test code' },
+  data: { label: 'Data', color: '#00727C', softBg: '#E6F4F5', icon: 'Database', blurb: 'Turn data into decisions' },
+  design: { label: 'Design', color: '#B4009E', softBg: '#FBF0F9', icon: 'Palette', blurb: 'Design flows people can use' },
+  product: { label: 'Product', color: '#5C2E91', softBg: '#F7F4FB', icon: 'Compass', blurb: 'Decide what to build' },
+  marketing: { label: 'Marketing', color: '#BC4B09', softBg: '#FDF6F3', icon: 'Megaphone', blurb: 'Reach the right people' },
+  finance: { label: 'Finance', color: '#107C10', softBg: '#F1FAF1', icon: 'Calculator', blurb: 'Model and explain the numbers' },
+  security: { label: 'Security', color: '#C50F1F', softBg: '#FDF3F4', icon: 'ShieldCheck', blurb: 'Find threats early' },
 };
 
 export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
