@@ -87,6 +87,23 @@ export function truncate(s: string, max: number): string {
   return s.length <= max ? s : `${s.slice(0, max - 1).trimEnd()}…`;
 }
 
+/** Word count for the text budget (SPEC-FLUENT §6): whitespace tokens, ignoring bare separators like `·`. */
+export const countWords = (s: string): number => s.trim().split(/\s+/).filter((t) => t && !/^[·—–\-|/]$/.test(t)).length;
+
+/** First `max` words of `s`, with `…` on the last kept word when anything was cut. */
+export function clipWords(s: string, max: number): string {
+  const tokens = s.trim().split(/\s+/).filter(Boolean);
+  const out: string[] = [];
+  let n = 0;
+  for (const t of tokens) {
+    const sep = /^[·—–\-|/]$/.test(t);
+    if (!sep && n === max) return `${out.join(' ').replace(/[\s·—–\-|/,;:]+$/, '')}…`;
+    out.push(t);
+    if (!sep) n++;
+  }
+  return out.join(' ');
+}
+
 export const ordinal = (n: number) => {
   const mod100 = n % 100;
   if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
