@@ -1,77 +1,38 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router';
+import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import {
   Bell,
   BellOff,
-  CheckCheck,
-  ExternalLink,
   Inbox,
   MailCheck,
   MoreHorizontal,
   Plus,
   RotateCcw,
-  Search,
   Sparkles,
   Trophy,
   UserPlus,
   Users,
-} from 'lucide-react';
+} from '@/components/icons';
 import type { Notification, NotificationKind } from '@shared/types';
-import { api, errorMessage, STUDENT_SITE_URL } from '@/lib/api';
+import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
-import { usePersona } from '@/lib/persona';
 import { qk, queryClient, useNotifications } from '@/lib/queries';
 import { clearBlind } from '@/lib/stores';
-import { Avatar } from '../brand';
-import { Dialog, DialogBody, DialogFooter, DialogHeader, MenuItem, MenuSeparator, Popover } from '../overlay';
+import { Dialog, DialogBody, DialogFooter, DialogHeader, MenuItem, Popover } from '../overlay';
 import { Button, ButtonLink, InlineError, Skeleton, cn } from '../ui';
 
 export function TopBar() {
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-slate-200 bg-white/90 px-3 backdrop-blur sm:gap-3 sm:px-6 lg:px-8">
-      <TalentSearch />
-      <div className="ml-auto flex items-center gap-1 sm:gap-2">
-        <ButtonLink to="/challenges/new" variant="primary" size="md" icon={<Plus className="size-4" aria-hidden />}>
-          <span className="max-[420px]:hidden">Add challenge</span>
+    <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-1 border-b border-[var(--colorNeutralStroke2)] bg-[var(--colorNeutralBackground1)] px-3 sm:px-6">
+      <div className="ml-auto flex items-center gap-1">
+        <ButtonLink to="/challenges/new" variant="primary" icon={<Plus className="size-5" aria-hidden />}>
+          Add challenge
         </ButtonLink>
         <NotificationBell />
         <MoreMenu />
       </div>
     </header>
-  );
-}
-
-function TalentSearch() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [params] = useSearchParams();
-  const [q, setQ] = useState('');
-  const onTalent = location.pathname === '/talent';
-
-  useEffect(() => {
-    if (onTalent) setQ(params.get('q') ?? '');
-  }, [onTalent, params]);
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    const value = q.trim();
-    navigate(value ? `/talent?q=${encodeURIComponent(value)}` : '/talent');
-  };
-
-  return (
-    <form onSubmit={submit} role="search" className="relative min-w-0 flex-1 sm:max-w-xs lg:max-w-sm">
-      <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-slate-400" aria-hidden />
-      <input
-        type="search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search talent by name, skill, school…"
-        aria-label="Search talent"
-        className="h-9 w-full rounded-lg border border-transparent bg-slate-100 pr-3 pl-8 text-sm text-slate-900 placeholder:text-slate-500 transition-colors focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
-      />
-    </form>
   );
 }
 
@@ -122,12 +83,12 @@ function NotificationBell() {
           type="button"
           onClick={toggle}
           {...aria}
-          className="relative inline-flex size-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          className="relative inline-flex size-8 items-center justify-center rounded-[var(--borderRadiusMedium)] text-[var(--colorNeutralForeground2)] transition-colors hover:bg-[var(--colorNeutralBackground1Hover)]"
           aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
         >
-          <Bell className="size-[18px]" aria-hidden />
+          <Bell className="size-5" aria-hidden />
           {unread > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 animate-pop-in items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white tabular-nums ring-2 ring-white">
+            <span className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--colorBrandBackground)] px-1 text-[10px] leading-none font-semibold text-white tabular-nums">
               {unread > 9 ? '9+' : unread}
             </span>
           )}
@@ -145,9 +106,9 @@ function NotificationBell() {
                   markedRef.current = true;
                   readAll.mutate();
                 }}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-indigo-800"
+                className="text-sm text-[var(--colorBrandForegroundLink)] hover:underline"
               >
-                <CheckCheck className="size-3.5" aria-hidden /> Mark all read
+                Mark all read
               </button>
             )}
           </div>
@@ -174,8 +135,7 @@ function NotificationBell() {
             ) : (data ?? []).length === 0 ? (
               <div className="flex flex-col items-center px-6 py-10 text-center">
                 <BellOff className="mb-2 size-5 text-slate-400" aria-hidden />
-                <p className="text-sm font-semibold text-slate-800">You’re all caught up</p>
-                <p className="mt-1 text-xs text-slate-500">New submissions and invite replies show up here.</p>
+                <p className="text-sm text-slate-700">No notifications</p>
               </div>
             ) : (
               <ul className="divide-y divide-slate-100">
@@ -191,19 +151,17 @@ function NotificationBell() {
                         }}
                         className={cn(
                           'flex w-full gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50',
-                          !n.read && 'bg-indigo-50/50',
+                          !n.read && 'bg-[var(--colorBrandBackground2)]',
                         )}
                       >
-                        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-                          <Icon className="size-4" aria-hidden />
-                        </span>
+                        <Icon className="mt-0.5 size-5 shrink-0 text-slate-500" aria-hidden />
                         <span className="min-w-0 flex-1">
                           <span className="flex items-start gap-2">
-                            <span className="min-w-0 flex-1 text-[13px] font-semibold text-slate-900">{n.title}</span>
-                            {!n.read && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
+                            <span className="min-w-0 flex-1 text-sm font-semibold text-slate-900">{n.title}</span>
                           </span>
-                          <span className="mt-0.5 line-clamp-2 block text-xs text-slate-500">{n.body}</span>
-                          <span className="mt-1 block text-[11px] text-slate-400">{timeAgo(n.createdAt)}</span>
+                          <span className="mt-0.5 block truncate text-xs text-slate-500">
+                            {n.body} · {timeAgo(n.createdAt)}
+                          </span>
                         </span>
                       </button>
                     </li>
@@ -219,61 +177,35 @@ function NotificationBell() {
 }
 
 function MoreMenu() {
-  const { employer } = usePersona();
   const [resetOpen, setResetOpen] = useState(false);
 
   return (
     <>
       <Popover
         placement="bottom-end"
-        panelClassName="w-64"
+        panelClassName="w-52"
         trigger={({ toggle, ...aria }) => (
           <button
             type="button"
             onClick={toggle}
             {...aria}
-            className="inline-flex size-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            className="inline-flex size-8 items-center justify-center rounded-[var(--borderRadiusMedium)] text-[var(--colorNeutralForeground2)] transition-colors hover:bg-[var(--colorNeutralBackground1Hover)]"
             aria-label="More"
           >
-            <MoreHorizontal className="size-[18px]" aria-hidden />
+            <MoreHorizontal className="size-5" aria-hidden />
           </button>
         )}
       >
         {(close) => (
-          <>
-            {employer && (
-              <div className="flex items-center gap-2.5 px-2.5 py-2">
-                <Avatar name={employer.name} color="#334155" size={30} />
-                <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-slate-900">{employer.name}</p>
-                  <p className="truncate text-xs text-slate-500">
-                    {employer.title} · {employer.company.name}
-                  </p>
-                </div>
-              </div>
-            )}
-            <MenuSeparator />
-            <MenuItem
-              icon={<ExternalLink className="size-4" />}
-              onSelect={() => {
-                close();
-                window.open(STUDENT_SITE_URL, '_blank', 'noopener');
-              }}
-            >
-              Open the student site
-            </MenuItem>
-            <MenuSeparator />
-            <MenuItem
-              danger
-              icon={<RotateCcw className="size-4" />}
-              onSelect={() => {
-                close();
-                setResetOpen(true);
-              }}
-            >
-              Reset demo data…
-            </MenuItem>
-          </>
+          <MenuItem
+            icon={<RotateCcw className="size-4" />}
+            onSelect={() => {
+              close();
+              setResetOpen(true);
+            }}
+          >
+            Reset demo data
+          </MenuItem>
         )}
       </Popover>
       <ResetDemoDialog open={resetOpen} onClose={() => setResetOpen(false)} />
@@ -290,36 +222,22 @@ function ResetDemoDialog({ open, onClose }: { open: boolean; onClose: () => void
       void queryClient.invalidateQueries();
       onClose();
       navigate('/');
-      toast.success('Demo data reset', { description: 'Both sites are back to the demo starting state.' });
     },
-    onError: (err) => toast.error('Reset failed', { description: errorMessage(err) }),
   });
 
   return (
     <Dialog open={open} onClose={() => !reset.isPending && onClose()} width="28rem" labelledBy="reset-title">
-      <DialogHeader
-        id="reset-title"
-        title="Reset demo data?"
-        icon={
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
-            <RotateCcw className="size-4" aria-hidden />
-          </span>
-        }
-        onClose={onClose}
-      />
+      <DialogHeader id="reset-title" title="Reset demo data?" onClose={onClose} />
       <DialogBody>
-        <p className="text-sm leading-relaxed text-slate-600">
-          This reseeds the shared Tryout API, so <strong className="text-slate-900">both sites</strong> go back to the demo
-          starting state. Challenges, submissions, scores and invites created since then are deleted for everyone.
-        </p>
+        <p className="text-sm">Both sites go back to the seed. New work is deleted.</p>
         <InlineError error={reset.error} className="mt-3" />
       </DialogBody>
       <DialogFooter>
-        <Button variant="ghost" onClick={onClose} disabled={reset.isPending}>
+        <Button onClick={onClose} disabled={reset.isPending}>
           Cancel
         </Button>
-        <Button variant="danger" loading={reset.isPending} onClick={() => reset.mutate()} icon={<RotateCcw className="size-4" />}>
-          Reset demo data
+        <Button variant="primary" loading={reset.isPending} onClick={() => reset.mutate()}>
+          Reset
         </Button>
       </DialogFooter>
     </Dialog>

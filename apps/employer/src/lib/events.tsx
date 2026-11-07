@@ -149,7 +149,7 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           if (!n || n.recipientId !== mine) break;
           invalidate(qk.notifications);
           if (n.kind === 'cap_reached') {
-            toast.warning(n.title, {
+            toast(n.title, {
               description: n.body,
               action: n.link ? { label: 'Open', onClick: () => navigateRef.current(n.link!) } : undefined,
             });
@@ -159,7 +159,6 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
         case 'system.reset': {
           clearBlind();
           void queryClient.invalidateQueries();
-          toast.info('Demo data was reset', { description: 'Everything is back to the starting seed.' });
           break;
         }
       }
@@ -178,8 +177,8 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
       if (disposed) return;
       const title = sub?.challenge.title ?? 'your challenge';
       const who = sub ? (isBlind(challengeId, sub.challenge.status) ? sub.alias : sub.student.name) : 'a candidate';
-      toast.success(`New submission on “${truncate(title, 34)}” — ${who}`, {
-        description: 'Ready for review · scores stay private until you publish results',
+      toast(`New submission · ${who}`, {
+        description: truncate(title, 48),
         duration: 8000,
         action: {
           label: 'Review',
@@ -201,12 +200,11 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
       }
       if (disposed) return;
       if (inviteStatus === 'accepted') {
-        toast.success(`${name} accepted your interview invite`, {
-          description: 'Reach out to schedule the call.',
+        toast(`${name} accepted your invite`, {
           action: { label: 'Profile', onClick: () => navigateRef.current(`/candidates/${studentId}`) },
         });
       } else {
-        toast(`${name} declined your interview invite`);
+        toast(`${name} declined your invite`);
       }
     }
 

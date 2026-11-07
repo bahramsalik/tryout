@@ -70,20 +70,6 @@ export function emptyDraft(): Draft {
   };
 }
 
-export const BRIEF_TEMPLATE = `## Context
-Who your team is, what you’re building and why this task matters this quarter.
-
-## The task
-What you want the student to build or produce, in a few concrete steps.
-
-## Constraints
-- Time-box: about 4 hours — we’re judging judgment, not polish
-- Tools: anything you like; disclose any AI use
-
-## What we provide
-- A starter kit (repo, data or docs) and a short README
-`;
-
 export type StepErrors = Partial<
   Record<
     | 'title'
@@ -115,37 +101,37 @@ export function validateStep(step: number, d: Draft): StepErrors {
   const e: StepErrors = {};
   if (step === 0) {
     const title = d.title.trim();
-    if (!title) e.title = 'Give the challenge a title.';
-    else if (title.length < 8) e.title = 'Make the title a little more specific (8+ characters).';
-    else if (title.length > TITLE_MAX) e.title = `Keep the title under ${TITLE_MAX} characters.`;
-    if (!d.type) e.type = 'Pick the field this task belongs to.';
+    if (!title) e.title = 'Required';
+    else if (title.length < 8) e.title = 'At least 8 characters';
+    else if (title.length > TITLE_MAX) e.title = `At most ${TITLE_MAX} characters`;
+    if (!d.type) e.type = 'Required';
     const summary = d.summary.trim();
-    if (!summary) e.summary = 'Add a one-line summary for the card.';
-    else if (summary.length > SUMMARY_MAX) e.summary = `The summary must be ${SUMMARY_MAX} characters or fewer.`;
-    if (d.brief.trim().length < BRIEF_MIN) e.brief = `Write a brief students can act on (at least ${BRIEF_MIN} characters).`;
-    if (!d.deliverables.some((x) => x.trim())) e.deliverables = 'List at least one deliverable.';
+    if (!summary) e.summary = 'Required';
+    else if (summary.length > SUMMARY_MAX) e.summary = `At most ${SUMMARY_MAX} characters`;
+    if (d.brief.trim().length < BRIEF_MIN) e.brief = `At least ${BRIEF_MIN} characters`;
+    if (!d.deliverables.some((x) => x.trim())) e.deliverables = 'Add at least one';
     if (
       !Number.isInteger(d.estHours) ||
       d.estHours < PLATFORM_RULES.minEstHours ||
       d.estHours > PLATFORM_RULES.maxEstHours
     ) {
-      e.estHours = `Platform rule: tasks must fit in ${PLATFORM_RULES.maxEstHours} hours.`;
+      e.estHours = `${PLATFORM_RULES.minEstHours}–${PLATFORM_RULES.maxEstHours} hours`;
     }
   }
   if (step === 1) {
-    if (d.rubric.length === 0) e.rubric = 'Add at least one criterion, or use ✨ Suggest rubric.';
-    else if (d.rubric.some((r) => !r.name.trim())) e.rubric = 'Every criterion needs a name.';
-    else if (d.rubric.some((r) => !Number.isInteger(r.weight) || r.weight < 1)) e.rubric = 'Weights must be whole numbers of at least 1%.';
+    if (d.rubric.length === 0) e.rubric = 'Add at least one criterion';
+    else if (d.rubric.some((r) => !r.name.trim())) e.rubric = 'Every criterion needs a name';
+    else if (d.rubric.some((r) => !Number.isInteger(r.weight) || r.weight < 1)) e.rubric = 'Weights must be whole numbers ≥ 1';
     const total = weightTotal(d.rubric);
-    if (d.rubric.length > 0 && total !== 100) e.weights = `Weights add up to ${total}% — they must total exactly 100%.`;
+    if (d.rubric.length > 0 && total !== 100) e.weights = `Weights total ${total}%, not 100%`;
   }
   if (step === 2) {
-    if (d.rewardMode === 'winner' && !(d.winnerAmount >= 1)) e.reward = 'Set the winner’s bounty.';
-    if (d.rewardMode === 'top3' && d.top3.some((a) => !(a >= 1))) e.reward = 'Each of the top 3 places needs an amount.';
-    if (d.capped && (!Number.isInteger(d.cap) || d.cap < 1)) e.cap = 'The cap must be a whole number of at least 1.';
+    if (d.rewardMode === 'winner' && !(d.winnerAmount >= 1)) e.reward = 'Required';
+    if (d.rewardMode === 'top3' && d.top3.some((a) => !(a >= 1))) e.reward = 'Every place needs an amount';
+    if (d.capped && (!Number.isInteger(d.cap) || d.cap < 1)) e.cap = 'Whole number ≥ 1';
     const t = new Date(d.deadline).getTime();
-    if (!d.deadline || Number.isNaN(t)) e.deadline = 'Pick a deadline.';
-    else if (t < Date.now() + 60 * 60 * 1000) e.deadline = 'Pick a deadline at least an hour from now.';
+    if (!d.deadline || Number.isNaN(t)) e.deadline = 'Required';
+    else if (t < Date.now() + 60 * 60 * 1000) e.deadline = 'At least 1 hour from now';
   }
   return e;
 }
@@ -246,13 +232,3 @@ export function draftToPreview(d: Draft, company: Company | null): PreviewChalle
     status: 'open',
   };
 }
-
-export const SKILL_SUGGESTIONS: Record<ChallengeType, string[]> = {
-  software: ['Node.js', 'TypeScript', 'Python', 'API design', 'Testing', 'SQL', 'Git'],
-  data: ['SQL', 'Python', 'pandas', 'Data visualization', 'Statistics', 'Excel'],
-  design: ['Figma', 'UX research', 'Prototyping', 'Accessibility', 'Interaction design'],
-  product: ['PRDs', 'User research', 'Prioritization', 'Metrics', 'Roadmapping'],
-  marketing: ['Copywriting', 'Campaign planning', 'SEO', 'Analytics', 'Social media'],
-  finance: ['Excel', 'Financial modeling', 'Variance analysis', 'Forecasting', 'Storytelling'],
-  security: ['SIEM', 'Incident response', 'Log analysis', 'Threat intel', 'Networking'],
-};
