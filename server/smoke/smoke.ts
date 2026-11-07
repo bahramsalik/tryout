@@ -88,6 +88,8 @@ async function call<T = unknown>(
   return { status: res.status, body: parsed as T, headers: res.headers, buf, ms };
 }
 
+/** Words for the text budget (SPEC-FLUENT §6); bare separators like `·` don't count. */
+const words = (s: string) => s.trim().split(/\s+/).filter((t) => t && !/^[·—–\-+|/]$/.test(t)).length;
 const errCode = (r: Res) => (r.body as { error?: { code?: string } } | null)?.error?.code;
 const expectErr = (name: string, r: Res, status: number, code: string) =>
   check(name, r.status === status && errCode(r) === code, `got ${r.status} ${errCode(r) ?? JSON.stringify(r.body)?.slice(0, 120)}`);
@@ -334,7 +336,8 @@ async function run() {
   const coach = await call<CoachResponse>('POST', '/ai/coach', { as: 'stu_maya', json: { message: 'I want to be a backend engineer' } });
   check('coach recommend mode → up to 3 tasks', coach.status === 200 && coach.body.recommendedChallengeIds.length >= 1 && coach.body.recommendedChallengeIds.length <= 3, JSON.stringify(coach.body).slice(0, 200));
   check('coach latency 700–1400 ms', coach.ms >= 650 && coach.ms <= 2500, `${coach.ms} ms`);
-  check('coach picks Software for "backend engineer"', /\*\*Software\*\*/.test(coach.body.reply), coach.body.reply.slice(0, 120));
+  check('coach picks Software for "backend engineer"', /software/i.test(coach.body.reply), coach.body.reply.slice(0, 120));
+  check('coach reply ≤ 60 words, one sentence + "Start here:"', words(coach.body.reply) <= 60 && /Start here:$/.test(coach.body.reply), coach.body.reply);
   check('coach recommends the demo challenge', coach.body.recommendedChallengeIds.includes('ch_rate_limiter'), JSON.stringify(coach.body.recommendedChallengeIds));
 
   section = 'submit';
@@ -484,7 +487,7 @@ async function run() {
     (e) => e.type === 'notification.created' && payload<{ notification: Notification }>(e).notification.recipientId === 'stu_maya' && payload<{ notification: Notification }>(e).notification.kind === 'awarded',
   );
   const awardTitle = payload<{ notification: Notification }>(evMayaNtf).notification?.title ?? '';
-  check('Maya notified "🥈 You placed 2nd — $150 is on its way"', awardTitle === '🥈 You placed 2nd — $150 is on its way', awardTitle);
+  check('Maya notified "2nd place · $150"', awardTitle === '2nd place · $150', awardTitle);
   check('non-placed students get "results" notifications', sse.events.some((e) => e.type === 'notification.created' && payload<{ notification: Notification }>(e).notification.kind === 'results'));
   expectErr('award twice → 409 ALREADY_AWARDED', await call('POST', '/challenges/ch_rate_limiter/award', { as: 'emp_jordan' }), 409, 'ALREADY_AWARDED');
   expectErr('re-score after award → 409', await call('POST', `/submissions/${sub.id}/score`, { as: 'emp_jordan', json: { scores: demoScores, feedback } }), 409, 'ALREADY_AWARDED');
@@ -516,7 +519,7 @@ async function run() {
   const evInvNtf = await sse.waitFor(
     (e) => e.type === 'notification.created' && payload<{ notification: Notification }>(e).notification.kind === 'interview' && payload<{ notification: Notification }>(e).notification.recipientId === 'stu_maya',
   );
-  check('Maya notified "Orbitline … wants to interview you"', /wants to interview you/.test(payload<{ notification: Notification }>(evInvNtf).notification?.title ?? ''));
+  check('Maya notified "Interview invite · Orbitline Logistics"', payload<{ notification: Notification }>(evInvNtf).notification?.title === 'Interview invite · Orbitline Logistics');
   expectErr('duplicate invite → 409 ALREADY_INVITED', await call('POST', '/invites', { as: 'emp_jordan', json: inviteBody }), 409, 'ALREADY_INVITED');
   expectErr('invite to unknown student → 404', await call('POST', '/invites', { as: 'emp_jordan', json: { ...inviteBody, studentId: 'stu_nobody' } }), 404, 'STUDENT_NOT_FOUND');
   const myInv = await call<InviteView[]>('GET', '/me/invites', { as: 'stu_maya' });
@@ -647,9 +650,13 @@ async function run() {
 
   section = 'dummy ai';
   const task = await call<CoachResponse>('POST', '/ai/coach', { as: 'stu_maya', json: { message: '', challengeId: 'ch_rate_limiter', quickPrompt: 'steps' } });
-  check('coach task mode (quick prompt)', task.status === 200 && task.body.reply.length > 20);
+  check('coach task mode (quick prompt) → list only, ≤ 60 words', task.status === 200 && /^1\. /.test(task.body.reply) && words(task.body.reply) <= 60, task.body.reply);
+  for (const quickPrompt of ['testing', 'greatLooksLike', 'pitfalls'] as const) {
+    const r = await call<CoachResponse>('POST', '/ai/coach', { as: 'stu_maya', json: { message: '', challengeId: 'ch_rate_limiter', quickPrompt } });
+    check(`coach ${quickPrompt} ≤ 60 words`, r.status === 200 && words(r.body.reply) <= 60 && words(r.body.reply) > 3, r.body.reply);
+  }
   const free = await call<CoachResponse>('POST', '/ai/coach', { as: 'stu_maya', json: { message: 'How will this be judged?', challengeId: 'ch_rate_limiter' } });
-  check('coach free text → rubric summary', free.status === 200 && /How you'll be judged/.test(free.body.reply));
+  check('coach free text → rubric list', free.status === 200 && /^- \*\*Correctness\*\* · 30%/.test(free.body.reply), free.body.reply);
   expectErr('coach as employer → 403', await call('POST', '/ai/coach', { as: 'emp_jordan', json: { message: 'hi' } }), 403, 'WRONG_ROLE');
   const rub = await call<RubricSuggestResponse>('POST', '/ai/rubric', { as: 'emp_jordan', json: { type: 'data' } });
   check('rubric suggestion sums to 100', rub.status === 200 && rub.body.rubric.reduce((s, c) => s + c.weight, 0) === 100);

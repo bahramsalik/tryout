@@ -23,7 +23,7 @@ import { practiceReview, synthesizeAiHints } from './ai.ts';
 import type { Participation, SubmissionRecord } from './db.ts';
 import { badRequest, conflict, forbidden, notFound } from './errors.ts';
 import { emit } from './events.ts';
-import { aliasCode, applyAward, assignAlias, clipWords, computeAward, ordinal, usd } from './logic.ts';
+import { aliasCode, applyAward, assignAlias, clipWords, computeAward, countWords, ordinal, usd } from './logic.ts';
 import type { EmployerPersona, StudentPersona } from './persona.ts';
 import { randomId } from './rng.ts';
 import { getDb, persist, writeUpload } from './store.ts';
@@ -280,7 +280,7 @@ export function submitWork(
       recipientId: companyId,
       kind: 'submission_received',
       title: `New submission · ${awaiting} to review`,
-      body: bodyTitle(ch.title),
+      body: `${sub.alias} · ${bodyTitle(ch.title, 8 - countWords(sub.alias))}`,
       link: `/challenges/${ch.id}/review/${id}`,
     });
   }

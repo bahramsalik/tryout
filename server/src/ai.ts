@@ -98,7 +98,7 @@ function recommend(types: ChallengeType[], student: Student): string[] {
 
 /** Coach replies stay inside SPEC-FLUENT §6's budget. */
 export const COACH_MAX_WORDS = 60;
-const ITEM_MAX_WORDS = 10;
+const ITEM_MAX_WORDS = 12;
 
 function routeFreeText(message: string): CoachQuickPrompt | 'overview' {
   const m = message.toLowerCase();
@@ -109,16 +109,38 @@ function routeFreeText(message: string): CoachQuickPrompt | 'overview' {
 }
 
 /** The lead clause of a hint ("Limiting by IP address: every test…" → "Limiting by IP address"), at most ITEM_MAX_WORDS. */
-function leadClause(item: string): string {
-  let s = item.trim().replace(/\.$/, '');
-  const strong = s.split(/:\s|;\s|\s[—–]\s|\s\(/)[0]!;
-  if (countWords(strong) >= 3) s = strong;
+export function leadClause(item: string): string {
+  let s = item.trim().split(/(?<=[.!?])\s+(?=[A-Z])/)[0]!.replace(/[.!?]$/, '');
+  const cuts: [RegExp, number][] = [
+    [/:\s|;\s|\s[—–]\s|\s\(/, 3], // strong separators
+    [/,?\s(?:so that|so|then|which|because|instead of|rather than|without|before|until|while|especially)\s/, 3],
+    [/,\s(?:and|or|but)\s/, 4],
+    [/,\s/, 4],
+  ];
+  for (const [re, minWords] of cuts) {
+    if (countWords(s) <= ITEM_MAX_WORDS) break;
+    const head = s.split(re)[0]!;
+    // Skip intro phrases ("For each alert, …") that aren't a clause on their own.
+    if (countWords(head) >= minWords && !INTRO.test(head)) s = tidy(head);
+  }
   if (countWords(s) > ITEM_MAX_WORDS) {
-    const soft = s.split(/,\s|\.\s|\s(?:so|then|which|because)\s/)[0]!;
-    if (countWords(soft) >= 4) s = soft;
+    // Last resort: end at the latest connector word that keeps the clause whole ("…and compare" → "…").
+    const tokens = s.split(/\s+/);
+    for (let i = Math.min(ITEM_MAX_WORDS, tokens.length - 1); i >= 4; i--) {
+      if (CONNECTORS.has(tokens[i]!.toLowerCase())) return tidy(tokens.slice(0, i).join(' '));
+    }
   }
   return clipWords(s, ITEM_MAX_WORDS);
 }
+
+const INTRO = /^(for|on|if|when|after|before|once|in|with|using|as)\b[^,]*$/i;
+const CONNECTORS = new Set(['and', 'or', 'to', 'with', 'for', 'by', 'when', 'if', 'after']);
+const DANGLING = /\s+(?:a|an|the|of|to|and|or|that|with|for|by|in|on|at|as|from|into|just|noting|only|even|which|when)$/i;
+const tidy = (s: string) => {
+  let out = s.replace(/[,;:]$/, '');
+  while (DANGLING.test(out)) out = out.replace(DANGLING, '');
+  return out;
+};
 
 /** Tight list items, dropping trailing ones once the reply would pass COACH_MAX_WORDS. */
 function fitList(items: string[], format: (s: string, i: number) => string): string {
@@ -163,7 +185,7 @@ export function coachReply(req: CoachRequest, student: Student): CoachResponse {
     let reply: string;
     switch (mode) {
       case 'testing':
-        reply = firstSentences(hints.testing, COACH_MAX_WORDS);
+        reply = firstSentences(hints.testing, 40);
         break;
       case 'greatLooksLike':
         reply = rubricList(ch.rubric);
