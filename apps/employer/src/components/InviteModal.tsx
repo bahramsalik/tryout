@@ -74,7 +74,7 @@ function InviteForm({ target, onClose }: { target: InviteTarget; onClose: () => 
           <Input id="inv-role" value={role} onChange={(e) => setRole(e.target.value)} placeholder="Junior Backend Engineer" />
         </Field>
         <Field label="Message" htmlFor="inv-msg" error={tooShort ? 'Write at least 20 characters' : undefined}>
-          <Textarea id="inv-msg" rows={6} value={message} onChange={(e) => setMessage(e.target.value)} invalid={tooShort} />
+          <Textarea id="inv-msg" rows={7} value={message} onChange={(e) => setMessage(e.target.value)} invalid={tooShort} />
         </Field>
         <InlineError error={send.error} />
       </DialogBody>

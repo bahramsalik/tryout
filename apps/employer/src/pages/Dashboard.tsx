@@ -69,19 +69,19 @@ function ChallengesTable({ challenges, loading }: { challenges: ChallengeView[] 
         <EmptyState title="No challenges yet" />
       ) : (
         <div className="scrollbar-thin overflow-x-auto">
-          <table className="w-full min-w-[32rem] text-sm">
+          <table className="w-full min-w-[26rem] table-fixed text-sm">
             <thead>
               <tr className="border-b border-slate-200">
                 <th scope="col" className={`${th} pl-4`}>
                   Challenge
                 </th>
-                <th scope="col" className={`${th} w-20 text-right`}>
+                <th scope="col" className={`${th} hidden w-20 text-right @2xl:table-cell`}>
                   Joined
                 </th>
                 <th scope="col" className={`${th} w-24 text-right`}>
                   Submissions
                 </th>
-                <th scope="col" className={`${th} w-24`}>
+                <th scope="col" className={`${th} w-28`}>
                   To review
                 </th>
                 <th scope="col" className={`${th} hidden w-28 @3xl:table-cell`}>
@@ -111,7 +111,7 @@ function ChallengesTable({ challenges, loading }: { challenges: ChallengeView[] 
                         {c.status !== 'open' && <StatusBadge status={c.status} />}
                       </div>
                     </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">
+                    <td className="hidden px-3 py-2.5 text-right tabular-nums @2xl:table-cell">
                       {c.participantCount}
                       {c.applicantCap != null && <span className="text-slate-500">/{c.applicantCap}</span>}
                     </td>

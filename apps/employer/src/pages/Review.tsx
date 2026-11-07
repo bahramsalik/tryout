@@ -155,25 +155,25 @@ function NotesCard({ sub }: { sub: SubmissionView }) {
   );
 }
 
+const README_LINES = 12;
+
 function ReadmeCard({ sub }: { sub: SubmissionView }) {
   const [expanded, setExpanded] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const [overflowing, setOverflowing] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (el) setOverflowing(el.scrollHeight > el.clientHeight + 8);
-  }, [sub.file.readme]);
+  const readme = sub.file.readme ?? '';
+  const lines = readme.split('\n');
+  // Cut at a blank line near the 12-line mark so markdown blocks aren't split mid-list or mid-fence.
+  let cut = README_LINES;
+  while (cut < lines.length && cut < README_LINES + 8 && lines[cut].trim() !== '') cut++;
+  const long = lines.length > cut;
+  const shown = expanded || !long ? readme : lines.slice(0, cut).join('\n');
 
   return (
     <Card className="overflow-hidden">
       <CardHeader title="README" />
-      {sub.file.readme ? (
+      {readme ? (
         <div className="px-4 pb-4">
-          {/* ~12 lines collapsed */}
-          <div ref={ref} className={cn(!expanded && 'max-h-60 overflow-hidden')}>
-            <Markdown>{sub.file.readme}</Markdown>
-          </div>
-          {!expanded && overflowing && (
+          <Markdown>{shown}</Markdown>
+          {long && !expanded && (
             <Button size="sm" variant="subtle" className="mt-2 -ml-2" onClick={() => setExpanded(true)}>
               Show all
             </Button>
@@ -322,7 +322,7 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
             <Field
               label="Feedback"
               htmlFor="feedback"
-              counter={!readOnly && `${feedbackLen}/${minChars}`}
+              counter={!readOnly && !feedbackOk && `${feedbackLen}/${minChars}`}
               error={tried && !feedbackOk ? `At least ${minChars} characters` : undefined}
             >
               <Textarea

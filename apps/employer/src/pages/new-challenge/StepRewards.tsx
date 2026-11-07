@@ -96,7 +96,7 @@ export function StepRewards({ draft, set, errors }: { draft: Draft; set: (patch:
               className="w-24 tabular-nums"
               invalid={!!errors.cap}
             />
-            <label className="inline-flex items-center gap-2 text-sm">
+            <label className="inline-flex items-center gap-2 text-sm whitespace-nowrap">
               <input
                 type="checkbox"
                 className="size-4 accent-[var(--colorBrandBackground)]"

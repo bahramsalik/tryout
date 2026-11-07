@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { payoutForRank, rewardTotal, type AwardResponse, type ChallengeView, type SubmissionView } from '@shared/types';
 import { api } from '@/lib/api';
 import { money } from '@/lib/format';
-import { qk, queryClient, isScored, rankSubmissions } from '@/lib/queries';
+import { qk, queryClient, isScored, rankSubmissions, useInvitesByStudent } from '@/lib/queries';
 import { Avatar, MedalBadge, ScorePill } from './brand';
 import type { InviteTarget } from './InviteModal';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from './overlay';
@@ -53,6 +53,7 @@ function AwardFlow({
   const paidPlaces = reward.mode === 'winner' ? 1 : reward.mode === 'top3' ? 3 : 0;
   const podium = ranked.slice(0, Math.max(paidPlaces, 3));
   const totalPayout = ranked.reduce((sum, _s, i) => sum + payoutForRank(reward, i + 1), 0);
+  const invites = useInvitesByStudent();
   const byStudent = useMemo(() => new Map(submissions.map((s) => [s.studentId, s])), [submissions]);
 
   const award = useMutation({
@@ -119,6 +120,8 @@ function AwardFlow({
                   <span className="w-14 text-right text-sm tabular-nums">{r.payout > 0 ? money(r.payout) : ''}</span>
                   <Button
                     size="sm"
+                    variant={invites.get(r.studentId) ? 'subtle' : 'secondary'}
+                    disabled={!!invites.get(r.studentId) && invites.get(r.studentId)?.status !== 'declined'}
                     onClick={() =>
                       onInvite({
                         student: sub.student,
@@ -126,7 +129,7 @@ function AwardFlow({
                       })
                     }
                   >
-                    Invite
+                    {invites.get(r.studentId) && invites.get(r.studentId)?.status !== 'declined' ? 'Invited' : 'Invite'}
                   </Button>
                 </li>
               );

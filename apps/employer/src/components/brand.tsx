@@ -290,7 +290,7 @@ export function NeedsReview({ className }: { className?: string }) {
 
 const ORDINAL = ['', '1st', '2nd', '3rd'];
 /* Fluent shared-color palette: gold / silver / bronze foregrounds. */
-const MEDAL_COLOR: Record<number, string> = { 1: '#C19C00', 2: '#7A7574', 3: '#A74109' };
+export const MEDAL_COLOR: Record<number, string> = { 1: '#C19C00', 2: '#7A7574', 3: '#A74109' };
 
 /** `1st` / `2nd` / `3rd` badge with a colored Fluent trophy; plain rank number after that. */
 export function MedalBadge({ rank, className }: { rank: number; className?: string }) {

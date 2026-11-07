@@ -1,9 +1,9 @@
 import { Link } from 'react-router';
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { BadgeCheck, Clock, Coins, Trophy } from '@/components/icons';
+import { BadgeCheck, Clock, Coins, Trophy, TrophyFilled } from '@/components/icons';
 import { CHALLENGE_TYPES, TYPE_META, type ProfileHistoryItem, type StudentStats } from '@shared/types';
 import { money } from '@/lib/format';
-import { CompanyLogo, MedalBadge, ScorePill } from './brand';
+import { CompanyLogo, MEDAL_COLOR, MedalBadge, ScorePill } from './brand';
 import { StatTile } from './StatTile';
 import { Card, CardHeader, EmptyState } from './ui';
 
@@ -23,11 +23,12 @@ export function ProofStats({ stats }: { stats: StudentStats }) {
           className="mt-1 flex items-center gap-3 text-2xl font-semibold tabular-nums"
           aria-label={`${p.first} first, ${p.second} second, ${p.third} third places`}
         >
-          <span title="1st">{p.first}</span>
-          <span className="text-slate-400">·</span>
-          <span title="2nd">{p.second}</span>
-          <span className="text-slate-400">·</span>
-          <span title="3rd">{p.third}</span>
+          {[p.first, p.second, p.third].map((n, i) => (
+            <span key={i} className="inline-flex items-center gap-1" title={['1st', '2nd', '3rd'][i]}>
+              <TrophyFilled className="size-5" style={{ color: MEDAL_COLOR[i + 1] }} aria-hidden />
+              {n}
+            </span>
+          ))}
         </p>
       </Card>
     </div>

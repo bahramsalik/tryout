@@ -17,8 +17,8 @@ createRoot(document.getElementById('root')!).render(
           position="top-right"
           closeButton
           visibleToasts={4}
-          offset={{ top: 64, right: 16 }}
-          mobileOffset={{ top: 64, right: 12, left: 12 }}
+          offset={{ top: 56, right: 16 }}
+          mobileOffset={{ top: 56, right: 12, left: 12 }}
           toastOptions={{
             classNames: {
               toast: '!font-sans !rounded-[var(--borderRadiusMedium)] !border-0 !shadow-[var(--shadow8)] !bg-[var(--colorNeutralBackground1)] !text-[var(--colorNeutralForeground1)]',

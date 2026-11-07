@@ -94,7 +94,7 @@ export function ChallengePage() {
       <Breadcrumb />
       <PageHeader
         title={c.title}
-        meta={<MetaLine challenge={c} submissions={subs.length} scored={scoredCount} avg={avg} />}
+        meta={<MetaLine challenge={c} avg={avg} />}
         actions={<Switch showLabel checked={blind} onChange={setBlind} disabled={awarded} label="Blind review" />}
       />
 
@@ -153,23 +153,12 @@ function Breadcrumb() {
 }
 
 /** One meta line of numbers under the title. */
-function MetaLine({
-  challenge: c,
-  submissions,
-  scored,
-  avg,
-}: {
-  challenge: ChallengeView;
-  submissions: number;
-  scored: number;
-  avg: number | null;
-}) {
+function MetaLine({ challenge: c, avg }: { challenge: ChallengeView; avg: number | null }) {
   const now = useNow(60_000);
   const parts: ReactNode[] = [
     TYPE_META[c.type]?.label ?? c.type,
     c.rewardTotal > 0 ? money(c.rewardTotal) : 'No reward',
     `${c.participantCount}${c.applicantCap != null ? `/${c.applicantCap}` : ''} joined`,
-    `${scored}/${submissions} scored`,
   ];
   if (avg != null) parts.push(`avg ${avg}`);
   if (c.status !== 'awarded') {
@@ -290,8 +279,8 @@ function SubmissionsTab({
                       <td className="py-2 pr-3 pl-4">
                         <CandidateCell sub={s} blind={blind} fresh={fresh} />
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-slate-600" title={dateTime(s.submittedAt)}>
-                        {timeAgo(s.submittedAt)}
+                      <td className="px-3 py-2 whitespace-nowrap text-slate-600 tabular-nums" title={dateTime(s.submittedAt)}>
+                        {timeAgo(s.submittedAt).replace(' ago', '')}
                       </td>
                       <td className="px-3 py-2 pr-4">
                         {s.totalScore != null ? <ScorePill score={s.totalScore} /> : <NeedsReview />}
@@ -376,7 +365,7 @@ function LeaderboardTab({
                   <span className="w-14 text-right text-sm tabular-nums" title={awarded ? 'Paid' : 'Projected payout'}>
                     {payout > 0 ? money(payout) : '–'}
                   </span>
-                  {!blind && (
+                  {!blind && rank <= 3 && (
                     <Button
                       size="sm"
                       variant={alreadyInvited ? 'subtle' : 'secondary'}

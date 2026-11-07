@@ -80,10 +80,7 @@ export function StudentChallengePreview({ challenge: c }: { challenge: PreviewCh
 
   return (
     <Card className="space-y-6 p-5">
-      <div className="space-y-2">
-        <MetaRow c={c} />
-        {c.hiringFor && <Badge tone="indigo">Hiring: {c.hiringFor}</Badge>}
-      </div>
+      {c.hiringFor && <Badge tone="indigo">Hiring: {c.hiringFor}</Badge>}
 
       <section>
         {c.brief.trim() ? <Markdown>{c.brief}</Markdown> : <p className="text-sm text-slate-500">No brief yet.</p>}

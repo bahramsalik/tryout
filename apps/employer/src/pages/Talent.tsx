@@ -57,19 +57,16 @@ export function TalentPage() {
             className="pl-8"
           />
         </div>
-        <select
-          value={type}
-          onChange={(e) => update({ type: e.target.value || null })}
-          aria-label="Field"
-          className={cn(selectClass, 'w-40')}
-        >
-          <option value="">All fields</option>
-          {CHALLENGE_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {TYPE_META[t].label}
-            </option>
-          ))}
-        </select>
+        <div className="w-40">
+          <select value={type} onChange={(e) => update({ type: e.target.value || null })} aria-label="Field" className={selectClass}>
+            <option value="">All fields</option>
+            {CHALLENGE_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {TYPE_META[t].label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {students.isPending ? (
