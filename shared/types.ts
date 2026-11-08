@@ -245,6 +245,8 @@ export interface Submission {
   autoChecks: AutoCheck[];
   status: SubmissionStatus;
   reviewer: ReviewerKind | null;
+  /** Id of the person who confirmed this result (a recruiter, or anyone who is not the AI). Absent = not confirmed. */
+  verifiedBy?: string | null;
   /** criterionId → 1..5. Hidden (null) from students until results are published (live challenges). */
   scores: Record<string, number> | null;
   /** 0–100 weighted (computeTotalScore). Hidden from students until published. */
@@ -261,6 +263,8 @@ export interface SubmissionView extends Submission {
   /** Always included; the employer UI hides it while blind review is on. */
   student: Student;
   challenge: ChallengeSummary;
+  /** True when a person confirmed the result (see `isVerified`). Shown to the public as "Verified". */
+  verified: boolean;
 }
 
 export interface StudentStats {
@@ -286,6 +290,8 @@ export interface ProfileHistoryItem {
   submittedAt: string;
   status: SubmissionStatus;
   reviewer: ReviewerKind | null;
+  /** True when a person confirmed the result (see `isVerified`). Shown to the public as "Verified". */
+  verified: boolean;
   /** Visible only when results are published (or practice/coach). */
   totalScore: number | null;
   rank: number | null;
@@ -516,6 +522,11 @@ export interface SeedContent {
 }
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
+
+/** A result is "verified" when a person confirmed it: the employer scored it, or someone confirmed an AI grade. */
+export function isVerified(s: { reviewer: ReviewerKind | null; verifiedBy?: string | null }): boolean {
+  return s.reviewer === 'employer' || !!s.verifiedBy;
+}
 
 /** How many top finishers of a challenge get a medal (0 = none). Medals are separate from grading. */
 export function placementsFor(challenge: { placements?: number }): number {

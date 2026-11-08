@@ -9,6 +9,7 @@
 import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
+  isVerified,
   type ActivityItem,
   type Challenge,
   type ChallengeSummary,
@@ -123,9 +124,10 @@ export function submissionView(sub: SubmissionRecord, viewer: Persona | null, op
   const ch = challengeById(sub.challengeId);
   const student = studentById(sub.studentId);
   if (!ch || !student) throw new Error(`dangling submission ${sub.id}`);
-  const { scoredBy: _scoredBy, ...base } = sub;
+  const { scoredBy: _scoredBy, verifiedBy: _verifiedBy, ...base } = sub;
   const view: SubmissionView = {
     ...base,
+    verified: isVerified(sub),
     file: { ...base.file, tree: [...base.file.tree] },
     autoChecks: base.autoChecks.map((c) => ({ ...c })),
     scores: base.scores ? { ...base.scores } : null,
@@ -137,6 +139,7 @@ export function submissionView(sub: SubmissionRecord, viewer: Persona | null, op
     if (!resultsPublished(ch)) {
       view.status = visibleStatus(sub, ch, viewer);
       view.reviewer = null;
+      view.verified = false;
       view.scores = null;
       view.totalScore = null;
       view.feedback = null;
@@ -227,6 +230,7 @@ function historyItem(sub: SubmissionRecord, viewer: Persona | null): ProfileHist
     submittedAt: sub.submittedAt,
     status: visibleStatus(sub, ch, viewer),
     reviewer: visible ? sub.reviewer : null,
+    verified: visible && isVerified(sub),
     totalScore: visible ? sub.totalScore : null,
     rank: visible ? sub.rank : null,
     feedbackExcerpt: visible && sub.feedback ? truncate(sub.feedback.replace(/\s+/g, ' ').trim(), 180) : null,
