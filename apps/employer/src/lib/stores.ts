@@ -109,3 +109,13 @@ export function applySeedId(seedId: string | null | undefined) {
   }
   clearBlind();
 }
+
+/* ───────────── Sidebar visibility ───────────── */
+
+const sidebarStore = createStore<{ open: boolean }>('tryout.employer.sidebar', { open: true });
+
+/** [open, toggle] for the left sidebar. Remembered between visits. */
+export function useSidebar(): [boolean, () => void] {
+  const { open } = useSyncExternalStore(sidebarStore.subscribe, sidebarStore.get);
+  return [open, () => sidebarStore.set({ open: !sidebarStore.get().open })];
+}

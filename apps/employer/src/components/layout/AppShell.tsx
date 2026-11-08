@@ -4,7 +4,7 @@ import { API_URL } from '@/lib/api';
 import { LiveEventsProvider } from '@/lib/events';
 import { usePersona } from '@/lib/persona';
 import { queryClient, qk, useHealth } from '@/lib/queries';
-import { applySeedId } from '@/lib/stores';
+import { applySeedId, useSidebar } from '@/lib/stores';
 import { EmployerPill, LogoMark, Wordmark } from '../brand';
 import { Button, Card, Spinner } from '../ui';
 import { Sidebar } from './Sidebar';
@@ -14,6 +14,7 @@ export function AppShell() {
   const { loading, error, employer, personaId } = usePersona();
   const location = useLocation();
   const health = useHealth();
+  const [sidebarOpen] = useSidebar();
   const seedId = health.data?.seedId;
   // Before paint, so the first frame already uses clean, seed-scoped local state.
   useLayoutEffect(() => applySeedId(seedId), [seedId]);
@@ -35,7 +36,7 @@ export function AppShell() {
         Skip to content
       </a>
       <div key={personaId} className="flex min-h-dvh">
-        <Sidebar />
+        {sidebarOpen && <Sidebar />}
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar />
           <main id="main" className="@container min-w-0 flex-1 p-4 min-[760px]:p-6">

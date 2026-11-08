@@ -23,6 +23,7 @@ export {
   ChevronRight20Regular as ChevronRight,
   ChevronDown20Regular as ChevronDown,
   Filter20Regular as Filter,
+  PanelLeft20Regular as PanelLeft,
   ChevronUpDown20Regular as ChevronsUpDown,
   ClipboardTaskListLtr20Regular as ClipboardCheck,
   ClipboardTextLtr20Regular as ClipboardList,
