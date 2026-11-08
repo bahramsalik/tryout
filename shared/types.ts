@@ -20,7 +20,7 @@ export type ChallengeStatus = 'open' | 'reviewing' | 'awarded';
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 export type SubmissionStatus = 'submitted' | 'scored' | 'awarded' | 'not_selected';
 /** `coach` = instant dummy-AI review used for practice tasks. */
-export type ReviewerKind = 'employer' | 'coach';
+export type ReviewerKind = 'employer' | 'coach' | 'ai';
 export type CoachQuickPrompt = 'testing' | 'steps' | 'greatLooksLike' | 'pitfalls';
 export type NotificationKind =
   | 'new_challenge' // student: a challenge matching their interests was published
@@ -247,6 +247,10 @@ export interface Submission {
   reviewer: ReviewerKind | null;
   /** Id of the person who confirmed this result (a recruiter, or anyone who is not the AI). Absent = not confirmed. */
   verifiedBy?: string | null;
+  /** AI grading only: criterionId → what in the work justified the score. */
+  scoreNotes?: Record<string, string>;
+  /** Live work waiting for its AI grade: `grading` = in progress, `delayed` = could not be graded yet (it is retried). Absent once graded. */
+  gradingState?: 'grading' | 'delayed';
   /** criterionId → 1..5. Hidden (null) from students until results are published (live challenges). */
   scores: Record<string, number> | null;
   /** 0–100 weighted (computeTotalScore). Hidden from students until published. */

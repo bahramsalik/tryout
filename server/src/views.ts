@@ -57,8 +57,13 @@ export function canSeeResults(ch: Challenge, viewer: Persona | null): boolean {
   return resultsPublished(ch) || isOwner(viewer, ch);
 }
 
+/** An AI-graded result is visible as soon as it exists: it is the student's own credential, not a ranking. */
+export function isAiGraded(sub: SubmissionRecord): boolean {
+  return sub.reviewer === 'ai' && sub.totalScore !== null;
+}
+
 function visibleStatus(sub: SubmissionRecord, ch: Challenge, viewer: Persona | null): SubmissionStatus {
-  if (canSeeResults(ch, viewer)) return sub.status;
+  if (canSeeResults(ch, viewer) || isAiGraded(sub)) return sub.status;
   return sub.status === 'scored' ? 'submitted' : sub.status;
 }
 
@@ -136,7 +141,7 @@ export function submissionView(sub: SubmissionRecord, viewer: Persona | null, op
   };
   if (!isOwner(viewer, ch)) {
     view.shortlisted = false;
-    if (!resultsPublished(ch)) {
+    if (!resultsPublished(ch) && !isAiGraded(sub)) {
       view.status = visibleStatus(sub, ch, viewer);
       view.reviewer = null;
       view.verified = false;
@@ -179,8 +184,9 @@ export function studentStats(studentId: string): StudentStats {
     if (ch.kind === 'practice') {
       practiceHours += ch.estHours;
     } else {
-      // Live results only count once published (keeps unpublished scores private).
-      if (ch.status !== 'awarded' || s.reviewer !== 'employer') continue;
+      // Employer-scored results count once published (keeps unpublished scores private); AI grades count straight away.
+      const counted = s.reviewer === 'ai' || (ch.status === 'awarded' && s.reviewer === 'employer');
+      if (!counted) continue;
       tasksCompleted += 1;
       employerScores.push(s.totalScore);
       if (s.totalScore >= PLATFORM_RULES.verifiedPassScore) verifiedHours += ch.estHours;
@@ -219,7 +225,7 @@ export function studentStats(studentId: string): StudentStats {
 function historyItem(sub: SubmissionRecord, viewer: Persona | null): ProfileHistoryItem {
   const ch = challengeById(sub.challengeId)!;
   const company = companyById(ch.companyId);
-  const visible = canSeeResults(ch, viewer);
+  const visible = canSeeResults(ch, viewer) || isAiGraded(sub);
   return {
     submissionId: sub.id,
     challengeId: ch.id,
