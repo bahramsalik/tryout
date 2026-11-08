@@ -68,7 +68,7 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 |---|---|---|
 | One platform with two views | **Two websites + one shared live API** | Each audience gets a tailored product (playful vs. pro tool). It also enables the side-by-side real-time demo, which is the moment judges will remember. |
 | Employer specifies the task | Employer also defines a **weighted rubric**, with ✨ *Suggest rubric* | Students see exactly how they'll be judged. Employers can score 15 submissions in minutes, and feedback becomes structured. |
-| Winner / top 3 recognition | Kept as **placement medals** on the Proof Profile, plus a **feedback guarantee** and **IP stays with the student** | Every attempt leaves a work sample and a reviewer's notes, and the best results stand out to recruiters. |
+| Winner / top 3 recognition | An **optional award**: an employer can add medals for the top 1 or top 3, and the default is no award. Every attempt still gets a **feedback guarantee**, and **IP stays with the student** | Employers can add recognition if they want it, and challenges without one are not a competition. |
 | Employers view applicant profiles | **Proof Profile** with verified hours, placements and a skills radar | It answers WHY #3 directly: it replaces "1–3 years of experience" with countable, verified evidence. |
 | A pool of problems for practice | Split into a **Practice Arena** (evergreen, instant Coach review) and **Live Challenges** (capped, with a deadline) | Practice builds skill and Live gets you hired. Practice content also exists on day one, which solves the cold-start problem. |
 | — | **From the classroom** concept tags on every task | It addresses the ROOT cause explicitly: linking theory to practice. |
@@ -170,7 +170,7 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 5. **Scoring:** each rubric criterion is scored 1–5. `total = round(Σ score/5 × weight)` gives 0–100, and rubric weights sum to 100. Use `computeTotalScore` from `shared/types.ts` everywhere.
 6. **Feedback guarantee:** results can't be published until every submission has scores **and** written feedback (≥ 20 chars).
 7. **Results privacy:** students see their scores, feedback and rank only after results are published.
-8. **Awarding:** rank by total, descending (ties go to the earlier submission). The top 3 (`PLATFORM_RULES.placementCount`) become `awarded` (a placement medal) and everyone else becomes `not_selected` (they still see feedback). The challenge becomes `awarded`.
+8. **Awarding (optional):** an employer can set an award on a challenge (`placements`: 0 = none, which is the default for new challenges; 1 or 3). When results are published and an award is set, submissions are ranked by total (ties go to the earlier submission) and the top ones become `awarded` (a medal); everyone else becomes `not_selected` and still sees feedback. With no award nobody is ranked and no one is placed. The challenge becomes `awarded`.
 9. **IP:** students own their work. This is UI copy only, not enforced.
 10. **Blind review** (on by default): names, schools and avatars are replaced by a stable alias (e.g. "Candidate K7") until results are published.
 11. **Cross-employer privacy:** an employer can open files only for submissions to their own challenges. For other employers' challenges they see the score and a feedback excerpt.
