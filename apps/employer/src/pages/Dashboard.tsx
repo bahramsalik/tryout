@@ -20,7 +20,7 @@ export function DashboardPage() {
       {isError ? (
         <ErrorState error={error} onRetry={() => refetch()} />
       ) : (
-        <div className="grid items-start gap-4 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid items-start gap-4 @5xl:grid-cols-[minmax(0,1fr)_23rem]">
           <div className="min-w-0 space-y-4">
             <Kpis data={data} loading={isPending} />
             <ChallengesTable
