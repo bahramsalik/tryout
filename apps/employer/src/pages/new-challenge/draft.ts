@@ -35,6 +35,8 @@ export interface Draft {
   rubric: RubricRow[];
   capped: boolean;
   cap: number;
+  /** Medals for the top N finishers; 0 = none. */
+  placements: number;
   deadline: string;
 }
 
@@ -56,6 +58,7 @@ export function emptyDraft(): Draft {
     rubric: [],
     capped: true,
     cap: 50,
+    placements: PLATFORM_RULES.placementCount,
     deadline: daysFromNow(PLATFORM_RULES.defaultDeadlineDays),
   };
 }
@@ -148,6 +151,7 @@ export function draftToInput(d: Draft): CreateChallengeInput {
     deliverables: d.deliverables.map((x) => x.trim()).filter(Boolean),
     rubric: rubricWithIds(d.rubric),
     applicantCap: d.capped ? d.cap : null,
+    placements: d.placements ?? PLATFORM_RULES.placementCount,
     deadline: new Date(d.deadline).toISOString(),
     hiringFor: d.hiringFor.trim() || null,
   };
@@ -175,6 +179,7 @@ export function inputToDraft(input: Partial<CreateChallengeInput> & { deadlineIn
     rubric: (input.rubric ?? []).map((r) => ({ key: newKey(), name: r.name, description: r.description, weight: r.weight })),
     capped: input.applicantCap !== null,
     cap: input.applicantCap ?? base.cap,
+    placements: input.placements ?? base.placements,
     deadline,
   };
 }

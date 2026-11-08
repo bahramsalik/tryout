@@ -1,5 +1,6 @@
 import { fromLocalInput, toLocalInput } from '@/lib/format';
-import { Field, Input } from '@/components/ui';
+import { PLATFORM_RULES } from '@shared/types';
+import { Field, Input, selectClass } from '@/components/ui';
 import type { Draft, StepErrors } from './draft';
 
 export function StepLimits({ draft, set, errors }: { draft: Draft; set: (patch: Partial<Draft>) => void; errors: StepErrors }) {
@@ -42,6 +43,18 @@ export function StepLimits({ draft, set, errors }: { draft: Draft; set: (patch: 
           />
         </Field>
       </div>
+      <Field label="Medals" htmlFor="f-placements">
+        <select
+          id="f-placements"
+          className={`${selectClass} w-40`}
+          value={draft.placements ?? PLATFORM_RULES.placementCount}
+          onChange={(e) => set({ placements: Number(e.target.value) })}
+        >
+          <option value={0}>None</option>
+          <option value={1}>Top 1</option>
+          <option value={3}>Top 3</option>
+        </select>
+      </Field>
     </div>
   );
 }
