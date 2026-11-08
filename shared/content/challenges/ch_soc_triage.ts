@@ -701,7 +701,6 @@ const mod: ChallengeModule = {
       { id: 'prioritization', name: 'Prioritization', description: 'Works the queue in a defensible order and assigns P1–P4 by impact, not by the rule severity label.', weight: 10 },
       { id: 'communication', name: 'Communication', description: 'Concise, scannable writing a SOC lead or client can act on at 3 a.m. without asking follow-up questions.', weight: 15 },
     ],
-    reward: { mode: 'top3', amounts: [250, 125, 75] },
     applicantCap: 35,
     status: 'open',
     hiringFor: 'SOC Analyst I · Full-time · Remote (US)',

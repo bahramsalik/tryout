@@ -16,9 +16,9 @@ import {
   type FluentIcon,
 } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
-import { DIFFICULTY_LABEL, type ChallengeType, type ChallengeView, type Company } from '@shared/types';
+import { DIFFICULTY_LABEL, prizeTotal, type ChallengeType, type ChallengeView, type Company } from '@shared/types';
 import { cn } from '@/lib/cn';
-import { countdown, money, ordinal } from '@/lib/format';
+import { countdown, ordinal, usd } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { Badge } from './ui';
 
@@ -85,12 +85,6 @@ export function Meta({ icon: Icon, children, className, title }: { icon: FluentI
   );
 }
 
-export function rewardLabel(c: Pick<ChallengeView, 'kind' | 'rewardTotal' | 'reward'>): string {
-  if (c.kind === 'practice') return 'Practice';
-  if (c.reward.mode === 'none' || c.rewardTotal <= 0) return 'No bounty';
-  return money(c.rewardTotal);
-}
-
 export function Countdown({ deadline, className }: { deadline: string | null; className?: string }) {
   const now = useNow(30_000);
   if (!deadline) return null;
@@ -103,13 +97,15 @@ export function Countdown({ deadline, className }: { deadline: string | null; cl
   );
 }
 
-/** reward · hours · level · spots · time left */
+/** hours · level · spots · time left */
 export function ChallengeMeta({ c, level, spots = true, className }: { c: ChallengeView; level?: boolean; spots?: boolean; className?: string }) {
   return (
     <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', className)}>
-      <Meta icon={Money16Regular} className={cn(c.kind === 'live' && c.rewardTotal > 0 && 'font-semibold text-fg1')}>
-        {rewardLabel(c)}
-      </Meta>
+      {c.kind === 'live' && prizeTotal(c) > 0 ? (
+        <Meta icon={Money16Regular} className="font-semibold text-fg1">
+          {usd(prizeTotal(c))} prize
+        </Meta>
+      ) : null}
       <Meta icon={Clock16Regular}>~{c.estHours} h</Meta>
       {level ? <Meta icon={TargetArrow16Regular}>{DIFFICULTY_LABEL[c.difficulty]}</Meta> : null}
       {spots && c.kind === 'live' ? (
@@ -148,10 +144,22 @@ export function Placements({ first, second, third }: { first: number; second: nu
   );
 }
 
-export function RankBadge({ rank, className }: { rank: number | null; className?: string }) {
-  if (!rank) return null;
+/** Shown only on results a person confirmed. Names the company that verified it. */
+export function VerifiedBadge({ company, className }: { company?: string | null; className?: string }) {
+  const label = company ? `Verified by ${company}` : 'Verified';
   return (
-    <Badge color={rank === 1 ? 'warning' : 'neutral'} icon={rank <= 3 ? Trophy16Filled : undefined} className={className}>
+    <Badge color="success" icon={Checkmark16Filled} className={cn('max-w-56 min-w-0', className)} title={label}>
+      <span className="truncate">{label}</span>
+    </Badge>
+  );
+}
+
+/** `placed` = the submission earned a placement medal (a challenge can turn medals off). */
+export function RankBadge({ rank, placed = true, className }: { rank: number | null; placed?: boolean; className?: string }) {
+  if (!rank) return null;
+  const medal = placed && rank <= 3;
+  return (
+    <Badge color={medal && rank === 1 ? 'warning' : 'neutral'} icon={medal ? Trophy16Filled : undefined} className={className}>
       {ordinal(rank)}
     </Badge>
   );

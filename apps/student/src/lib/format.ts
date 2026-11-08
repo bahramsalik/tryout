@@ -1,15 +1,12 @@
-import type { ChallengeView, Reward } from '@shared/types';
-
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-
-export function money(n: number | null | undefined): string {
-  return usd.format(n ?? 0);
-}
-
 export function ordinal(n: number): string {
   const s = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
   return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`;
+}
+
+/** Whole dollars, e.g. $1,250. */
+export function usd(n: number): string {
+  return '$' + n.toLocaleString('en-US');
 }
 
 export function bytes(n: number): string {
@@ -67,19 +64,6 @@ export function countdown(deadline: string, now = Date.now()): CountdownInfo {
   else label = `${Math.max(1, m)}m`;
   const urgency = ms < 6 * 3600_000 ? 'urgent' : ms < 36 * 3600_000 ? 'soon' : 'calm';
   return { label, ms, passed: false, urgency };
-}
-
-/** "Top 3 of up to 40 get paid" / "Winner takes $400" / "Feedback guaranteed". */
-export function payoutLine(c: Pick<ChallengeView, 'reward' | 'applicantCap'>): string {
-  const cap = c.applicantCap ? ` of up to ${c.applicantCap}` : '';
-  if (c.reward.mode === 'top3') return `Top 3${cap} get paid`;
-  if (c.reward.mode === 'winner') return `1 winner${cap} gets paid`;
-  return 'No bounty · feedback guaranteed';
-}
-
-export function rewardSplit(reward: Reward): string {
-  if (reward.mode === 'none' || reward.amounts.length === 0) return 'Feedback guaranteed';
-  return reward.amounts.map((a) => money(a)).join(' / ');
 }
 
 export function pluralize(n: number, one: string, many = `${one}s`): string {

@@ -4,7 +4,6 @@ import type {
   CoachPack,
   Company,
   EmployerUser,
-  InterviewInvite,
   Notification,
   RubricCriterion,
   Student,
@@ -24,7 +23,7 @@ export interface Participation {
 
 export interface SubmissionRecord extends Submission {
   alias: string;
-  /** Employer user id that scored it, "coach" for practice reviews, null when unscored. */
+  /** Employer user id that scored it, "coach" for practice reviews, "ai" for AI grades, null when unscored. */
   scoredBy: string | null;
 }
 
@@ -58,7 +57,6 @@ export interface Db {
   participations: Participation[];
   submissions: SubmissionRecord[];
   notifications: Notification[];
-  invites: InterviewInvite[];
   content: RuntimeContent;
   /** Cloud mode only: recent live events, replayed by /api/events to clients polling from other instances. */
   events?: StoredEvent[];
@@ -82,7 +80,6 @@ export function emptyDb(): Db {
     participations: [],
     submissions: [],
     notifications: [],
-    invites: [],
     content: {
       coachPacks: {} as Record<ChallengeType, CoachPack>,
       rubricTemplates: {} as Record<ChallengeType, RubricCriterion[]>,

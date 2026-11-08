@@ -18,19 +18,15 @@ export type ChallengeKind = 'live' | 'practice';
 /** `open` accepts joins/submissions · `reviewing` closed to submissions · `awarded` results published. */
 export type ChallengeStatus = 'open' | 'reviewing' | 'awarded';
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
-export type RewardMode = 'winner' | 'top3' | 'none';
 export type SubmissionStatus = 'submitted' | 'scored' | 'awarded' | 'not_selected';
 /** `coach` = instant dummy-AI review used for practice tasks. */
-export type ReviewerKind = 'employer' | 'coach';
+export type ReviewerKind = 'employer' | 'coach' | 'ai';
 export type CoachQuickPrompt = 'testing' | 'steps' | 'greatLooksLike' | 'pitfalls';
-export type InviteStatus = 'pending' | 'accepted' | 'declined';
 export type NotificationKind =
   | 'new_challenge' // student: a challenge matching their interests was published
   | 'submission_received' // employer: a student submitted
   | 'results' // student: results published, not placed (feedback is ready)
-  | 'awarded' // student: placed and paid
-  | 'interview' // student: interview invite received
-  | 'invite_response' // employer: student accepted/declined an invite
+  | 'awarded' // student: placed
   | 'coach_review' // student: practice task reviewed by Coach
   | 'cap_reached'; // employer: applicant cap reached
 
@@ -74,12 +70,6 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   advanced: 'Advanced',
 };
 
-export const REWARD_MODE_LABEL: Record<RewardMode, string> = {
-  winner: 'Winner takes all',
-  top3: 'Top 3 paid',
-  none: 'No bounty · feedback guaranteed',
-};
-
 export const PLATFORM_RULES = {
   minEstHours: 1,
   /** Hard rule: every task must fit in 5 hours. */
@@ -93,10 +83,10 @@ export const PLATFORM_RULES = {
   verifiedPassScore: 60,
   /** Seeded background (generated) submissions never total more than this. */
   generatedScoreCeiling: 85,
-  /** Shown in the employer escrow summary. */
-  platformFeePct: 15,
-  /** Default Top-3 split of the bounty pool. */
-  top3DefaultSplit: [0.5, 0.3, 0.2],
+  /** Top finishers who get a placement medal when results are published. */
+  placementCount: 3,
+  /** AI-graded scores at or above this go to the recruiter to confirm or adjust; lower ones stay with the AI. */
+  reviewThreshold: 75,
   defaultDeadlineDays: 7,
 } as const;
 
@@ -147,12 +137,6 @@ export interface RubricCriterion {
   weight: number;
 }
 
-export interface Reward {
-  mode: RewardMode;
-  /** Integer USD. winner → [first]; top3 → [first, second, third]; none → []. */
-  amounts: number[];
-}
-
 /** "From the classroom": the theory a task applies. */
 export interface ClassroomConcept {
   concept: string; // "Token bucket algorithm"
@@ -190,9 +174,12 @@ export interface Challenge {
   brief: string;
   deliverables: string[];
   rubric: RubricCriterion[];
-  reward: Reward;
   /** null = no cap. */
   applicantCap: number | null;
+  /** How many top finishers get a medal when results are published. 0 = no medals. Omitted = PLATFORM_RULES.placementCount. */
+  placements?: number;
+  /** Optional prize, in whole dollars, split across the award places (needs placements above 0). Paid out (simulated) to Verified winners only. */
+  prizePool?: number;
   /** ISO. null = evergreen (practice). */
   deadline: string | null;
   status: ChallengeStatus;
@@ -221,17 +208,18 @@ export interface ChallengeView extends Omit<Challenge, 'starterFiles'> {
   scoredCount: number;
   /** null when uncapped. */
   spotsLeft: number | null;
-  rewardTotal: number;
   hasStarterKit: boolean;
   /** Present when the requesting persona is a student. */
   viewer?: ChallengeViewer;
   /** Average total of scored submissions. Only present for the owning company's employers. Added by S1. */
   avgScore?: number | null;
+  /** Only for the owning company's employers: submissions that need a recruiter (ungraded, or AI-graded at or above the review threshold and not yet confirmed). */
+  toReview?: number;
 }
 
 export type ChallengeSummary = Pick<
   ChallengeView,
-  'id' | 'title' | 'type' | 'kind' | 'status' | 'estHours' | 'rubric' | 'reward' | 'company' | 'companyId' | 'deadline'
+  'id' | 'title' | 'type' | 'kind' | 'status' | 'estHours' | 'rubric' | 'company' | 'companyId' | 'deadline'
 >;
 
 export interface AutoCheck {
@@ -263,6 +251,14 @@ export interface Submission {
   autoChecks: AutoCheck[];
   status: SubmissionStatus;
   reviewer: ReviewerKind | null;
+  /** Id of the person who confirmed this result (a recruiter, or anyone who is not the AI). Absent = not confirmed. */
+  verifiedBy?: string | null;
+  /** Prize this result won, in whole dollars. Set when results are published, and only for Verified winners. */
+  prize?: number;
+  /** AI grading only: criterionId → what in the work justified the score. */
+  scoreNotes?: Record<string, string>;
+  /** Live work waiting for its AI grade: `grading` = in progress, `delayed` = could not be graded yet (it is retried). Absent once graded. */
+  gradingState?: 'grading' | 'delayed';
   /** criterionId → 1..5. Hidden (null) from students until results are published (live challenges). */
   scores: Record<string, number> | null;
   /** 0–100 weighted (computeTotalScore). Hidden from students until published. */
@@ -270,7 +266,6 @@ export interface Submission {
   feedback: string | null;
   scoredAt: string | null;
   rank: number | null;
-  payout: number | null; // USD
   shortlisted: boolean;
 }
 
@@ -280,6 +275,8 @@ export interface SubmissionView extends Submission {
   /** Always included; the employer UI hides it while blind review is on. */
   student: Student;
   challenge: ChallengeSummary;
+  /** True when a person confirmed the result (see `isVerified`). Shown to the public as "Verified". */
+  verified: boolean;
 }
 
 export interface StudentStats {
@@ -288,7 +285,6 @@ export interface StudentStats {
   practiceHours: number;
   /** Employer-scored submissions (any score). */
   tasksCompleted: number;
-  bountiesEarned: number; // USD
   placements: { first: number; second: number; third: number };
   avgScore: number | null; // employer-scored only
   /** One entry per type the student has scored work in (radar chart; missing types = 0). */
@@ -306,10 +302,11 @@ export interface ProfileHistoryItem {
   submittedAt: string;
   status: SubmissionStatus;
   reviewer: ReviewerKind | null;
+  /** True when a person confirmed the result (see `isVerified`). Shown to the public as "Verified". */
+  verified: boolean;
   /** Visible only when results are published (or practice/coach). */
   totalScore: number | null;
   rank: number | null;
-  payout: number | null;
   feedbackExcerpt: string | null;
   estHours: number;
   /** True when the viewer may open the files (the student themself, or the challenge owner's employer users). */
@@ -338,27 +335,9 @@ export interface Notification {
   read: boolean;
 }
 
-export interface InterviewInvite {
-  id: string; // "inv_xxxxxxxx"
-  companyId: string;
-  studentId: string;
-  challengeId: string | null;
-  role: string | null;
-  message: string;
-  createdAt: string;
-  status: InviteStatus;
-}
-
-export interface InviteView extends InterviewInvite {
-  company: Company;
-  challengeTitle: string | null;
-  /** Present when an employer lists their company's invites (GET /me/invites as an employer). Added by S1. */
-  student?: Student;
-}
-
 export interface ActivityItem {
   id: string;
-  kind: 'join' | 'submission' | 'scored' | 'award' | 'invite';
+  kind: 'join' | 'submission' | 'scored' | 'award';
   text: string; // "Candidate K7 submitted to Rate limiting…" — frontends may re-render with names
   challengeId: string | null;
   studentId: string | null;
@@ -372,9 +351,6 @@ export interface EmployerDashboard {
     totalSubmissions: number;
     awaitingReview: number;
     avgScore: number | null;
-    bountiesEscrowed: number; // reward totals of not-yet-awarded live challenges
-    bountiesPaid: number;
-    interviewsSent: number;
   };
   /** All of the company's live challenges, any status, newest first. */
   challenges: ChallengeView[];
@@ -403,8 +379,11 @@ export interface CreateChallengeInput {
   brief: string;
   deliverables: string[];
   rubric: RubricCriterion[];
-  reward: Reward;
   applicantCap: number | null;
+  /** 0 = no medals. Omitted = PLATFORM_RULES.placementCount. */
+  placements?: number;
+  /** Optional prize in whole dollars; needs placements above 0. */
+  prizePool?: number;
   deadline: string; // ISO
   hiringFor?: string | null;
 }
@@ -417,20 +396,14 @@ export interface ScoreSubmissionInput {
 
 export interface AwardResponse {
   challenge: ChallengeView;
-  results: { submissionId: string; studentId: string; rank: number; payout: number; status: SubmissionStatus }[];
+  /** `rank` is null when the challenge has no award: nobody is ranked. */
+  results: { submissionId: string; studentId: string; rank: number | null; status: SubmissionStatus }[];
 }
 
 export interface FilePreview {
   path: string;
   content: string;
   truncated: boolean;
-}
-
-export interface CreateInviteInput {
-  studentId: string;
-  challengeId?: string | null;
-  role?: string | null;
-  message: string;
 }
 
 export interface CoachRequest {
@@ -472,9 +445,7 @@ export type ServerEvent =
     }
   | { type: 'submission.created'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null } }
   | { type: 'submission.scored'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null; totalScore: number } }
-  | { type: 'challenge.awarded'; payload: { challengeId: string; companyId: string | null; results: { studentId: string; rank: number; payout: number }[] } }
-  | { type: 'invite.created'; payload: { invite: InterviewInvite } }
-  | { type: 'invite.updated'; payload: { invite: InterviewInvite } }
+  | { type: 'challenge.awarded'; payload: { challengeId: string; companyId: string | null; results: { studentId: string; rank: number | null; placed: boolean }[] } }
   | { type: 'notification.created'; payload: { notification: Notification } }
   | { type: 'system.reset'; payload: Record<string, never> };
 
@@ -567,8 +538,40 @@ export interface SeedContent {
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
 
-export function rewardTotal(reward: Reward): number {
-  return reward.amounts.reduce((sum, amount) => sum + amount, 0);
+/** True when a recruiter should look at this submission: nothing graded yet, or a strong AI grade nobody has confirmed. */
+export function needsRecruiterReview(s: { totalScore: number | null; reviewer: ReviewerKind | null; verifiedBy?: string | null; verified?: boolean }): boolean {
+  if (s.totalScore === null) return true;
+  return s.reviewer === 'ai' && !s.verifiedBy && !s.verified && s.totalScore >= PLATFORM_RULES.reviewThreshold;
+}
+
+/** The total prize a challenge advertises (0 when it has none or has no award). */
+export function prizeTotal(challenge: { placements?: number; prizePool?: number }): number {
+  return placementsFor(challenge) > 0 ? (challenge.prizePool ?? 0) : 0;
+}
+
+/** Prize for a 1-based place (0 when none). Top 1 gets it all; top 3 split it 50 / 30 / 20; other counts split evenly. */
+export function prizeForPlace(challenge: { placements?: number; prizePool?: number }, rank: number): number {
+  const places = placementsFor(challenge);
+  const pool = challenge.prizePool ?? 0;
+  if (pool <= 0 || rank < 1 || rank > places) return 0;
+  if (places === 1) return pool;
+  if (places === 3) {
+    const first = Math.round(pool * 0.5);
+    const second = Math.round(pool * 0.3);
+    return [first, second, pool - first - second][rank - 1] ?? 0;
+  }
+  const share = Math.floor(pool / places);
+  return rank === 1 ? pool - share * (places - 1) : share;
+}
+
+/** A result is "verified" when a person confirmed it: the employer scored it, or someone confirmed an AI grade. */
+export function isVerified(s: { reviewer: ReviewerKind | null; verifiedBy?: string | null }): boolean {
+  return s.reviewer === 'employer' || !!s.verifiedBy;
+}
+
+/** How many top finishers of a challenge get a medal (0 = none). Medals are separate from grading. */
+export function placementsFor(challenge: { placements?: number }): number {
+  return challenge.placements ?? PLATFORM_RULES.placementCount;
 }
 
 /** Weighted total 0–100; missing criteria count as 0. Used by the API and the review UI's live total. */
@@ -577,17 +580,3 @@ export function computeTotalScore(rubric: RubricCriterion[], scores: Record<stri
   return Math.round(raw);
 }
 
-/** Payout for a 1-based rank under a reward (0 when that rank isn't paid). */
-export function payoutForRank(reward: Reward, rank: number): number {
-  if (reward.mode === 'winner') return rank === 1 ? (reward.amounts[0] ?? 0) : 0;
-  if (reward.mode === 'top3') return rank >= 1 && rank <= 3 ? (reward.amounts[rank - 1] ?? 0) : 0;
-  return 0;
-}
-
-/** Splits a Top-3 pool using the default 50/30/20 split (rounded to whole dollars). */
-export function splitTop3(pool: number): number[] {
-  const [a, b] = PLATFORM_RULES.top3DefaultSplit;
-  const first = Math.round(pool * a);
-  const second = Math.round(pool * b);
-  return [first, second, pool - first - second];
-}

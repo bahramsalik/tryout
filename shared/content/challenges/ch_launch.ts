@@ -504,7 +504,6 @@ const mod: ChallengeModule = {
       { id: 'creative', name: 'Creative & messaging', weight: 20, description: 'A clear messaging hierarchy and sample assets that lead with taste, use only cleared claims and fit each channel.' },
       { id: 'measurement', name: 'Measurement plan', weight: 15, description: 'KPIs tied to sales (velocity against the 3.5 review bar, cost per purchase) with sourced targets and a dated mid-flight decision rule.' },
     ],
-    reward: { mode: 'winner', amounts: [300] },
     applicantCap: 60,
     status: 'open',
     hiringFor: 'Marketing Coordinator · Full-time · Denver, CO (hybrid)',

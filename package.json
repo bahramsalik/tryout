@@ -2,14 +2,14 @@
   "name": "tryout",
   "version": "0.1.0",
   "private": true,
-  "description": "Tryout: real employer tasks become paid, verified experience. UNHack26 prototype with two websites (students + employers) on one live API.",
+  "description": "Tryout: real employer tasks become verified experience. UNHack26 prototype with two websites (students + employers) on one live API.",
   "scripts": {
     "setup": "npm install && npm --prefix server install && npm --prefix apps/student install && npm --prefix apps/employer install",
     "demo": "concurrently -k -n api,student,employer -c blue,magenta,green \"npm --prefix server run dev\" \"npm --prefix apps/student run dev\" \"npm --prefix apps/employer run dev\"",
     "dev": "npm run demo",
     "reset": "npm --prefix server run seed",
     "smoke": "npm --prefix server run smoke",
-    "check": "npm --prefix server run typecheck && npm --prefix apps/student run typecheck && npm --prefix apps/employer run typecheck && npx -y tsx shared/content/check.ts",
+    "check": "npm --prefix server run typecheck && npm --prefix server run check-grader && npm --prefix server run check-grading-flow && npm --prefix apps/student run typecheck && npm --prefix apps/employer run typecheck && npx -y tsx shared/content/check.ts",
     "build": "npm --prefix apps/student run build && npm --prefix apps/employer run build"
   },
   "devDependencies": {

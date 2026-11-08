@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import type { Notification } from '@shared/types';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/format';
-import { useMarkAllRead, useNotifications } from '@/lib/queries';
+import { useMarkAllRead, useMarkRead, useNotifications } from '@/lib/queries';
 import { useDismiss } from '@/lib/useDismiss';
 import { useNow } from '@/lib/useNow';
 import { Button, Skeleton } from './ui';
@@ -25,6 +25,7 @@ function NotificationRow({ n, onOpen, now }: { n: Notification; onOpen: (n: Noti
 export function NotificationBell() {
   const q = useNotifications();
   const markAll = useMarkAllRead();
+  const markOne = useMarkRead();
   const navigate = useNavigate();
   const now = useNow(30_000);
   const [open, setOpen] = useState(false);
@@ -44,6 +45,7 @@ export function NotificationBell() {
   }, [open, unread, markAllRead]);
 
   const onOpen = (n: Notification) => {
+    if (!n.read) markOne.mutate(n.id);
     setOpen(false);
     if (n.link) navigate(n.link);
   };

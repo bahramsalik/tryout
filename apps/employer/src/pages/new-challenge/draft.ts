@@ -1,13 +1,10 @@
 import {
   PLATFORM_RULES,
-  splitTop3,
   type ChallengeType,
   type ClassroomConcept,
   type Company,
   type CreateChallengeInput,
   type Difficulty,
-  type Reward,
-  type RewardMode,
   type RubricCriterion,
 } from '@shared/types';
 import { daysFromNow, slugify } from '@/lib/format';
@@ -36,11 +33,12 @@ export interface Draft {
   classroomConcepts: ClassroomConcept[];
   hiringFor: string;
   rubric: RubricRow[];
-  rewardMode: RewardMode;
-  winnerAmount: number;
-  top3: [number, number, number];
   capped: boolean;
   cap: number;
+  /** Medals for the top N finishers; 0 = none. */
+  placements: number;
+  /** Optional prize in whole dollars (needs an award). */
+  prizePool: number;
   deadline: string;
 }
 
@@ -48,7 +46,6 @@ let seq = 0;
 export const newKey = () => `k${Date.now().toString(36)}${(seq++).toString(36)}`;
 
 export function emptyDraft(): Draft {
-  const [a, b, c] = splitTop3(500);
   return {
     title: '',
     type: null,
@@ -61,11 +58,10 @@ export function emptyDraft(): Draft {
     classroomConcepts: [],
     hiringFor: '',
     rubric: [],
-    rewardMode: 'top3',
-    winnerAmount: 400,
-    top3: [a, b, c],
     capped: true,
     cap: 50,
+    placements: 0, // awards are optional: off unless the employer adds one
+    prizePool: 0, // so is the prize
     deadline: daysFromNow(PLATFORM_RULES.defaultDeadlineDays),
   };
 }
@@ -80,7 +76,6 @@ export type StepErrors = Partial<
     | 'estHours'
     | 'rubric'
     | 'weights'
-    | 'reward'
     | 'cap'
     | 'deadline',
     string
@@ -89,12 +84,6 @@ export type StepErrors = Partial<
 
 export function weightTotal(rows: RubricRow[]): number {
   return rows.reduce((s, r) => s + (Number.isFinite(r.weight) ? r.weight : 0), 0);
-}
-
-export function draftReward(d: Draft): Reward {
-  if (d.rewardMode === 'winner') return { mode: 'winner', amounts: [Math.max(0, Math.round(d.winnerAmount || 0))] };
-  if (d.rewardMode === 'top3') return { mode: 'top3', amounts: d.top3.map((a) => Math.max(0, Math.round(a || 0))) };
-  return { mode: 'none', amounts: [] };
 }
 
 export function validateStep(step: number, d: Draft): StepErrors {
@@ -126,8 +115,6 @@ export function validateStep(step: number, d: Draft): StepErrors {
     if (d.rubric.length > 0 && total !== 100) e.weights = `Weights total ${total}%, not 100%`;
   }
   if (step === 2) {
-    if (d.rewardMode === 'winner' && !(d.winnerAmount >= 1)) e.reward = 'Required';
-    if (d.rewardMode === 'top3' && d.top3.some((a) => !(a >= 1))) e.reward = 'Every place needs an amount';
     if (d.capped && (!Number.isInteger(d.cap) || d.cap < 1)) e.cap = 'Whole number ≥ 1';
     const t = new Date(d.deadline).getTime();
     if (!d.deadline || Number.isNaN(t)) e.deadline = 'Required';
@@ -166,8 +153,9 @@ export function draftToInput(d: Draft): CreateChallengeInput {
     brief: d.brief.trim(),
     deliverables: d.deliverables.map((x) => x.trim()).filter(Boolean),
     rubric: rubricWithIds(d.rubric),
-    reward: draftReward(d),
     applicantCap: d.capped ? d.cap : null,
+    placements: d.placements ?? 0,
+    ...((d.placements ?? 0) > 0 && (d.prizePool ?? 0) > 0 ? { prizePool: Math.round(d.prizePool) } : {}),
     deadline: new Date(d.deadline).toISOString(),
     hiringFor: d.hiringFor.trim() || null,
   };
@@ -176,7 +164,6 @@ export function draftToInput(d: Draft): CreateChallengeInput {
 /** Accepts a CreateChallengeInput (or a WizardExample with `deadlineInDays`) from GET /employer/example-challenge. */
 export function inputToDraft(input: Partial<CreateChallengeInput> & { deadlineInDays?: number }): Draft {
   const base = emptyDraft();
-  const reward = input.reward;
   const deadline =
     input.deadline && !Number.isNaN(new Date(input.deadline).getTime())
       ? input.deadline
@@ -194,14 +181,10 @@ export function inputToDraft(input: Partial<CreateChallengeInput> & { deadlineIn
     classroomConcepts: input.classroomConcepts ? input.classroomConcepts.map((c) => ({ ...c })) : [],
     hiringFor: input.hiringFor ?? '',
     rubric: (input.rubric ?? []).map((r) => ({ key: newKey(), name: r.name, description: r.description, weight: r.weight })),
-    rewardMode: reward?.mode ?? base.rewardMode,
-    winnerAmount: reward?.mode === 'winner' ? (reward.amounts[0] ?? base.winnerAmount) : base.winnerAmount,
-    top3:
-      reward?.mode === 'top3' && reward.amounts.length >= 3
-        ? [reward.amounts[0], reward.amounts[1], reward.amounts[2]]
-        : base.top3,
     capped: input.applicantCap !== null,
     cap: input.applicantCap ?? base.cap,
+    placements: input.placements ?? base.placements,
+    prizePool: input.prizePool ?? base.prizePool,
     deadline,
   };
 }
@@ -211,7 +194,6 @@ export function clampHours(h: number): number {
 }
 
 export function draftToPreview(d: Draft, company: Company | null): PreviewChallenge {
-  const reward = draftReward(d);
   return {
     title: d.title.trim(),
     summary: d.summary.trim(),
@@ -223,8 +205,9 @@ export function draftToPreview(d: Draft, company: Company | null): PreviewChalle
     brief: d.brief,
     deliverables: d.deliverables,
     rubric: d.rubric.map((r, i) => ({ id: r.key || String(i), name: r.name, description: r.description, weight: r.weight || 0 })),
-    reward,
     applicantCap: d.capped ? d.cap || null : null,
+    placements: d.placements ?? 0,
+    prizePool: (d.placements ?? 0) > 0 ? d.prizePool : 0,
     deadline: d.deadline,
     hiringFor: d.hiringFor.trim() || null,
     company,

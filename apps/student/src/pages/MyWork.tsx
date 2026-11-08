@@ -1,48 +1,15 @@
 import { useMemo, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import type { ChallengeView, InviteView, SubmissionView } from '@shared/types';
+import type { ChallengeView, SubmissionView } from '@shared/types';
 import { Countdown, CompanyLogo, RankBadge } from '@/components/brand';
-import { Badge, Button, ButtonLink, Card, EmptyState, ErrorState, MessageBar, PageHeader, Skeleton, TabList } from '@/components/ui';
+import { Badge, ButtonLink, Card, EmptyState, ErrorState, PageHeader, Skeleton, TabList } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
 import { continueItems, hasVisibleResult } from '@/lib/derive';
-import { money, timeAgo } from '@/lib/format';
-import { useChallenges, useInvites, useMySubmissions, useRespondInvite } from '@/lib/queries';
+import { timeAgo } from '@/lib/format';
+import { useChallenges, useMySubmissions } from '@/lib/queries';
 import { useNow } from '@/lib/useNow';
 
 type Tab = 'progress' | 'submitted' | 'results';
-
-function InviteBar({ invite }: { invite: InviteView }) {
-  const respond = useRespondInvite();
-  const busy = respond.isPending;
-  const title = `${invite.company.name} wants to interview you${invite.role ? ` for ${invite.role}` : ''}.`;
-  if (invite.status !== 'pending') {
-    return (
-      <MessageBar intent={invite.status === 'accepted' ? 'success' : 'info'} title={invite.status === 'accepted' ? 'Accepted' : 'Declined'}>
-        {invite.company.name}
-        {invite.role ? ` · ${invite.role}` : ''}
-      </MessageBar>
-    );
-  }
-  return (
-    <MessageBar
-      intent="success"
-      title={title}
-      actions={
-        <>
-          <Button size="small" appearance="primary" loading={busy && respond.variables?.status === 'accepted'} disabled={busy} onClick={() => respond.mutate({ id: invite.id, status: 'accepted' })}>
-            Accept
-          </Button>
-          <Button size="small" appearance="subtle" disabled={busy} onClick={() => respond.mutate({ id: invite.id, status: 'declined' })}>
-            Decline
-          </Button>
-        </>
-      }
-    >
-      {invite.message ? <span className="mt-1 block whitespace-pre-line text-fg2">{invite.message}</span> : null}
-      {respond.isError ? <span className="mt-1 block text-danger-fg">{errorMessage(respond.error)}</span> : null}
-    </MessageBar>
-  );
-}
 
 function Row({ company, title, to, meta, end }: { company: ChallengeView['company']; title: string; to: string; meta: ReactNode; end?: ReactNode }) {
   return (
@@ -60,7 +27,6 @@ function Row({ company, title, to, meta, end }: { company: ChallengeView['compan
 }
 
 function ResultRow({ s }: { s: SubmissionView }) {
-  const paid = (s.payout ?? 0) > 0;
   return (
     <Row
       company={s.challenge.company}
@@ -74,12 +40,7 @@ function ResultRow({ s }: { s: SubmissionView }) {
       }
       end={
         <span className="flex items-center gap-2">
-          <RankBadge rank={s.rank} />
-          {paid ? (
-            <Badge color="success" appearance="filled">
-              {money(s.payout)}
-            </Badge>
-          ) : null}
+          <RankBadge rank={s.rank} placed={s.status === 'awarded'} />
           {s.totalScore !== null ? <span className="w-8 text-right text-subtitle2 font-semibold tabular-nums">{s.totalScore}</span> : null}
         </span>
       }
@@ -91,7 +52,6 @@ export function MyWorkPage() {
   const [params, setParams] = useSearchParams();
   const subs = useMySubmissions();
   const challenges = useChallenges();
-  const invites = useInvites();
   const now = useNow(60_000);
 
   const inProgress = useMemo(() => continueItems(challenges.data, now), [challenges.data, now]);
@@ -104,15 +64,6 @@ export function MyWorkPage() {
     () => all.filter((s) => !hasVisibleResult(s)).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()),
     [all],
   );
-  // Pending invites first, then the latest answered one.
-  const inviteList = [...(invites.data ?? [])]
-    .sort((a, b) => {
-      if (a.status === 'pending' && b.status !== 'pending') return -1;
-      if (b.status === 'pending' && a.status !== 'pending') return 1;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    })
-    .filter((i, idx) => i.status === 'pending' || idx === 0);
-
   const paramTab = params.get('tab');
   const tab: Tab =
     paramTab === 'progress' || paramTab === 'submitted' || paramTab === 'results'
@@ -128,10 +79,6 @@ export function MyWorkPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="My work" />
-
-      {inviteList.map((i) => (
-        <InviteBar key={i.id} invite={i} />
-      ))}
 
       <TabList<Tab>
         ariaLabel="My work"
@@ -180,7 +127,7 @@ export function MyWorkPage() {
                 title={s.challenge.title}
                 to={`/challenges/${s.challengeId}`}
                 meta={<span>Submitted {timeAgo(s.submittedAt, now)}</span>}
-                end={<Badge color="brand">Under review</Badge>}
+                end={<Badge color="brand">{s.gradingState ? 'Grading…' : 'Under review'}</Badge>}
               />
             ))
           )

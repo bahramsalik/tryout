@@ -1,14 +1,14 @@
 # tryout
 
-> **Real employer tasks become paid, verified experience.**
+> **Real employer tasks become verified experience.**
 > Students prove they're job-ready on 3–5 hour workplace challenges. Employers hire on proof, not résumés.
 
 This is the UNHack26 prototype: **two websites on one live API**.
 
 | | URL | For |
 |---|---|---|
-| **Tryout** | http://localhost:5173 | Students: explore real tasks, submit work, earn bounties, build a Proof Profile |
-| **Tryout for Employers** | http://localhost:5174 | Employers: post challenges, review blind with a rubric, pay the top performers, invite them to interview |
+| **Tryout** | http://localhost:5173 | Students: explore real tasks, submit work, build a Proof Profile |
+| **Tryout for Employers** | http://localhost:5174 | Employers: post challenges, review blind with a rubric, recognise the top performers, read each candidate's Proof Profile |
 | **Tryout API** | http://localhost:4000/api/health | The shared data and real-time events behind both sites |
 
 **Hosted demo:** [student site](https://main.dhjcmj9cw8mvq.amplifyapp.com) · [employer site](https://main.d19oi9e8mi2t4d.amplifyapp.com). See [Hosting](#hosting).
@@ -21,10 +21,10 @@ Entry-level postings ask for 1–3 years of experience because hiring someone un
 
 ## How it works
 
-1. **An employer posts a challenge.** It's a ≤ 5-hour task that mirrors the real job. The employer sets a weighted rubric, a bounty (winner takes all / top 3 / none), an applicant cap and the role they're hiring for. The bounty is escrowed.
+1. **An employer posts a challenge.** It's a ≤ 5-hour task that mirrors the real job. The employer sets a weighted rubric, an applicant cap and the role they're hiring for.
 2. **Students take it on.** Each task shows *From the classroom*, the course concepts it applies. Coach (a preview AI) helps students find tasks in their field and break them down. A submission is a zip, approach notes, and a disclosure of any AI use.
 3. **The employer reviews blind.** They see the file tree, README and notes in the browser, score each rubric criterion 1–5, and can't publish results until every submission has scores and written feedback.
-4. **The best get paid and invited.** Results, bounties and interview invites appear on the student's screen in real time. Every scored task adds employer-verified hours and placements to the student's **Proof Profile**.
+4. **Students get verified results.** Scores, feedback and placements appear on the student's screen in real time. A strong result is a certificate, not a ticket to an interview. Every scored task adds employer-verified hours and placements to the student's **Proof Profile**.
 
 ## Quick start
 
@@ -61,7 +61,7 @@ The demo personas are **Maya Chen** (student) and **Jordan Park, Orbitline Logis
 | Path | What it is |
 |---|---|
 | [`SPEC.md`](SPEC.md) | Product and technical spec: problem, scope, rules, API contract, design system |
-| [`shared/types.ts`](shared/types.ts) | The contract shared by all three apps: types, constants, scoring and payout helpers |
+| [`shared/types.ts`](shared/types.ts) | The contract shared by all three apps: types, constants, scoring and ranking helpers |
 | [`shared/content/`](shared/content) | Seed content: fictional companies, students, and 17 realistic tasks with briefs, rubrics, starter kits and sample submissions |
 | [`server/`](server) | The API: REST + SSE, the seeder, zip inspection, dummy AI ([README](server/README.md)) |
 | [`apps/student/`](apps/student) | Website 1: Tryout for students |
@@ -75,13 +75,12 @@ The demo personas are **Maya Chen** (student) and **Jordan Park, Orbitline Logis
 - two separate web apps sharing one REST API
 - real-time updates across both sites (Server-Sent Events)
 - real zip uploads, inspected in the browser (file tree, README, file previews, auto-checks)
-- rubric scoring, ranking and payout logic
+- rubric scoring, ranking and placement logic
 - blind review, the feedback guarantee, results privacy and cross-employer file privacy
 - persisted state
 
 **Mocked:**
 - sign-in (a persona switcher)
-- payments and escrow (simulated)
 - the AI Coach and rubric suggestions: canned responses, marked `// DUMMY-AI`, built to be swapped for a real LLM
 - all companies and people, which are fictional
 

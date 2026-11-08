@@ -4,7 +4,7 @@
  *
  * Walks the §4 demo loop: Maya uploads a real zip to ch_rate_limiter, Jordan scores it
  * {correctness:5, design:4, tests:4, code_quality:4, communication:5}, awards the challenge and
- * invites her; asserts ranks/payouts against the shared helpers, notifications, SSE events and the
+ * asserts ranks/placements against the shared helpers, notifications, SSE events and the
  * 401/403/409 paths. Prints a pass/fail table; exit code 1 on any failure.
  */
 import { spawn } from 'node:child_process';
@@ -17,15 +17,12 @@ import AdmZip from 'adm-zip';
 import {
   PLATFORM_RULES,
   computeTotalScore,
-  payoutForRank,
-  rewardTotal,
   type AwardResponse,
   type ChallengeView,
   type CoachResponse,
   type CreateChallengeInput,
   type EmployerDashboard,
   type FilePreview,
-  type InviteView,
   type Me,
   type Notification,
   type Personas,
@@ -306,14 +303,11 @@ async function run() {
   check('GET /challenges excludes awarded by default', list.status === 200 && list.body.length > 0 && list.body.every((c) => c.status !== 'awarded'));
   const awardedList = await call<ChallengeView[]>('GET', '/challenges?status=awarded');
   check('GET /challenges?status=awarded only awarded', awardedList.body.every((c) => c.status === 'awarded'));
-  const byBounty = await call<ChallengeView[]>('GET', '/challenges?sort=bounty');
-  check('sort=bounty is descending', byBounty.body.every((c, i, a) => i === 0 || a[i - 1]!.rewardTotal >= c.rewardTotal));
   const practiceList = await call<ChallengeView[]>('GET', '/challenges?kind=practice', { as: 'stu_maya' });
   check('kind=practice filter', practiceList.body.length > 0 && practiceList.body.every((c) => c.kind === 'practice'));
   const rl = await call<ChallengeView>('GET', '/challenges/ch_rate_limiter', { as: 'stu_maya' });
   if (!check('GET /challenges/ch_rate_limiter', rl.status === 200, JSON.stringify(rl.body).slice(0, 200))) return;
   check('Maya joined ch_rate_limiter, not submitted', rl.body.viewer?.joined === true && rl.body.viewer.submissionId === null, JSON.stringify(rl.body.viewer));
-  check('rewardTotal matches helper', rl.body.rewardTotal === rewardTotal(rl.body.reward));
   expectErr('unknown challenge → 404', await call('GET', '/challenges/ch_nope'), 404, 'CHALLENGE_NOT_FOUND');
   const starter = await call('GET', '/challenges/ch_rate_limiter/starter');
   if (rl.body.hasStarterKit) {
@@ -472,13 +466,10 @@ async function run() {
   const award = await call<AwardResponse>('POST', '/challenges/ch_rate_limiter/award', { as: 'emp_jordan' });
   if (!check('award → 200', award.status === 200, JSON.stringify(award.body).slice(0, 300))) return;
   const mayaResult = award.body.results.find((r) => r.studentId === 'stu_maya');
-  const expectedPayout = payoutForRank(rl.body.reward, expectedRank);
   check(`Maya rank ${expectedRank} = computed`, mayaResult?.rank === expectedRank, JSON.stringify(mayaResult));
-  check(`Maya payout $${expectedPayout} = payoutForRank`, mayaResult?.payout === expectedPayout && expectedPayout === 150, JSON.stringify(mayaResult));
-  check('paid → awarded, others → not_selected', award.body.results.every((r) => r.status === (r.payout > 0 ? 'awarded' : 'not_selected')));
   check(
-    'payouts total the bounty',
-    award.body.results.reduce((s, r) => s + r.payout, 0) === (award.body.results.length >= 3 ? rewardTotal(rl.body.reward) : award.body.results.reduce((s, r) => s + r.payout, 0)),
+    'top 3 → awarded, others → not_selected',
+    award.body.results.every((r) => r.status === (r.rank !== null && r.rank <= PLATFORM_RULES.placementCount ? 'awarded' : 'not_selected')),
   );
   check('challenge.status = awarded (+ awardedAt)', award.body.challenge.status === 'awarded' && !!award.body.challenge.awardedAt);
   const evAward = await sse.waitFor((e) => e.type === 'challenge.awarded');
@@ -487,18 +478,17 @@ async function run() {
     (e) => e.type === 'notification.created' && payload<{ notification: Notification }>(e).notification.recipientId === 'stu_maya' && payload<{ notification: Notification }>(e).notification.kind === 'awarded',
   );
   const awardTitle = payload<{ notification: Notification }>(evMayaNtf).notification?.title ?? '';
-  check('Maya notified "2nd place · $150"', awardTitle === '2nd place · $150', awardTitle);
+  check('Maya notified "2nd place"', awardTitle === '2nd place', awardTitle);
   check('non-placed students get "results" notifications', sse.events.some((e) => e.type === 'notification.created' && payload<{ notification: Notification }>(e).notification.kind === 'results'));
   expectErr('award twice → 409 ALREADY_AWARDED', await call('POST', '/challenges/ch_rate_limiter/award', { as: 'emp_jordan' }), 409, 'ALREADY_AWARDED');
   expectErr('re-score after award → 409', await call('POST', `/submissions/${sub.id}/score`, { as: 'emp_jordan', json: { scores: demoScores, feedback } }), 409, 'ALREADY_AWARDED');
   const mineAfter = await call<SubmissionView[]>('GET', '/me/submissions', { as: 'stu_maya' });
   const mineRl = mineAfter.body.find((s) => s.id === sub.id);
-  check('Maya now sees 88 · rank 2 · $150 · feedback', mineRl?.totalScore === 88 && mineRl.rank === 2 && mineRl.payout === 150 && mineRl.status === 'awarded' && mineRl.feedback === feedback);
+  check('Maya now sees 88 · rank 2 · feedback', mineRl?.totalScore === 88 && mineRl.rank === 2 && mineRl.status === 'awarded' && mineRl.feedback === feedback);
   const profileAfter = await call<StudentProfile>('GET', '/students/stu_maya', { as: 'emp_jordan' });
   const b = profileBefore.body.stats;
   const a = profileAfter.body.stats;
   check('verified hours +4', a.verifiedHours === b.verifiedHours + rl.body.estHours, `${b.verifiedHours} → ${a.verifiedHours}`);
-  check('bounties earned +$150', a.bountiesEarned === b.bountiesEarned + 150, `${b.bountiesEarned} → ${a.bountiesEarned}`);
   check('placements: +1 second', a.placements.second === b.placements.second + 1);
   const hist = profileAfter.body.history;
   check(
@@ -509,32 +499,9 @@ async function run() {
   const boardMaya = await call<SubmissionView[]>('GET', '/challenges/ch_rate_limiter/leaderboard', { as: 'stu_maya' });
   check('student leaderboard after award (peers redacted)', boardMaya.status === 200 && boardMaya.body.filter((s) => s.studentId !== 'stu_maya').every((s) => s.notes === '' && s.feedback === null && s.file.tree.length === 0));
 
-  section = 'invites';
-  const inviteBody = { studentId: 'stu_maya', challengeId: 'ch_rate_limiter', message: "Hi Maya, loved your rate limiter. Let's talk about the Junior Backend Engineer role!" };
-  expectErr('invite as student → 403', await call('POST', '/invites', { as: 'stu_maya', json: inviteBody }), 403, 'WRONG_ROLE');
-  const inv = await call<InviteView>('POST', '/invites', { as: 'emp_jordan', json: inviteBody });
-  check('POST /invites → 201', inv.status === 201 && inv.body.status === 'pending' && inv.body.role === rl.body.hiringFor, JSON.stringify(inv.body).slice(0, 200));
-  const evInv = await sse.waitFor((e) => e.type === 'invite.created');
-  check('SSE invite.created', payload<{ invite: { id: string } }>(evInv).invite?.id === inv.body.id);
-  const evInvNtf = await sse.waitFor(
-    (e) => e.type === 'notification.created' && payload<{ notification: Notification }>(e).notification.kind === 'interview' && payload<{ notification: Notification }>(e).notification.recipientId === 'stu_maya',
-  );
-  check('Maya notified "Interview invite · Orbitline Logistics"', payload<{ notification: Notification }>(evInvNtf).notification?.title === 'Interview invite · Orbitline Logistics');
-  expectErr('duplicate invite → 409 ALREADY_INVITED', await call('POST', '/invites', { as: 'emp_jordan', json: inviteBody }), 409, 'ALREADY_INVITED');
-  expectErr('invite to unknown student → 404', await call('POST', '/invites', { as: 'emp_jordan', json: { ...inviteBody, studentId: 'stu_nobody' } }), 404, 'STUDENT_NOT_FOUND');
-  const myInv = await call<InviteView[]>('GET', '/me/invites', { as: 'stu_maya' });
-  check('GET /me/invites (student)', myInv.body.some((i) => i.id === inv.body.id && i.company.id === 'co_orbitline'));
-  const coInv = await call<InviteView[]>('GET', '/me/invites', { as: 'emp_jordan' });
-  check('GET /me/invites (employer, with student)', coInv.body.some((i) => i.id === inv.body.id && i.student?.id === 'stu_maya'));
-  if (otherStudent) expectErr('respond to someone else’s invite → 403', await call('POST', `/invites/${inv.body.id}/respond`, { as: otherStudent, json: { status: 'accepted' } }), 403, 'NOT_YOURS');
-  const resp = await call<InviteView>('POST', `/invites/${inv.body.id}/respond`, { as: 'stu_maya', json: { status: 'accepted' } });
-  check('Maya accepts', resp.status === 200 && resp.body.status === 'accepted');
-  check('SSE invite.updated', !!(await sse.waitFor((e) => e.type === 'invite.updated')));
-  expectErr('respond twice → 409', await call('POST', `/invites/${inv.body.id}/respond`, { as: 'stu_maya', json: { status: 'declined' } }), 409, 'ALREADY_RESPONDED');
-
   section = 'notifications';
   const ntf = await call<Notification[]>('GET', '/notifications', { as: 'stu_maya' });
-  check('Maya has awarded + interview notifications', ['awarded', 'interview'].every((k) => ntf.body.some((n) => n.kind === k)));
+  check('Maya has an awarded notification', ['awarded'].every((k) => ntf.body.some((n) => n.kind === k)));
   check('notifications newest first', ntf.body.every((n, i, arr) => i === 0 || Date.parse(arr[i - 1]!.createdAt) >= Date.parse(n.createdAt)));
   const firstUnread = ntf.body.find((n) => !n.read);
   if (firstUnread) {
@@ -545,14 +512,14 @@ async function run() {
   check('POST /notifications/read-all', (await call<{ ok: boolean }>('POST', '/notifications/read-all', { as: 'stu_maya' })).body.ok === true);
   check('all read afterwards', (await call<Notification[]>('GET', '/notifications', { as: 'stu_maya' })).body.every((n) => n.read));
   const coNtf = await call<Notification[]>('GET', '/notifications', { as: 'emp_jordan' });
-  check('company gets submission_received + invite_response', ['submission_received', 'invite_response'].every((k) => coNtf.body.some((n) => n.kind === k)));
+  check('company gets a submission_received notification', ['submission_received'].every((k) => coNtf.body.some((n) => n.kind === k)));
   expectErr('notifications need a persona', await call('GET', '/notifications'), 401, 'NO_PERSONA');
 
   section = 'employer';
   const dash = await call<EmployerDashboard>('GET', '/employer/dashboard', { as: 'emp_jordan' });
-  check('dashboard KPIs', dash.status === 200 && dash.body.kpis.interviewsSent >= 1 && dash.body.kpis.bountiesPaid >= rewardTotal(rl.body.reward), JSON.stringify(dash.body.kpis));
+  check('dashboard KPIs', dash.status === 200, JSON.stringify(dash.body.kpis));
   check('dashboard lists only own live challenges', dash.body.challenges.every((c) => c.companyId === 'co_orbitline' && c.kind === 'live'));
-  check('activity feed has award + invite', ['award', 'invite'].every((k) => dash.body.recentActivity.some((x) => x.kind === k)));
+  check('activity feed has an award entry', ['award'].every((k) => dash.body.recentActivity.some((x) => x.kind === k)));
   expectErr('dashboard as student → 403', await call('GET', '/employer/dashboard', { as: 'stu_maya' }), 403, 'WRONG_ROLE');
   const talent = await call<StudentListItem[]>('GET', '/students?sort=score', { as: 'emp_jordan' });
   check('GET /students (talent, sort=score)', talent.status === 200 && talent.body.length > 0 && talent.body.every((s, i, arr) => i === 0 || (arr[i - 1]!.stats.avgScore ?? -1) >= (s.stats.avgScore ?? -1)));

@@ -582,7 +582,6 @@ const mod: ChallengeModule = {
       { id: 'rationale', name: 'Design rationale', description: 'Every major decision is tied to a specific number or quote, and the trade-offs of what was removed or deferred are stated plainly.', weight: 15 },
       { id: 'measurement', name: 'Success metrics', description: 'Defines a primary metric with a baseline and target, a leading indicator, a guardrail and a realistic way to test it.', weight: 10 },
     ],
-    reward: { mode: 'winner', amounts: [400] },
     applicantCap: 30,
     status: 'open',
     hiringFor: 'Associate Product Designer · Full-time · New York, NY (hybrid)',

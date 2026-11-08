@@ -17,6 +17,9 @@ npm run smoke        # end-to-end test on a private instance (:4100 + temp DATA_
 | `DATA_DIR` | `server/data` | `db.json` + `uploads/` (submission zips, `starters/`) |
 | `CORS_ORIGINS` | — | extra comma-separated origins (5173/5174 on localhost and 127.0.0.1 are built in) |
 | `AI_LATENCY_MIN_MS` / `AI_LATENCY_MAX_MS` | `700` / `1400` | DUMMY-AI latency |
+| `ANTHROPIC_API_KEY` | — | key for the AI grader. Put it in `server/.env` (copy `server/.env.example`); `npm run dev` / `start` / `seed` load that file. Empty = placeholder grader |
+| `GRADER_MODEL` | `claude-haiku-5-5` | model used for grading |
+| `GRADER_DAILY_LIMIT` | `200` | cost guard: most AI gradings per day |
 | `SMOKE_PORT` | `4100` | port for `npm run smoke` |
 | `CONTENT_ENTRY` | — | tests only: load seed content from another file |
 
@@ -32,7 +35,7 @@ npm run smoke        # end-to-end test on a private instance (:4100 + temp DATA_
 | File | |
 |---|---|
 | `src/app.ts` | every route (SPEC §7.6), CORS, error format |
-| `src/actions.ts` | mutations: create/join/submit/score/shortlist/award/invite (+ notifications and SSE events) |
+| `src/actions.ts` | mutations: create/join/submit/score/shortlist/award (+ notifications and SSE events) |
 | `src/views.ts` | read models and the privacy rules (results hidden until published, file privacy, blind aliases) |
 | `src/seed.ts` | deterministic seeder |
 | `src/content.ts` | content import + zod/cross-reference validation + hash |

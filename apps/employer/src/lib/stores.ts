@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * Tiny localStorage-backed stores shared across components.
- * - Blind review: per challenge, ON by default (SPEC §5.5 rule 11). Not part of the API contract.
+ * - Blind review: per challenge, ON by default (SPEC §5.5 rule 10). Not part of the API contract.
  */
 
 type Listener = () => void;
@@ -108,4 +108,36 @@ export function applySeedId(seedId: string | null | undefined) {
     /* ignore */
   }
   clearBlind();
+}
+
+/* ───────────── Sidebar visibility ───────────── */
+
+const sidebarStore = createStore<{ open: boolean }>('tryout.employer.sidebar', { open: true });
+
+/** [open, toggle] for the left sidebar. Remembered between visits. */
+export function useSidebar(): [boolean, () => void] {
+  const { open } = useSyncExternalStore(sidebarStore.subscribe, sidebarStore.get);
+  return [open, () => sidebarStore.set({ open: !sidebarStore.get().open })];
+}
+
+/* ───────────── Page title (shown in the top bar) ───────────── */
+
+let pageTitle: string | null = null;
+const pageTitleListeners = new Set<Listener>();
+
+/** Called by PageHeader. The top bar shows the current page's title, like a chat title. */
+export function setPageTitle(title: string | null) {
+  if (pageTitle === title) return;
+  pageTitle = title;
+  pageTitleListeners.forEach((l) => l());
+}
+
+export function usePageTitle(): string | null {
+  return useSyncExternalStore(
+    (l) => {
+      pageTitleListeners.add(l);
+      return () => pageTitleListeners.delete(l);
+    },
+    () => pageTitle,
+  );
 }

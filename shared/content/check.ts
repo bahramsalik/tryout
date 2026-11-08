@@ -10,11 +10,9 @@ import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
   computeTotalScore,
-  payoutForRank,
   type ChallengeSeed,
   type ChallengeType,
   type RubricCriterion,
-  type Reward,
   type ScriptedResult,
   type SeedContent,
 } from '../types.ts';
@@ -30,32 +28,30 @@ interface Expected {
   title: string;
   estHours: number;
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
-  reward: Reward;
   cap: number | null;
   status: 'open' | 'awarded';
   deadlineInDays: number | null;
   seed: [number, number, number];
 }
 
-const NONE: Reward = { mode: 'none', amounts: [] };
 const EXPECTED: Record<string, Expected> = {
-  ch_rate_limiter: { kind: 'live', companyId: 'co_orbitline', type: 'software', title: 'Add rate limiting to our Shipment Tracking API', estHours: 4, difficulty: 'intermediate', reward: { mode: 'top3', amounts: [300, 150, 75] }, cap: 40, status: 'open', deadlineInDays: 1, seed: [15, 14, 14] },
-  ch_churn: { kind: 'live', companyId: 'co_fernhill', type: 'data', title: 'Why are patients cancelling their telehealth plans?', estHours: 4, difficulty: 'intermediate', reward: { mode: 'top3', amounts: [250, 125, 75] }, cap: 50, status: 'open', deadlineInDays: 5, seed: [31, 9, 4] },
-  ch_onboarding: { kind: 'live', companyId: 'co_kitebird', type: 'design', title: 'Redesign first-run onboarding to get new users to a first post', estHours: 4, difficulty: 'intermediate', reward: { mode: 'winner', amounts: [400] }, cap: 30, status: 'open', deadlineInDays: 6, seed: [19, 6, 0] },
-  ch_variance: { kind: 'live', companyId: 'co_cobalt', type: 'finance', title: 'Explain the Q3 budget miss to the CFO', estHours: 3, difficulty: 'beginner', reward: { mode: 'top3', amounts: [200, 100, 50] }, cap: 40, status: 'open', deadlineInDays: 4, seed: [12, 3, 0] },
-  ch_launch: { kind: 'live', companyId: 'co_sproutly', type: 'marketing', title: 'Launch plan for chickpea crisps on a $10k budget', estHours: 3, difficulty: 'beginner', reward: { mode: 'winner', amounts: [300] }, cap: 60, status: 'open', deadlineInDays: 9, seed: [27, 5, 0] },
-  ch_soc_triage: { kind: 'live', companyId: 'co_ironvale', type: 'security', title: 'Triage a night of SIEM alerts', estHours: 3, difficulty: 'intermediate', reward: { mode: 'top3', amounts: [250, 125, 75] }, cap: 35, status: 'open', deadlineInDays: 3, seed: [22, 11, 6] },
-  ch_eta_prd: { kind: 'live', companyId: 'co_orbitline', type: 'product', title: 'Write the PRD for live delivery-ETA notifications', estHours: 3, difficulty: 'beginner', reward: NONE, cap: 25, status: 'open', deadlineInDays: 7, seed: [8, 2, 0] },
-  pr_flaky_tests: { kind: 'practice', companyId: null, type: 'software', title: 'Fix a flaky test suite', estHours: 3, difficulty: 'beginner', reward: NONE, cap: null, status: 'open', deadlineInDays: null, seed: [38, 24, 24] },
-  pr_messy_data: { kind: 'practice', companyId: 'co_fernhill', type: 'data', title: 'Reconcile two messy clinic-visit exports', estHours: 3, difficulty: 'beginner', reward: NONE, cap: null, status: 'open', deadlineInDays: null, seed: [29, 17, 17] },
-  pr_a11y_audit: { kind: 'practice', companyId: null, type: 'design', title: 'Accessibility audit of a checkout page', estHours: 3, difficulty: 'beginner', reward: NONE, cap: null, status: 'open', deadlineInDays: null, seed: [21, 12, 12] },
-  pr_interviews: { kind: 'practice', companyId: null, type: 'product', title: 'Synthesize six user-interview transcripts into insights', estHours: 4, difficulty: 'intermediate', reward: NONE, cap: null, status: 'open', deadlineInDays: null, seed: [14, 7, 7] },
-  pr_ab_test: { kind: 'practice', companyId: null, type: 'marketing', title: 'Design and size an email A/B test', estHours: 3, difficulty: 'intermediate', reward: NONE, cap: null, status: 'open', deadlineInDays: null, seed: [18, 9, 9] },
-  pr_3_statement: { kind: 'practice', companyId: 'co_cobalt', type: 'finance', title: 'Build a 3-statement model for a coffee subscription startup', estHours: 5, difficulty: 'advanced', reward: NONE, cap: null, status: 'open', deadlineInDays: null, seed: [11, 4, 4] },
-  pr_phishing: { kind: 'practice', companyId: 'co_ironvale', type: 'security', title: 'Dissect a phishing email and write the staff advisory', estHours: 3, difficulty: 'beginner', reward: NONE, cap: null, status: 'open', deadlineInDays: null, seed: [33, 20, 20] },
-  past_csv_import: { kind: 'live', companyId: 'co_orbitline', type: 'software', title: 'Build a CSV shipment-import validator', estHours: 4, reward: { mode: 'top3', amounts: [250, 125, 75] }, cap: 30, status: 'awarded', deadlineInDays: -20, seed: [30, 22, 22] },
-  past_wait_dashboard: { kind: 'live', companyId: 'co_fernhill', type: 'data', title: 'Build a clinic wait-time dashboard', estHours: 4, reward: { mode: 'top3', amounts: [200, 120, 75] }, cap: 30, status: 'awarded', deadlineInDays: -35, seed: [28, 18, 18] },
-  past_release_notes: { kind: 'live', companyId: 'co_kitebird', type: 'product', title: 'Write release notes + an in-app announcement for Groups', estHours: 3, reward: { mode: 'winner', amounts: [250] }, cap: 25, status: 'awarded', deadlineInDays: -50, seed: [20, 12, 12] },
+  ch_rate_limiter: { kind: 'live', companyId: 'co_orbitline', type: 'software', title: 'Add rate limiting to our Shipment Tracking API', estHours: 4, difficulty: 'intermediate', cap: 40, status: 'open', deadlineInDays: 1, seed: [15, 14, 14] },
+  ch_churn: { kind: 'live', companyId: 'co_fernhill', type: 'data', title: 'Why are patients cancelling their telehealth plans?', estHours: 4, difficulty: 'intermediate', cap: 50, status: 'open', deadlineInDays: 5, seed: [31, 9, 4] },
+  ch_onboarding: { kind: 'live', companyId: 'co_kitebird', type: 'design', title: 'Redesign first-run onboarding to get new users to a first post', estHours: 4, difficulty: 'intermediate', cap: 30, status: 'open', deadlineInDays: 6, seed: [19, 6, 0] },
+  ch_variance: { kind: 'live', companyId: 'co_cobalt', type: 'finance', title: 'Explain the Q3 budget miss to the CFO', estHours: 3, difficulty: 'beginner', cap: 40, status: 'open', deadlineInDays: 4, seed: [12, 3, 0] },
+  ch_launch: { kind: 'live', companyId: 'co_sproutly', type: 'marketing', title: 'Launch plan for chickpea crisps on a $10k budget', estHours: 3, difficulty: 'beginner', cap: 60, status: 'open', deadlineInDays: 9, seed: [27, 5, 0] },
+  ch_soc_triage: { kind: 'live', companyId: 'co_ironvale', type: 'security', title: 'Triage a night of SIEM alerts', estHours: 3, difficulty: 'intermediate', cap: 35, status: 'open', deadlineInDays: 3, seed: [22, 11, 6] },
+  ch_eta_prd: { kind: 'live', companyId: 'co_orbitline', type: 'product', title: 'Write the PRD for live delivery-ETA notifications', estHours: 3, difficulty: 'beginner', cap: 25, status: 'open', deadlineInDays: 7, seed: [8, 2, 0] },
+  pr_flaky_tests: { kind: 'practice', companyId: null, type: 'software', title: 'Fix a flaky test suite', estHours: 3, difficulty: 'beginner', cap: null, status: 'open', deadlineInDays: null, seed: [38, 24, 24] },
+  pr_messy_data: { kind: 'practice', companyId: 'co_fernhill', type: 'data', title: 'Reconcile two messy clinic-visit exports', estHours: 3, difficulty: 'beginner', cap: null, status: 'open', deadlineInDays: null, seed: [29, 17, 17] },
+  pr_a11y_audit: { kind: 'practice', companyId: null, type: 'design', title: 'Accessibility audit of a checkout page', estHours: 3, difficulty: 'beginner', cap: null, status: 'open', deadlineInDays: null, seed: [21, 12, 12] },
+  pr_interviews: { kind: 'practice', companyId: null, type: 'product', title: 'Synthesize six user-interview transcripts into insights', estHours: 4, difficulty: 'intermediate', cap: null, status: 'open', deadlineInDays: null, seed: [14, 7, 7] },
+  pr_ab_test: { kind: 'practice', companyId: null, type: 'marketing', title: 'Design and size an email A/B test', estHours: 3, difficulty: 'intermediate', cap: null, status: 'open', deadlineInDays: null, seed: [18, 9, 9] },
+  pr_3_statement: { kind: 'practice', companyId: 'co_cobalt', type: 'finance', title: 'Build a 3-statement model for a coffee subscription startup', estHours: 5, difficulty: 'advanced', cap: null, status: 'open', deadlineInDays: null, seed: [11, 4, 4] },
+  pr_phishing: { kind: 'practice', companyId: 'co_ironvale', type: 'security', title: 'Dissect a phishing email and write the staff advisory', estHours: 3, difficulty: 'beginner', cap: null, status: 'open', deadlineInDays: null, seed: [33, 20, 20] },
+  past_csv_import: { kind: 'live', companyId: 'co_orbitline', type: 'software', title: 'Build a CSV shipment-import validator', estHours: 4, cap: 30, status: 'awarded', deadlineInDays: -20, seed: [30, 22, 22] },
+  past_wait_dashboard: { kind: 'live', companyId: 'co_fernhill', type: 'data', title: 'Build a clinic wait-time dashboard', estHours: 4, cap: 30, status: 'awarded', deadlineInDays: -35, seed: [28, 18, 18] },
+  past_release_notes: { kind: 'live', companyId: 'co_kitebird', type: 'product', title: 'Write release notes + an in-app announcement for Groups', estHours: 3, cap: 25, status: 'awarded', deadlineInDays: -50, seed: [20, 12, 12] },
 };
 
 /** challengeId:studentId → expected computeTotalScore (null = submitted, not scored yet). */
@@ -151,16 +147,6 @@ function checkRubric(where: string, rubric: RubricCriterion[], min = 4, max = 5,
     check(Number.isInteger(c.weight) && c.weight > 0, `${where}: criterion ${c.id} weight ${c.weight} must be a positive integer`);
     check(c.name.trim().length > 0 && c.description.trim().length >= 15, `${where}: criterion ${c.id} needs a name and description`);
     check(budgetWords(c.description) <= maxDescWords, `${where}: criterion ${c.id} description is ${budgetWords(c.description)} words (max ${maxDescWords})`);
-  }
-}
-
-function checkReward(where: string, reward: Reward): void {
-  const want = { top3: 3, winner: 1, none: 0 }[reward.mode];
-  check(reward.amounts.length === want, `${where}: reward mode ${reward.mode} needs ${want} amounts, has ${reward.amounts.length}`);
-  check(reward.amounts.every((a) => Number.isInteger(a) && a > 0), `${where}: reward amounts must be positive integers`);
-  if (reward.mode === 'top3') {
-    const [a = 0, b = 0, c = 0] = reward.amounts;
-    check(a >= b && b >= c, `${where}: top3 amounts should be descending`);
   }
 }
 
@@ -283,7 +269,6 @@ function run(content: SeedContent): void {
       check(c.title === exp.title, `${w}: title "${c.title}" ≠ "${exp.title}"`);
       check(c.estHours === exp.estHours, `${w}: estHours ${c.estHours} ≠ ${exp.estHours}`);
       if (exp.difficulty) check(c.difficulty === exp.difficulty, `${w}: difficulty ${c.difficulty} ≠ ${exp.difficulty}`);
-      check(JSON.stringify(c.reward) === JSON.stringify(exp.reward), `${w}: reward ${JSON.stringify(c.reward)} ≠ ${JSON.stringify(exp.reward)}`);
       check(c.applicantCap === exp.cap, `${w}: applicantCap ${c.applicantCap} ≠ ${exp.cap}`);
       check(c.status === exp.status, `${w}: status ${c.status} ≠ ${exp.status}`);
       check(c.deadlineInDays === exp.deadlineInDays, `${w}: deadlineInDays ${c.deadlineInDays} ≠ ${exp.deadlineInDays}`);
@@ -298,7 +283,6 @@ function run(content: SeedContent): void {
     check(between(c.classroomConcepts.length, 2, 4), `${w}: ${c.classroomConcepts.length} classroom concepts (want 2–4)`);
     for (const cc of c.classroomConcepts) check(cc.concept.trim() && cc.course.trim(), `${w}: empty classroom concept`);
     checkRubric(w, c.rubric);
-    checkReward(w, c.reward);
     check(c.aiHints.testing.trim().length >= 40, `${w}: aiHints.testing is too short`);
     check(between(c.aiHints.steps.length, 4, 6), `${w}: aiHints.steps has ${c.aiHints.steps.length} (want 4–6)`);
     check(c.aiHints.greatLooksLike.trim().length >= 40, `${w}: aiHints.greatLooksLike is too short`);
@@ -308,7 +292,7 @@ function run(content: SeedContent): void {
     // Kind-specific rules
     if (c.kind === 'practice') {
       check(c.hiringFor === null, `${w}: practice tasks have hiringFor null`);
-      check(c.applicantCap === null && c.deadlineInDays === null && c.reward.mode === 'none', `${w}: practice is uncapped, evergreen and unpaid`);
+      check(c.applicantCap === null && c.deadlineInDays === null, `${w}: practice is uncapped and evergreen`);
       check(c.seed.submissions === c.seed.scored, `${w}: practice submissions are all Coach-reviewed (submissions = scored)`);
     } else {
       check(c.companyId && companyById.has(c.companyId), `${w}: live challenges need a valid companyId`);
@@ -437,8 +421,8 @@ function run(content: SeedContent): void {
     }
   }
 
-  // Past podiums and payouts
-  const payouts = new Map<string, number>();
+  // Past podiums
+  const podiumKeys = new Set<string>();
   for (const [cid, podium] of Object.entries(EXPECTED_PODIUM)) {
     const c = byId.get(cid);
     if (!c) continue;
@@ -450,7 +434,7 @@ function run(content: SeedContent): void {
     check(top.map((x) => x.studentId).join() === podium.join(), `${cid}: podium is ${top.map((x) => `${x.studentId}(${x.total})`).join(', ')}, want ${podium.join(', ')}`);
     check(top.every((x) => x.total > PLATFORM_RULES.generatedScoreCeiling), `${cid}: every podium score must be > ${PLATFORM_RULES.generatedScoreCeiling}`);
     check(dupes(top.map((x) => String(x.total))).length === 0, `${cid}: podium scores must be distinct`);
-    top.forEach((x, i) => payouts.set(key(cid, x.studentId), payoutForRank(c.reward, i + 1)));
+    for (const x of top) podiumKeys.add(key(cid, x.studentId));
   }
 
   // The demo challenge
@@ -466,33 +450,28 @@ function run(content: SeedContent): void {
     check(between(mayaLive, 86, 90), `ch_rate_limiter: Maya's demo clicks give ${mayaLive}, want 86–90`);
     const ahead = totals.filter((x) => x.t >= mayaLive).length + (PLATFORM_RULES.generatedScoreCeiling >= mayaLive ? 1 : 0);
     check(ahead === 1, `ch_rate_limiter: Maya at ${mayaLive} would not place 2nd`);
-    check(payoutForRank(rl.reward, 2) === 150, 'ch_rate_limiter: 2nd place should pay $150');
   }
 
-  // Maya's starting state: 🥇🥉, $325, 11 verified hours, 2 coach-reviewed practice tasks
+  // Maya's starting state: 🥇🥉, 11 verified hours, 2 coach-reviewed practice tasks
   const mine = scriptedResults.filter((r) => r.studentId === 'stu_maya');
   let verified = 0;
-  let earned = 0;
   const places: number[] = [];
   for (const r of mine) {
     const c = byId.get(r.challengeId);
     const t = total(r);
     if (!c || t === null) continue;
     if (c.kind === 'live' && t >= PLATFORM_RULES.verifiedPassScore) verified += c.estHours;
-    const p = payouts.get(key(r.challengeId, r.studentId));
-    if (p !== undefined) {
-      earned += p;
+    if (podiumKeys.has(key(r.challengeId, r.studentId))) {
       places.push(EXPECTED_PODIUM[r.challengeId]!.indexOf('stu_maya') + 1);
     }
   }
   const practice = mine.filter((r) => byId.get(r.challengeId)?.kind === 'practice');
   check(verified === 11, `Maya: ${verified} verified hours, want 11`);
-  check(earned === 325, `Maya: $${earned} earned, want $325`);
   check(places.sort().join() === '1,3', `Maya: placements ${places.join()} , want 1st and 3rd`);
   check(practice.length === 2 && practice.every((r) => between(total(r) ?? 0, 83, 87)), 'Maya: 2 Coach-reviewed practice tasks in the mid-80s');
   const relNotes = mine.find((r) => r.challengeId === 'past_release_notes');
   check(relNotes && between(total(relNotes) ?? 0, 72, 76), 'Maya: past_release_notes ≈ 74, not placed');
-  check(rl && verified + rl.estHours === 15 && earned + payoutForRank(rl.reward, 2) === 475, 'Maya after the demo: 15 h and $475');
+  check(rl && verified + rl.estHours === 15, 'Maya after the demo: 15 verified hours');
 
   // Everyone else: 2–4 results each so their profiles look real
   for (const s of students) {
@@ -557,7 +536,6 @@ function run(content: SeedContent): void {
     check(between(ex.skills.length, 3, 6), `${w}: want 3–6 skills`);
     check(between(ex.classroomConcepts?.length ?? 0, 2, 4), `${w}: want 2–4 classroom concepts`);
     checkRubric(w, ex.rubric, 4, 5, TEXT.criterionWords);
-    checkReward(w, ex.reward);
     check(ex.applicantCap === null || (Number.isInteger(ex.applicantCap) && ex.applicantCap > 0), `${w}: bad applicantCap`);
     const roles = companyById.get(id)?.hiringFor ?? [];
     check(!ex.hiringFor || roles.some((r) => ex.hiringFor!.startsWith(r)), `${w}: hiringFor should use one of the company's roles`);

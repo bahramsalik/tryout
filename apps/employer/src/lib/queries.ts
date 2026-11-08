@@ -1,6 +1,5 @@
 import { QueryClient, useQuery, keepPreviousData } from '@tanstack/react-query';
 import type {
-  InviteView,
   ChallengeView,
   ChallengeType,
   EmployerDashboard,
@@ -43,7 +42,6 @@ export const qk = {
   studentsAll: ['students'] as const,
   student: (idOrHandle: string) => ['student', idOrHandle] as const,
   notifications: ['notifications'] as const,
-  invites: ['invites'] as const,
 };
 
 export function useHealth() {
@@ -157,17 +155,4 @@ export function rankSubmissions(subs: SubmissionView[]): SubmissionView[] {
 
 export function isScored(s: Pick<SubmissionView, 'totalScore' | 'status'>): boolean {
   return s.totalScore != null || s.status !== 'submitted';
-}
-
-/** The company's interview invites (GET /me/invites works for employers too), newest first. */
-export function useCompanyInvites() {
-  return useQuery({ queryKey: qk.invites, queryFn: () => api<InviteView[]>('/me/invites') });
-}
-
-/** studentId → their most recent invite from this company. */
-export function useInvitesByStudent(): Map<string, InviteView> {
-  const { data } = useCompanyInvites();
-  const map = new Map<string, InviteView>();
-  for (const inv of [...(data ?? [])].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) map.set(inv.studentId, inv);
-  return map;
 }

@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
+  placementsFor,
   type Challenge,
   type ChallengeView,
   type CreateChallengeInput,
@@ -17,12 +18,11 @@ import {
   assertCanSubmit,
   awardChallenge,
   createChallenge,
-  createInvite,
   joinChallenge,
   markAllRead,
   markRead,
-  respondToInvite,
   scoreSubmission,
+  verifySubmission,
   setShortlisted,
   submitWork,
   updateChallenge,
@@ -42,7 +42,6 @@ import {
   challengeById,
   challengeView,
   employerDashboard,
-  inviteView,
   isOwner,
   resultsPublished,
   studentById,
@@ -156,7 +155,6 @@ function sortChallenges(views: ChallengeView[], sort: string): ChallengeView[] {
   const deadline = (v: ChallengeView) => (v.deadline ? Date.parse(v.deadline) : Number.POSITIVE_INFINITY);
   const by: Record<string, (a: ChallengeView, b: ChallengeView) => number> = {
     newest,
-    bounty: (a, b) => b.rewardTotal - a.rewardTotal || newest(a, b),
     deadline: (a, b) => deadline(a) - deadline(b) || newest(a, b),
     spots: (a, b) => rankSort(b) - rankSort(a) || newest(a, b),
   };
@@ -188,8 +186,9 @@ const createChallengeSchema = z
     brief: z.string().trim().min(20).max(20_000),
     deliverables: z.array(z.string().trim().min(1).max(300)).min(1).max(10),
     rubric: z.array(criterionSchema).min(1).max(8),
-    reward: z.object({ mode: z.enum(['winner', 'top3', 'none']), amounts: z.array(z.number().int().min(0).max(100_000)) }),
     applicantCap: z.number().int().min(1).max(10_000).nullable(),
+    placements: z.number().int().min(0).max(10).optional(),
+    prizePool: z.number().int().min(0).max(100_000).optional(),
     deadline: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'deadline must be an ISO date'),
     hiringFor: z.string().max(200).nullable().optional(),
   })
@@ -198,11 +197,8 @@ const createChallengeSchema = z
     if (sum !== 100) ctx.addIssue({ code: 'custom', path: ['rubric'], message: `Rubric weights must total 100 (currently ${sum})` });
     const ids = v.rubric.map((c) => c.id);
     if (new Set(ids).size !== ids.length) ctx.addIssue({ code: 'custom', path: ['rubric'], message: 'Rubric criterion ids must be unique' });
-    const n = v.reward.mode === 'winner' ? 1 : v.reward.mode === 'top3' ? 3 : 0;
-    if (v.reward.amounts.length !== n) {
-      ctx.addIssue({ code: 'custom', path: ['reward', 'amounts'], message: `${v.reward.mode} needs ${n} amount${n === 1 ? '' : 's'}` });
-    } else if (v.reward.mode !== 'none' && v.reward.amounts.some((a) => a <= 0)) {
-      ctx.addIssue({ code: 'custom', path: ['reward', 'amounts'], message: 'Bounty amounts must be positive' });
+    if ((v.prizePool ?? 0) > 0 && !((v.placements ?? 0) > 0)) {
+      ctx.addIssue({ code: 'custom', path: ['prizePool'], message: 'A prize needs an award (Top 1 or Top 3)' });
     }
     if (Date.parse(v.deadline) <= Date.now()) ctx.addIssue({ code: 'custom', path: ['deadline'], message: 'Deadline must be in the future' });
   });
@@ -216,13 +212,6 @@ const scoreSchema = z.object({
   scores: z.record(z.string(), z.number()),
   feedback: z.string().default(''),
   shortlisted: z.boolean().optional(),
-});
-
-const inviteSchema = z.object({
-  studentId: z.string().min(1),
-  challengeId: z.string().nullable().optional(),
-  role: z.string().max(200).nullable().optional(),
-  message: z.string().max(4000),
 });
 
 const coachSchema = z.object({
@@ -393,6 +382,7 @@ export function createApp() {
     if (p.kind === 'student' && !(ch.kind === 'live' && ch.status === 'awarded')) {
       throw forbidden('RESULTS_NOT_PUBLISHED', 'Leaderboard opens when results are out.');
     }
+    if (p.kind === 'student' && placementsFor(ch) === 0) throw forbidden('NO_AWARD', 'This challenge has no award, so nobody is ranked.');
     const ranked = rankScored(getDb().submissions.filter((s) => s.challengeId === ch.id));
     res.json(
       ranked.map((s, i) => {
@@ -438,6 +428,13 @@ export function createApp() {
     res.json(scoreSubmission(p, sub, parseBody(scoreSchema, body)));
   });
 
+  api.post('/submissions/:id/verify', (req, res) => {
+    const sub = submissionById(param(req, 'id'));
+    if (!sub) throw notFound('SUBMISSION_NOT_FOUND', `No submission ${param(req, 'id')}.`);
+    const p = mustOwner(req, mustChallenge(sub.challengeId));
+    res.json(verifySubmission(p, sub));
+  });
+
   api.post('/submissions/:id/shortlist', (req, res) => {
     const sub = submissionById(param(req, 'id'));
     if (!sub) throw notFound('SUBMISSION_NOT_FOUND', `No submission ${param(req, 'id')}.`);
@@ -454,29 +451,6 @@ export function createApp() {
       .submissions.filter((s) => s.studentId === p.id && challengeById(s.challengeId))
       .sort((a, b) => Date.parse(b.submittedAt) - Date.parse(a.submittedAt));
     res.json(subs.map((s) => submissionView(s, p)));
-  });
-
-  api.get('/me/invites', (req, res) => {
-    const p = requirePersona(req);
-    const invites = getDb()
-      .invites.filter((i) => (p.kind === 'student' ? i.studentId === p.id : i.companyId === p.company.id))
-      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-    res.json(invites.map((i) => inviteView(i, { withStudent: p.kind === 'employer' })));
-  });
-
-  /* invites */
-
-  api.post('/invites', (req, res) => {
-    const p = requireEmployer(req);
-    res.status(201).json(createInvite(p, parseBody(inviteSchema, req.body)));
-  });
-
-  api.post('/invites/:id/respond', (req, res) => {
-    const p = requireStudent(req);
-    const invite = getDb().invites.find((i) => i.id === param(req, 'id'));
-    if (!invite) throw notFound('INVITE_NOT_FOUND', `No invite ${param(req, 'id')}.`);
-    const { status } = parseBody(z.object({ status: z.enum(['accepted', 'declined']) }), req.body);
-    res.json(respondToInvite(p, invite, status));
   });
 
   /* students */
@@ -501,7 +475,7 @@ export function createApp() {
     const by: Record<string, (a: StudentListItem, b: StudentListItem) => number> = {
       hours: (a, b) => b.stats.verifiedHours - a.stats.verifiedHours || (b.stats.avgScore ?? -1) - (a.stats.avgScore ?? -1),
       score: (a, b) => (b.stats.avgScore ?? -1) - (a.stats.avgScore ?? -1) || b.stats.verifiedHours - a.stats.verifiedHours,
-      placements: (a, b) => placementsScore(b) - placementsScore(a) || b.stats.bountiesEarned - a.stats.bountiesEarned,
+      placements: (a, b) => placementsScore(b) - placementsScore(a) || b.stats.verifiedHours - a.stats.verifiedHours,
     };
     res.json(items.sort((a, b) => (by[sort] ?? by.hours!)(a, b) || a.name.localeCompare(b.name)));
   });

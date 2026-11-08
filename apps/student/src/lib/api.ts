@@ -2,9 +2,6 @@ import type {
   ChallengeView,
   CoachRequest,
   CoachResponse,
-  InterviewInvite,
-  InviteStatus,
-  InviteView,
   Me,
   Notification,
   Personas,
@@ -157,13 +154,11 @@ export const api = {
     request<SubmissionView[]>(`/challenges/${encodeURIComponent(id)}/leaderboard`, { signal }),
   submission: (id: string, signal?: AbortSignal) => request<SubmissionView>(`/submissions/${encodeURIComponent(id)}`, { signal }),
   mySubmissions: (signal?: AbortSignal) => request<SubmissionView[]>('/me/submissions', { signal }),
-  myInvites: (signal?: AbortSignal) => request<InviteView[]>('/me/invites', { signal }),
-  respondInvite: (id: string, status: Exclude<InviteStatus, 'pending'>) =>
-    request<InterviewInvite>(`/invites/${encodeURIComponent(id)}/respond`, { method: 'POST', body: { status } }),
   student: (idOrHandle: string, signal?: AbortSignal) =>
     request<StudentProfile>(`/students/${encodeURIComponent(idOrHandle)}`, { signal }),
   notifications: (signal?: AbortSignal) => request<Notification[]>('/notifications', { signal }),
   readAllNotifications: () => request<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
+  readNotification: (id: string) => request<Notification>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
   coach: (input: CoachRequest) => request<CoachResponse>('/ai/coach', { method: 'POST', body: input }),
 };
 

@@ -8,17 +8,9 @@ import {
   Money20Regular,
   Shield20Regular,
 } from '@fluentui/react-icons';
-import { Check, Clock, EyeOff, Lock, Trophy, TrophyFilled } from '@/components/icons';
-import {
-  REWARD_MODE_LABEL,
-  TYPE_META,
-  rewardTotal,
-  type ChallengeStatus,
-  type ChallengeType,
-  type Company,
-  type Reward,
-} from '@shared/types';
-import { initials, money, timeLeft } from '@/lib/format';
+import { BadgeCheck, Check, Clock, EyeOff, TrophyFilled } from '@/components/icons';
+import { TYPE_META, type ChallengeStatus, type ChallengeType, type Company } from '@shared/types';
+import { initials, timeLeft } from '@/lib/format';
 import { Badge, cn } from './ui';
 
 /* ───────────────────────────── Brand mark ─────────────────────────────
@@ -72,46 +64,6 @@ export function TypeChip({ type, className }: { type: ChallengeType; className?:
       {meta.label}
     </span>
   );
-}
-
-/* ───────────────────────────── Money ───────────────────────────── */
-
-export function RewardBadge({ reward, className }: { reward: Reward; className?: string; size?: 'sm' | 'md' }) {
-  const total = rewardTotal(reward);
-  if (reward.mode === 'none' || total === 0) return <Badge className={className}>No reward</Badge>;
-  return (
-    <Badge className={className} icon={<Trophy />}>
-      <span className="tabular-nums">{money(total)}</span>
-      <span className="font-normal">· {reward.mode === 'winner' ? 'Winner' : 'Top 3'}</span>
-    </Badge>
-  );
-}
-
-export function rewardSummary(reward: Reward): string {
-  if (reward.mode === 'winner') return `Winner takes ${money(reward.amounts[0] ?? 0)}`;
-  if (reward.mode === 'top3') return reward.amounts.map((a) => money(a)).join(' / ');
-  return REWARD_MODE_LABEL.none;
-}
-
-export function EscrowChip({
-  amount,
-  state = 'escrowed',
-  className,
-}: {
-  amount: number;
-  state?: 'escrowed' | 'paid';
-  className?: string;
-}) {
-  if (amount <= 0) return null;
-  return (
-    <Badge tone={state === 'paid' ? 'emerald' : 'slate'} icon={<Lock />} className={className}>
-      <span className="tabular-nums">{money(amount)}</span> {state === 'escrowed' ? 'escrowed' : 'paid'}
-    </Badge>
-  );
-}
-
-export function Money({ amount, className }: { amount: number; className?: string }) {
-  return <span className={cn('font-semibold tabular-nums', className)}>{money(amount)}</span>;
 }
 
 /* ───────────────────────────── People & companies ───────────────────────────── */
@@ -254,7 +206,7 @@ export function Countdown({
 }) {
   const now = useNow();
   if (status === 'awarded') {
-    return <span className={cn('text-xs text-slate-500', className)}>Results published</span>;
+    return <span className={cn('text-xs whitespace-nowrap text-slate-500', className)}>Results published</span>;
   }
   const t = timeLeft(deadline, now);
   return (
@@ -293,8 +245,19 @@ const ORDINAL = ['', '1st', '2nd', '3rd'];
 export const MEDAL_COLOR: Record<number, string> = { 1: '#C19C00', 2: '#7A7574', 3: '#A74109' };
 
 /** `1st` / `2nd` / `3rd` badge with a colored Fluent trophy; plain rank number after that. */
-export function MedalBadge({ rank, className }: { rank: number; className?: string }) {
-  if (rank > 3) {
+/** Shown only on results a person confirmed. Names the company that verified it. */
+export function VerifiedBadge({ company, className }: { company?: string | null; className?: string }) {
+  const label = company ? `Verified by ${company}` : 'Verified';
+  return (
+    <Badge tone="emerald" icon={<BadgeCheck />} className={cn('max-w-56', className)} title={label}>
+      <span className="truncate">{label}</span>
+    </Badge>
+  );
+}
+
+/** `medal` = this rank earns a placement medal (a challenge can turn medals off); otherwise just "#rank". */
+export function MedalBadge({ rank, medal = true, className }: { rank: number; medal?: boolean; className?: string }) {
+  if (rank > 3 || !medal) {
     return <span className={cn('inline-block w-10 text-sm text-[var(--colorNeutralForeground3)] tabular-nums', className)}>#{rank}</span>;
   }
   return (

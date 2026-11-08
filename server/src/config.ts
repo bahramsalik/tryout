@@ -38,6 +38,19 @@ export const CORS_ORIGINS = [
 export const AI_LATENCY_MIN_MS = Number(process.env.AI_LATENCY_MIN_MS ?? 700);
 export const AI_LATENCY_MAX_MS = Number(process.env.AI_LATENCY_MAX_MS ?? 1400);
 
+/**
+ * AI grading. Set these in server/.env (copy server/.env.example). With no key, grading stays on the placeholder.
+ * The key is read only here and must never be logged, returned by the API or sent to the sites.
+ */
+export const GRADER = {
+  apiKey: process.env.ANTHROPIC_API_KEY?.trim() ?? '',
+  model: process.env.GRADER_MODEL?.trim() || 'claude-haiku-5-5',
+  dailyLimit: Number(process.env.GRADER_DAILY_LIMIT ?? 200),
+  get enabled() {
+    return this.apiKey.length > 0;
+  },
+};
+
 export const SSE_HEARTBEAT_MS = 15_000;
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;

@@ -1,16 +1,15 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Trophy } from '@/components/icons';
-import { TYPE_META, payoutForRank, type ChallengeView, type SubmissionView } from '@shared/types';
+import { TYPE_META, placementsFor, type ChallengeView, type SubmissionView } from '@shared/types';
 import { ApiError } from '@/lib/api';
-import { dateTime, money, timeAgo, timeLeft } from '@/lib/format';
+import { dateTime, timeAgo, timeLeft, usd } from '@/lib/format';
 import { useDocumentTitle } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
-import { isScored, rankSubmissions, useChallenge, useInvitesByStudent, useSubmissions } from '@/lib/queries';
+import { isScored, rankSubmissions, useChallenge, useSubmissions } from '@/lib/queries';
 import { isFreshArrival, useArrivals, useBlind } from '@/lib/stores';
 import { Avatar, MedalBadge, NeedsReview, ScorePill, useNow } from '@/components/brand';
 import { AwardModal } from '@/components/AwardModal';
-import { InviteModal, type InviteTarget } from '@/components/InviteModal';
 import { StudentChallengePreview } from '@/components/StudentPreview';
 import {
   Badge,
@@ -26,6 +25,7 @@ import {
   TabList,
   ToggleButton,
   cn,
+  selectClass,
 } from '@/components/ui';
 
 type Tab = 'submissions' | 'leaderboard' | 'brief';
@@ -41,7 +41,6 @@ export function ChallengePage() {
   const submissions = useSubmissions(id, owns);
   const [blind, setBlind] = useBlind(id, c?.status);
   const [awardOpen, setAwardOpen] = useState(false);
-  const [invite, setInvite] = useState<InviteTarget | null>(null);
   useDocumentTitle(c?.title ?? 'Challenge');
 
   const subs = useMemo(() => submissions.data ?? [], [submissions.data]);
@@ -58,7 +57,7 @@ export function ChallengePage() {
     return (
       <Card className="mx-auto max-w-xl">
         {notFound ? (
-          <EmptyState title="Challenge not found" action={<ButtonLink to="/">Dashboard</ButtonLink>} />
+          <EmptyState title="Challenge not found" action={<ButtonLink to="/challenges">Challenges</ButtonLink>} />
         ) : (
           <ErrorState error={challenge.error} onRetry={() => challenge.refetch()} />
         )}
@@ -71,7 +70,7 @@ export function ChallengePage() {
       <Card className="mx-auto max-w-xl">
         <EmptyState
           title={`Posted by ${c.company?.name ?? 'another company'}`}
-          action={<ButtonLink to="/">Dashboard</ButtonLink>}
+          action={<ButtonLink to="/challenges">Challenges</ButtonLink>}
         />
       </Card>
     );
@@ -98,7 +97,7 @@ export function ChallengePage() {
         actions={<Switch showLabel checked={blind} onChange={setBlind} disabled={awarded} label="Blind review" />}
       />
 
-      {awarded && <AwardedBar challenge={c} subs={subs} />}
+      {awarded && <AwardedBar challenge={c} />}
 
       <TabList<Tab>
         label="Challenge sections"
@@ -121,7 +120,6 @@ export function ChallengePage() {
             blind={blind}
             unscored={unscored}
             onAward={() => setAwardOpen(true)}
-            onInvite={setInvite}
           />
         )}
         {tab === 'brief' && (
@@ -137,17 +135,15 @@ export function ChallengePage() {
         challenge={c}
         submissions={subs}
         blind={blind}
-        onInvite={(t) => setInvite(t)}
       />
-      <InviteModal open={!!invite} target={invite} onClose={() => setInvite(null)} />
     </div>
   );
 }
 
 function Breadcrumb() {
   return (
-    <Link to="/" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-      <ArrowLeft className="size-4" aria-hidden /> Dashboard
+    <Link to="/challenges" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
+      <ArrowLeft className="size-4" aria-hidden /> Challenges
     </Link>
   );
 }
@@ -157,9 +153,9 @@ function MetaLine({ challenge: c, avg }: { challenge: ChallengeView; avg: number
   const now = useNow(60_000);
   const parts: ReactNode[] = [
     TYPE_META[c.type]?.label ?? c.type,
-    c.rewardTotal > 0 ? money(c.rewardTotal) : 'No reward',
     `${c.participantCount}${c.applicantCap != null ? `/${c.applicantCap}` : ''} joined`,
   ];
+  if ((c.prizePool ?? 0) > 0 && placementsFor(c) > 0) parts.push(usd(c.prizePool!) + ' prize');
   if (avg != null) parts.push(`avg ${avg}`);
   if (c.status !== 'awarded') {
     const t = timeLeft(c.deadline, now);
@@ -177,12 +173,10 @@ function MetaLine({ challenge: c, avg }: { challenge: ChallengeView; avg: number
   );
 }
 
-function AwardedBar({ challenge, subs }: { challenge: ChallengeView; subs: SubmissionView[] }) {
-  const paid = subs.reduce((s, x) => s + (x.payout ?? 0), 0);
+function AwardedBar({ challenge }: { challenge: ChallengeView }) {
   return (
     <MessageBar intent="success" className="mb-3">
       Results published{challenge.awardedAt ? ` ${timeAgo(challenge.awardedAt)}` : ''}
-      {paid > 0 ? ` · ${money(paid)} paid` : ''}
     </MessageBar>
   );
 }
@@ -306,7 +300,6 @@ function LeaderboardTab({
   blind,
   unscored,
   onAward,
-  onInvite,
 }: {
   challenge: ChallengeView;
   query: ReturnType<typeof useSubmissions>;
@@ -314,46 +307,62 @@ function LeaderboardTab({
   blind: boolean;
   unscored: number;
   onAward: () => void;
-  onInvite: (t: InviteTarget) => void;
 }) {
-  const invites = useInvitesByStudent();
   const ranked = useMemo(() => rankSubmissions(subs), [subs]);
   const awarded = challenge.status === 'awarded';
+  // Order by the overall score (the official ranking) or by any one rubric criterion.
+  const [orderBy, setOrderBy] = useState('overall');
+  const criterion = challenge.rubric.find((r) => r.id === orderBy) ?? null;
+  const rows = useMemo(() => {
+    if (!criterion) return ranked;
+    // The sort is stable, so ties keep their overall order.
+    return [...ranked].sort((a, b) => (b.scores?.[criterion.id] ?? 0) - (a.scores?.[criterion.id] ?? 0));
+  }, [ranked, criterion]);
 
   if (query.isPending) return <TableSkeleton />;
   if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
 
   return (
     <div className="space-y-3">
-      {!awarded && challenge.kind !== 'practice' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-slate-600">{unscored > 0 ? `${unscored} left to score` : 'All scored'}</span>
-          <Button
-            variant="primary"
-            className="ml-auto"
-            icon={<Trophy className="size-5" aria-hidden />}
-            onClick={onAward}
-            disabled={subs.length === 0 || unscored > 0}
-          >
-            Publish results
-          </Button>
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          Order by
+          <select className={`${selectClass} w-48`} value={criterion ? criterion.id : 'overall'} onChange={(e) => setOrderBy(e.target.value)}>
+            <option value="overall">Overall</option>
+            {challenge.rubric.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {!awarded && challenge.kind !== 'practice' && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-sm text-slate-600">{unscored > 0 ? `${unscored} left to score` : 'All scored'}</span>
+            <Button
+              variant="primary"
+              icon={<Trophy className="size-5" aria-hidden />}
+              onClick={onAward}
+              disabled={subs.length === 0 || unscored > 0}
+            >
+              Publish results
+            </Button>
+          </div>
+        )}
+      </div>
 
       <Card className="@container overflow-hidden">
-        {ranked.length === 0 ? (
+        {rows.length === 0 ? (
           <EmptyState title="No scores yet" />
         ) : (
           <ol>
-            {ranked.map((s, i) => {
-              const rank = s.rank ?? i + 1;
-              const payout = awarded ? (s.payout ?? 0) : payoutForRank(challenge.reward, rank);
+            {rows.map((s, i) => {
+              // Overall keeps the official rank and medals; ordering by a criterion just numbers the rows.
+              const rank = criterion ? i + 1 : (s.rank ?? i + 1);
               const name = blind ? s.alias : s.student.name;
-              const invite = invites.get(s.studentId);
-              const alreadyInvited = !!invite && invite.status !== 'declined';
               return (
                 <li key={s.id} className="flex items-center gap-3 border-b border-slate-200 px-3 py-2 last:border-0 @xl:px-4">
-                  <MedalBadge rank={rank} />
+                  <MedalBadge rank={rank} medal={!criterion && rank <= placementsFor(challenge)} />
                   <Link
                     to={blind ? `/challenges/${challenge.id}/review/${s.id}` : `/candidates/${s.student.handle || s.studentId}`}
                     className="flex min-w-0 flex-1 items-center gap-2.5 hover:underline"
@@ -361,27 +370,12 @@ function LeaderboardTab({
                     <Avatar name={s.student.name} color={s.student.avatarColor} size={28} blind={blind} />
                     <span className="truncate text-sm font-semibold">{name}</span>
                   </Link>
-                  <ScorePill score={s.totalScore ?? 0} className="text-right" />
-                  <span className="w-14 text-right text-sm tabular-nums" title={awarded ? 'Paid' : 'Projected payout'}>
-                    {payout > 0 ? money(payout) : '–'}
-                  </span>
-                  {!blind && rank <= 3 && (
-                    <Button
-                      size="sm"
-                      variant={alreadyInvited ? 'subtle' : 'secondary'}
-                      disabled={alreadyInvited}
-                      onClick={() =>
-                        onInvite({
-                          student: s.student,
-                          challenge: { id: challenge.id, title: challenge.title, hiringFor: challenge.hiringFor },
-                          alias: null,
-                        })
-                      }
-                      aria-label={`Invite ${name} to interview`}
-                    >
-                      {invite?.status === 'accepted' ? 'Accepted' : alreadyInvited ? 'Invited' : 'Invite'}
-                    </Button>
+                  {criterion && (
+                    <span className="w-12 shrink-0 text-right text-sm text-slate-600 tabular-nums" title={criterion.name}>
+                      <span className="font-semibold text-slate-900">{s.scores?.[criterion.id] ?? '–'}</span>/5
+                    </span>
                   )}
+                  <ScorePill score={s.totalScore ?? 0} className="text-right" />
                 </li>
               );
             })}

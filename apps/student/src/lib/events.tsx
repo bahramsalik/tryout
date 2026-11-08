@@ -2,10 +2,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import type { ChallengeView, InterviewInvite, InviteView, Notification, ServerEvent, ServerEventType } from '@shared/types';
-import { api, eventsUrl } from './api';
+import { type ChallengeView, type Notification, type ServerEvent, type ServerEventType } from '@shared/types';
+import { eventsUrl } from './api';
 import { celebrate } from './confetti';
-import { money, ordinal } from './format';
+import { ordinal } from './format';
 import { usePersona } from './persona';
 import { findChallengeAnywhere, qk, useCurrentStudent } from './queries';
 
@@ -25,8 +25,6 @@ const EVENT_TYPES: ServerEventType[] = [
   'submission.created',
   'submission.scored',
   'challenge.awarded',
-  'invite.created',
-  'invite.updated',
   'notification.created',
   'system.reset',
 ];
@@ -85,9 +83,8 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const interests = interestsRef.current;
           if (challenge.kind === 'live' && interests?.includes(challenge.type)) {
             const from = challenge.company?.name ?? 'Tryout';
-            const reward = challenge.rewardTotal > 0 ? money(challenge.rewardTotal) : 'No bounty';
             toast(`New challenge · ${from}`, {
-              description: `${challenge.title} · ${reward}`,
+              description: challenge.title,
               duration: 9000,
               action: { label: 'View', onClick: () => navigateRef.current(`/challenges/${challenge.id}`) },
             });
@@ -132,9 +129,9 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const info = findChallengeAnywhere(queryClient, me, challengeId);
           const title = info?.title ?? 'your challenge';
           const go = () => navigateRef.current(`/challenges/${challengeId}`);
-          if (mine && mine.payout > 0) {
+          if (mine?.placed && mine.rank !== null) {
             celebrate();
-            toast.success(`${ordinal(mine.rank)} place · ${money(mine.payout)}`, {
+            toast.success(`${ordinal(mine.rank)} place`, {
               description: title,
               duration: 12000,
               action: { label: 'View', onClick: go },
@@ -146,35 +143,6 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
               action: { label: 'View', onClick: go },
             });
           }
-          return;
-        }
-
-        case 'invite.created': {
-          const invite = event.payload.invite as InterviewInvite;
-          if (invite?.studentId !== me) return;
-          inv(['notifications']);
-          let company = 'An employer';
-          let role = invite.role;
-          try {
-            const list = await queryClient.fetchQuery({ queryKey: qk.invites(me), queryFn: () => api.myInvites(), staleTime: 0 });
-            const view = (list as InviteView[]).find((i) => i.id === invite.id);
-            if (view) {
-              company = view.company.name;
-              role = view.role ?? role;
-            }
-          } catch {
-            inv(['invites']);
-          }
-          toast(`Interview invite · ${company}`, {
-            description: role ?? undefined,
-            duration: 12000,
-            action: { label: 'View', onClick: () => navigateRef.current('/work') },
-          });
-          return;
-        }
-
-        case 'invite.updated': {
-          if (event.payload.invite?.studentId === me) inv(['invites']);
           return;
         }
 

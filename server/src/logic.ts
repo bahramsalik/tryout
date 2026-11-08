@@ -1,5 +1,5 @@
 /** Pure business rules shared by the seeder and the live endpoints. */
-import { payoutForRank, type Challenge, type SubmissionStatus } from '../../shared/types.ts';
+import { placementsFor, type Challenge, type SubmissionStatus } from '../../shared/types.ts';
 import type { SubmissionRecord } from './db.ts';
 import { shortHash } from './rng.ts';
 
@@ -51,23 +51,22 @@ export function rankScored(subs: SubmissionRecord[]): SubmissionRecord[] {
 export interface AwardLine {
   sub: SubmissionRecord;
   rank: number;
-  payout: number;
   status: SubmissionStatus;
 }
 
+/** The top finishers (see `placementsFor`) are placed (medal); everyone else still gets feedback. */
 export function computeAward(challenge: Challenge, subs: SubmissionRecord[]): AwardLine[] {
+  const places = placementsFor(challenge);
   return rankScored(subs).map((sub, i) => {
     const rank = i + 1;
-    const payout = payoutForRank(challenge.reward, rank);
-    return { sub, rank, payout, status: payout > 0 ? 'awarded' : 'not_selected' };
+    return { sub, rank, status: rank <= places ? 'awarded' : 'not_selected' };
   });
 }
 
-/** Mutates the submissions in place. */
-export function applyAward(lines: AwardLine[]): void {
+/** Mutates the submissions in place. Ranks are only stored when the challenge has an award; otherwise nobody is ranked. */
+export function applyAward(lines: AwardLine[], awardOn: boolean): void {
   for (const l of lines) {
-    l.sub.rank = l.rank;
-    l.sub.payout = l.payout;
+    if (awardOn) l.sub.rank = l.rank;
     l.sub.status = l.status;
   }
 }
@@ -112,4 +111,3 @@ export const ordinal = (n: number) => {
 
 export const medal = (rank: number) => (({ 1: '🥇', 2: '🥈', 3: '🥉' }) as Record<number, string>)[rank] ?? '🏅';
 
-export const usd = (n: number) => `$${n.toLocaleString('en-US')}`;

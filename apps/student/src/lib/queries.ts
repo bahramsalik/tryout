@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import type { ChallengeView, InviteStatus, InviteView, Notification, Student, SubmissionView } from '@shared/types';
+import type { ChallengeView, Notification, Student, SubmissionView } from '@shared/types';
 import { api } from './api';
 import { usePersona } from './persona';
 
@@ -11,7 +11,6 @@ export const qk = {
   challenge: (p: string, id: string) => ['challenge', p, id] as const,
   submission: (p: string, id: string) => ['submission', p, id] as const,
   mySubmissions: (p: string) => ['mySubmissions', p] as const,
-  invites: (p: string) => ['invites', p] as const,
   notifications: (p: string) => ['notifications', p] as const,
   student: (p: string, idOrHandle: string) => ['student', p, idOrHandle] as const,
   leaderboard: (p: string, id: string) => ['leaderboard', p, id] as const,
@@ -64,11 +63,6 @@ export function useMySubmissions() {
   return useQuery({ queryKey: qk.mySubmissions(personaId), queryFn: ({ signal }) => api.mySubmissions(signal) });
 }
 
-export function useInvites() {
-  const { personaId } = usePersona();
-  return useQuery({ queryKey: qk.invites(personaId), queryFn: ({ signal }) => api.myInvites(signal) });
-}
-
 export function useNotifications() {
   const { personaId } = usePersona();
   return useQuery({ queryKey: qk.notifications(personaId), queryFn: ({ signal }) => api.notifications(signal) });
@@ -110,17 +104,16 @@ export function useJoinChallenge() {
   });
 }
 
-export function useRespondInvite() {
+/** Marks one notification read right away (when it is clicked). */
+export function useMarkRead() {
   const { personaId } = usePersona();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Exclude<InviteStatus, 'pending'> }) => api.respondInvite(id, status),
-    onSuccess: (invite) => {
-      queryClient.setQueryData<InviteView[]>(qk.invites(personaId), (list) =>
-        list?.map((i) => (i.id === invite.id ? { ...i, status: invite.status } : i)),
-      );
-      void queryClient.invalidateQueries({ queryKey: ['invites'] });
+    mutationFn: (id: string) => api.readNotification(id),
+    onMutate: (id) => {
+      queryClient.setQueryData<Notification[]>(qk.notifications(personaId), (list) => list?.map((n) => (n.id === id ? { ...n, read: true } : n)));
     },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
 }
 

@@ -26,7 +26,7 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 *Slide 3: the solution.*
 
-> Tryout fixes the proof. Employers post real three-to-five-hour tasks with escrowed bounties. Students do the work and get scored blind, and the best get paid and interviewed. Let me show you.
+> Tryout fixes the proof. Employers post real three-to-five-hour tasks. Students do the work and get scored blind, and every result becomes verified evidence on their Proof Profile. Let me show you.
 
 *Slide 4 ("Live demo") flashes up; switch to the side-by-side windows.*
 
@@ -38,9 +38,9 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 ## 0:40 – 1:00 · The challenge (student, left)
 
-*Open **Add rate limiting to our Shipment Tracking API**. Hover over the escrow badge, then scroll to the rubric and "From the classroom".*
+*Open **Add rate limiting to our Shipment Tracking API**. Scroll to the rubric and "From the classroom".*
 
-> This one's from Orbitline Logistics, which is hiring a junior backend engineer. It takes about four hours and pays the top three, $525 in total, already in escrow. Maya can see exactly how the work will be graded. And here's "From the classroom": this task applies the token-bucket algorithm from Maya's data-structures course. That's theory meeting practice.
+> This one's from Orbitline Logistics, which is hiring a junior backend engineer. It takes about four hours. Maya can see exactly how the work will be graded. And here's "From the classroom": this task applies the token-bucket algorithm from Maya's data-structures course. That's theory meeting practice.
 
 ## 1:00 – 1:10 · Submit (student, left)
 
@@ -66,17 +66,17 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 > Jordan publishes the results. Only now is the candidate revealed: it's Maya, in second place.
 
-## 1:55 – 2:05 · Maya gets paid (student, left)
+## 1:55 – 2:05 · Maya gets placed (student, left)
 
-*Point at the toast "🥈 You placed 2nd — $150 is on its way", then open the feedback.*
+*Point at the toast "🥈 You placed 2nd", then open the feedback.*
 
 > On Maya's side: second place, $150 for four hours of real work, plus written feedback Maya can actually learn from.
 
-## 2:05 – 2:15 · Invite to interview (both)
+## 2:05 – 2:15 · A certificate, not a ticket (employer)
 
-*Employer: **Invite to interview** → send. Student: point as the invite appears.*
+*Employer: open Maya's candidate page and scroll her per-criterion scores and feedback.*
 
-> And because the challenge is tied to a real open role, Jordan sends an interview invite. It lands on Maya's side live. Three rejections for "no experience" turned into an interview in one afternoon.
+> A high score isn't a ticket to an interview. It's a certificate: Jordan can see exactly what Maya built, how she scored on each criterion and how she worked, and decide what to do with that. Three rejections for "no experience", and now Maya has proof.
 
 ## 2:15 – 2:30 · Proof Profile (employer, right)
 
@@ -86,9 +86,9 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 ## 2:30 – 2:45 · Posting takes 30 seconds (employer, right)
 
-*Click **+ Add challenge** → **Use example** → **✨ Suggest rubric** → choose **Top 3** and set the cap to 50 → **Publish**.*
+*Click **+ Add challenge** → **Use example** → **✨ Suggest rubric** → set the cap to 50 → **Publish**.*
 
-> For employers, posting is quick: start from an example, get a suggested rubric, choose top three, cap it at 50, and publish.
+> For employers, posting is quick: start from an example, get a suggested rubric, cap it at 50, and publish.
 
 ## 2:45 – 2:50 · The loop closes (student, left)
 
@@ -100,7 +100,7 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 *Back to the deck. Show slide 7 (business), then slide 8 (ask).*
 
-> Employers pay and students never do: a 15 percent fee on bounties, plus a talent subscription. That whole challenge cost Orbitline about $600 for a ranked shortlist of real work. Our ask: help us pilot with one career center and five hiring managers. Maya didn't need three years of experience. What Maya needed was one afternoon of real work that someone could verify. Thank you.
+> That whole challenge gave Orbitline a ranked shortlist of real work. Our ask: help us pilot with one career center and five hiring managers. Maya didn't need three years of experience. What Maya needed was one afternoon of real work that someone could verify. Thank you.
 
 ---
 
@@ -111,7 +111,7 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 1. *The driver switches to the backup recording tab and presses play, muted. The presenter narrates over it.*
 2. If there's no recording either, stay on **slide 4** and say:
 
-> The demo gods are not with us, so here's what you would have seen, in thirty seconds. Maya opens a real Orbitline task: add rate limiting to their shipment API, four hours, $525 in escrow for the top three. Maya submits a zip and notes. On the employer site it appears instantly, and Jordan reviews it blind as "Candidate K7", scores it 88 on the rubric and publishes. Only then is the candidate revealed: Maya, second place, $150 on its way, plus written feedback. Jordan sends an interview invite, and Maya's Proof Profile now shows verified hours and a medal: experience, earned in an afternoon. Happy to run it live at our table afterwards.
+> The demo gods are not with us, so here's what you would have seen, in thirty seconds. Maya opens a real Orbitline task: add rate limiting to their shipment API, four hours. Maya submits a zip and notes. On the employer site it appears instantly, and Jordan reviews it blind as "Candidate K7", scores it 88 on the rubric and publishes. Only then is the candidate revealed: Maya, second place, plus written feedback. Jordan opens Maya's Proof Profile, which now shows verified hours and a medal: experience, earned in an afternoon. Happy to run it live at our table afterwards.
 
 3. Go straight to **slide 5** and continue with the close.
 

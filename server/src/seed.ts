@@ -9,6 +9,8 @@ import path from 'node:path';
 import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
+  placementsFor,
+  prizeForPlace,
   TYPE_META,
   computeTotalScore,
   type Challenge,
@@ -309,7 +311,6 @@ export function buildSeed(content: SeedContent, contentHash: string, now = Date.
         feedback: args.scores ? ensureFeedback(args.feedback ?? tpl.feedback) : null,
         scoredAt: args.scores ? iso(scoreTime(args.submittedAt)) : null,
         rank: null,
-        payout: null,
         shortlisted: false,
         alias: args.alias,
         scoredBy: args.scores ? (isPractice ? 'coach' : (owner?.id ?? null)) : null,
@@ -349,7 +350,10 @@ export function buildSeed(content: SeedContent, contentHash: string, now = Date.
     for (const s of genJoiners) join(s.id, windowStart + Math.pow(r.next(), 1.4) * span);
 
     const mine = submissions.filter((s) => s.challengeId === cs.id);
-    if (isAwarded) applyAward(computeAward(challenge, mine));
+    if (isAwarded) applyAward(computeAward(challenge, mine), placementsFor(challenge) > 0);
+    if (isAwarded && (challenge.prizePool ?? 0) > 0) {
+      for (const s of mine) if (s.status === 'awarded' && s.rank) s.prize = prizeForPlace(challenge, s.rank);
+    }
 
     if (cs.starterFiles.length > 0) files.set(`starters/${cs.id}.zip`, buildZip(cs.starterFiles));
 
@@ -391,7 +395,6 @@ export function buildSeed(content: SeedContent, contentHash: string, now = Date.
     participations,
     submissions,
     notifications,
-    invites: [],
     content: {
       coachPacks: structuredClone(content.coachPacks),
       rubricTemplates: structuredClone(content.rubricTemplates),

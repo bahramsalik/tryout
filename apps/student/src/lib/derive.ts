@@ -25,21 +25,19 @@ export function recommendedLive(list: ChallengeView[] | undefined, interests: Ch
   const matches = open.filter((c) => interests?.includes(c.type));
   const rest = open.filter((c) => !interests?.includes(c.type));
   const byDeadline = (a: ChallengeView, b: ChallengeView) => deadlineMs(a) - deadlineMs(b);
-  return [...matches.sort(byDeadline), ...rest.sort((a, b) => b.rewardTotal - a.rewardTotal)];
+  return [...matches.sort(byDeadline), ...rest.sort(byDeadline)];
 }
 
 /** Results are visible to the student: published live results, or an instant Coach review. */
 export function hasVisibleResult(s: SubmissionView): boolean {
-  return s.status === 'awarded' || s.status === 'not_selected' || (s.reviewer === 'coach' && s.totalScore !== null);
+  return s.status === 'awarded' || s.status === 'not_selected' || ((s.reviewer === 'coach' || s.reviewer === 'ai') && s.totalScore !== null);
 }
 
-export type SortKey = 'newest' | 'bounty' | 'deadline' | 'spots';
+export type SortKey = 'newest' | 'deadline' | 'spots';
 
 export function sortChallenges(list: ChallengeView[], sort: SortKey): ChallengeView[] {
   const arr = [...list];
   switch (sort) {
-    case 'bounty':
-      return arr.sort((a, b) => b.rewardTotal - a.rewardTotal || deadlineMs(a) - deadlineMs(b));
     case 'deadline':
       return arr.sort((a, b) => deadlineMs(a) - deadlineMs(b));
     case 'spots':

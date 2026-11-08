@@ -1,7 +1,7 @@
 /**
  * Read models: entity → API view, with the privacy rules applied.
  *
- * - Results (scores, feedback, rank, payout, "scored" status) are hidden from everyone except the owning
+ * - Results (scores, feedback, rank, "scored" status) are hidden from everyone except the owning
  *   company until results are published; practice (Coach) results are visible immediately (§5.5 #8, #14).
  * - Files are visible to the author and the owning company only (§5.5 #12).
  * - Shortlists are visible to the owning company only.
@@ -9,7 +9,8 @@
 import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
-  rewardTotal,
+  isVerified,
+  needsRecruiterReview,
   type ActivityItem,
   type Challenge,
   type ChallengeSummary,
@@ -17,8 +18,6 @@ import {
   type ChallengeView,
   type Company,
   type EmployerDashboard,
-  type InterviewInvite,
-  type InviteView,
   type ProfileHistoryItem,
   type Student,
   type StudentListItem,
@@ -28,7 +27,7 @@ import {
   type SubmissionView,
 } from '../../shared/types.ts';
 import type { SubmissionRecord } from './db.ts';
-import { clipWords, truncate, usd } from './logic.ts';
+import { clipWords, truncate } from './logic.ts';
 import type { EmployerPersona, Persona } from './persona.ts';
 import { getDb } from './store.ts';
 
@@ -59,8 +58,13 @@ export function canSeeResults(ch: Challenge, viewer: Persona | null): boolean {
   return resultsPublished(ch) || isOwner(viewer, ch);
 }
 
+/** An AI-graded result is visible as soon as it exists: it is the student's own credential, not a ranking. */
+export function isAiGraded(sub: SubmissionRecord): boolean {
+  return sub.reviewer === 'ai' && sub.totalScore !== null;
+}
+
 function visibleStatus(sub: SubmissionRecord, ch: Challenge, viewer: Persona | null): SubmissionStatus {
-  if (canSeeResults(ch, viewer)) return sub.status;
+  if (canSeeResults(ch, viewer) || isAiGraded(sub)) return sub.status;
   return sub.status === 'scored' ? 'submitted' : sub.status;
 }
 
@@ -77,7 +81,6 @@ export function challengeSummary(ch: Challenge): ChallengeSummary {
     status: ch.status,
     estHours: ch.estHours,
     rubric: ch.rubric,
-    reward: ch.reward,
     company: companyById(ch.companyId),
     companyId: ch.companyId,
     deadline: ch.deadline,
@@ -98,7 +101,6 @@ export function challengeView(ch: Challenge, viewer: Persona | null): ChallengeV
     submissionCount: subs.length,
     scoredCount: scored.length,
     spotsLeft: ch.applicantCap === null ? null : Math.max(0, ch.applicantCap - parts.length),
-    rewardTotal: rewardTotal(ch.reward),
     hasStarterKit: starterFiles.length > 0,
   };
   if (viewer?.kind === 'student') {
@@ -112,6 +114,7 @@ export function challengeView(ch: Challenge, viewer: Persona | null): ChallengeV
   if (isOwner(viewer, ch)) {
     const avg = mean(scored.map((s) => s.totalScore ?? 0));
     view.avgScore = avg === null ? null : Math.round(avg);
+    view.toReview = subs.filter(needsRecruiterReview).length;
   }
   return view;
 }
@@ -128,9 +131,10 @@ export function submissionView(sub: SubmissionRecord, viewer: Persona | null, op
   const ch = challengeById(sub.challengeId);
   const student = studentById(sub.studentId);
   if (!ch || !student) throw new Error(`dangling submission ${sub.id}`);
-  const { scoredBy: _scoredBy, ...base } = sub;
+  const { scoredBy: _scoredBy, verifiedBy: _verifiedBy, ...base } = sub;
   const view: SubmissionView = {
     ...base,
+    verified: isVerified(sub),
     file: { ...base.file, tree: [...base.file.tree] },
     autoChecks: base.autoChecks.map((c) => ({ ...c })),
     scores: base.scores ? { ...base.scores } : null,
@@ -139,15 +143,15 @@ export function submissionView(sub: SubmissionRecord, viewer: Persona | null, op
   };
   if (!isOwner(viewer, ch)) {
     view.shortlisted = false;
-    if (!resultsPublished(ch)) {
+    if (!resultsPublished(ch) && !isAiGraded(sub)) {
       view.status = visibleStatus(sub, ch, viewer);
       view.reviewer = null;
+      view.verified = false;
       view.scores = null;
       view.totalScore = null;
       view.feedback = null;
       view.scoredAt = null;
       view.rank = null;
-      view.payout = null;
     }
   }
   if (opts.peer) {
@@ -170,7 +174,6 @@ export function studentStats(studentId: string): StudentStats {
   let verifiedHours = 0;
   let practiceHours = 0;
   let tasksCompleted = 0;
-  let bountiesEarned = 0;
   const placements = { first: 0, second: 0, third: 0 };
   const employerScores: number[] = [];
   const byType = new Map<ChallengeType, { sum: number; count: number }>();
@@ -183,12 +186,12 @@ export function studentStats(studentId: string): StudentStats {
     if (ch.kind === 'practice') {
       practiceHours += ch.estHours;
     } else {
-      // Live results only count once published (keeps unpublished scores private).
-      if (ch.status !== 'awarded' || s.reviewer !== 'employer') continue;
+      // Employer-scored results count once published (keeps unpublished scores private); AI grades count straight away.
+      const counted = s.reviewer === 'ai' || (ch.status === 'awarded' && s.reviewer === 'employer');
+      if (!counted) continue;
       tasksCompleted += 1;
       employerScores.push(s.totalScore);
       if (s.totalScore >= PLATFORM_RULES.verifiedPassScore) verifiedHours += ch.estHours;
-      bountiesEarned += s.payout ?? 0;
       if (s.status === 'awarded') {
         if (s.rank === 1) placements.first += 1;
         else if (s.rank === 2) placements.second += 1;
@@ -211,7 +214,6 @@ export function studentStats(studentId: string): StudentStats {
     verifiedHours,
     practiceHours,
     tasksCompleted,
-    bountiesEarned,
     placements,
     avgScore: avg === null ? null : Math.round(avg),
     typeScores: CHALLENGE_TYPES.filter((t) => byType.has(t)).map((t) => {
@@ -225,7 +227,7 @@ export function studentStats(studentId: string): StudentStats {
 function historyItem(sub: SubmissionRecord, viewer: Persona | null): ProfileHistoryItem {
   const ch = challengeById(sub.challengeId)!;
   const company = companyById(ch.companyId);
-  const visible = canSeeResults(ch, viewer);
+  const visible = canSeeResults(ch, viewer) || isAiGraded(sub);
   return {
     submissionId: sub.id,
     challengeId: ch.id,
@@ -236,9 +238,9 @@ function historyItem(sub: SubmissionRecord, viewer: Persona | null): ProfileHist
     submittedAt: sub.submittedAt,
     status: visibleStatus(sub, ch, viewer),
     reviewer: visible ? sub.reviewer : null,
+    verified: visible && isVerified(sub),
     totalScore: visible ? sub.totalScore : null,
     rank: visible ? sub.rank : null,
-    payout: visible ? sub.payout : null,
     feedbackExcerpt: visible && sub.feedback ? truncate(sub.feedback.replace(/\s+/g, ' ').trim(), 180) : null,
     estHours: ch.estHours,
     canViewFiles: (viewer?.kind === 'student' && viewer.id === sub.studentId) || isOwner(viewer, ch),
@@ -255,23 +257,6 @@ export function studentProfile(student: Student, viewer: Persona | null): Studen
 
 export function studentListItem(student: Student): StudentListItem {
   return { ...student, stats: studentStats(student.id) };
-}
-
-/* ───────────── invites ───────────── */
-
-export function inviteView(inv: InterviewInvite, opts: { withStudent?: boolean } = {}): InviteView {
-  const company = companyById(inv.companyId);
-  if (!company) throw new Error(`dangling invite ${inv.id}`);
-  const view: InviteView = {
-    ...inv,
-    company,
-    challengeTitle: inv.challengeId ? (challengeById(inv.challengeId)?.title ?? null) : null,
-  };
-  if (opts.withStudent) {
-    const s = studentById(inv.studentId);
-    if (s) view.student = s;
-  }
-  return view;
 }
 
 /* ───────────── employer dashboard ───────────── */
@@ -300,15 +285,8 @@ export function activityFeed(companyId: string, limit = 30): ActivityItem[] {
   }
   for (const ch of live.values()) {
     if (!ch.awardedAt) continue;
-    const paid = db.submissions.filter((s) => s.challengeId === ch.id && (s.payout ?? 0) > 0);
-    const total = paid.reduce((sum, s) => sum + (s.payout ?? 0), 0);
-    const text = paid.length ? `Results out · ${feedTitle(ch.title, 4)} · ${usd(total)}` : `Results out · ${feedTitle(ch.title, 6)}`;
+    const text = `Results out · ${feedTitle(ch.title, 6)}`;
     items.push({ id: `act_award_${ch.id}`, kind: 'award', text, challengeId: ch.id, studentId: null, at: ch.awardedAt });
-  }
-  for (const inv of db.invites) {
-    if (inv.companyId !== companyId) continue;
-    const name = studentById(inv.studentId)?.name ?? 'a candidate';
-    items.push({ id: `act_inv_${inv.id}`, kind: 'invite', text: `Invite sent to ${name}`, challengeId: inv.challengeId, studentId: inv.studentId, at: inv.createdAt });
   }
   return items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.id.localeCompare(b.id)).slice(0, limit);
 }
@@ -330,11 +308,8 @@ export function employerDashboard(p: EmployerPersona): EmployerDashboard {
     kpis: {
       activeChallenges: active.length,
       totalSubmissions: subs.length,
-      awaitingReview: subs.filter((s) => activeIds.has(s.challengeId) && s.totalScore === null).length,
+      awaitingReview: subs.filter((s) => activeIds.has(s.challengeId) && needsRecruiterReview(s)).length,
       avgScore: avg === null ? null : Math.round(avg),
-      bountiesEscrowed: active.reduce((sum, c) => sum + rewardTotal(c.reward), 0),
-      bountiesPaid: subs.reduce((sum, s) => sum + (s.payout ?? 0), 0),
-      interviewsSent: db.invites.filter((i) => i.companyId === companyId).length,
     },
     challenges: live.map((c) => challengeView(c, p)),
     recentActivity: activityFeed(companyId),

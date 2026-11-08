@@ -1,12 +1,12 @@
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 const num = new Intl.NumberFormat('en-US');
-
-export function money(amount: number | null | undefined): string {
-  return usd.format(Math.round(amount ?? 0));
-}
 
 export function count(n: number | null | undefined): string {
   return num.format(n ?? 0);
+}
+
+/** Whole dollars, e.g. $1,250. */
+export function usd(n: number): string {
+  return '$' + n.toLocaleString('en-US');
 }
 
 export function plural(n: number, one: string, many = `${one}s`): string {

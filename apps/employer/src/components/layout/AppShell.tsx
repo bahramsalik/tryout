@@ -1,10 +1,10 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { API_URL } from '@/lib/api';
 import { LiveEventsProvider } from '@/lib/events';
 import { usePersona } from '@/lib/persona';
 import { queryClient, qk, useHealth } from '@/lib/queries';
-import { applySeedId } from '@/lib/stores';
+import { applySeedId, useSidebar } from '@/lib/stores';
 import { EmployerPill, LogoMark, Wordmark } from '../brand';
 import { Button, Card, Spinner } from '../ui';
 import { Sidebar } from './Sidebar';
@@ -14,13 +14,15 @@ export function AppShell() {
   const { loading, error, employer, personaId } = usePersona();
   const location = useLocation();
   const health = useHealth();
+  const [sidebarOpen] = useSidebar();
+  const mainRef = useRef<HTMLElement>(null);
   const seedId = health.data?.seedId;
   // Before paint, so the first frame already uses clean, seed-scoped local state.
   useLayoutEffect(() => applySeedId(seedId), [seedId]);
 
   // New page → start at the top (keep scroll when only the query string changes, e.g. tabs).
   useEffect(() => {
-    window.scrollTo(0, 0);
+    mainRef.current?.scrollTo(0, 0);
   }, [location.pathname]);
 
   if (loading || (health.isPending && !error)) return <Splash />;
@@ -34,11 +36,15 @@ export function AppShell() {
       >
         Skip to content
       </a>
-      <div key={personaId} className="flex min-h-dvh">
-        <Sidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
+      <div key={personaId} className="flex h-dvh overflow-hidden">
+        {sidebarOpen && <Sidebar />}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <TopBar />
-          <main id="main" className="@container min-w-0 flex-1 p-4 min-[760px]:p-6">
+          <main
+            id="main"
+            ref={mainRef}
+            className="@container min-h-0 min-w-0 flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable_both-edges] min-[760px]:p-6"
+          >
             <Outlet />
           </main>
         </div>

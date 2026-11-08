@@ -11,13 +11,10 @@ I checked each of these on 2026-11-07 by opening the linked page. "Used in" list
 
 ## Our own numbers (product figures, not market statistics)
 
-These come from our seed data and SPEC §11. Present them as our pricing, not as research.
+These come from our seed data and SPEC §4. They are product figures, not research.
 
 | Figure | Derivation |
 |---|---|
-| $525 bounty | The demo challenge pays the top 3: $300 + $150 + $75 (`shared/content`, `ch_rate_limiter`) |
-| $150 for 2nd place | The same reward table |
-| 15% platform fee → ~$604 in total | $525 × 1.15 = $603.75 (SPEC §11 revenue model) |
 | Cap of 40 on the demo challenge, 50 in the "post a challenge" step | Seed data and SPEC §4 |
 
 ## Checked but not used (dropped or reworded)

@@ -16,7 +16,6 @@ const str = z.string();
 const typeEnum = z.enum(CHALLENGE_TYPES as unknown as [string, ...string[]]);
 const starterFile = z.object({ path: str.min(1), content: str });
 const criterion = z.object({ id: str.min(1), name: str.min(1), description: str, weight: z.number() });
-const reward = z.object({ mode: z.enum(['winner', 'top3', 'none']), amounts: z.array(z.number().int().nonnegative()) });
 const concept = z.object({ concept: str, course: str });
 
 const company = z.object({
@@ -62,8 +61,9 @@ const challengeSeed = z.object({
   brief: str,
   deliverables: z.array(str),
   rubric: z.array(criterion).min(1),
-  reward,
   applicantCap: z.number().int().positive().nullable(),
+  placements: z.number().int().min(0).max(10).optional(),
+  prizePool: z.number().int().min(0).optional(),
   status: z.enum(['open', 'reviewing', 'awarded']),
   hiringFor: str.nullable(),
   starterFiles: z.array(starterFile),
@@ -93,7 +93,7 @@ const scripted = z.object({
 });
 const notificationSeed = z.object({
   recipientId: str,
-  kind: z.enum(['new_challenge', 'submission_received', 'results', 'awarded', 'interview', 'invite_response', 'coach_review', 'cap_reached']),
+  kind: z.enum(['new_challenge', 'submission_received', 'results', 'awarded', 'coach_review', 'cap_reached']),
   title: str,
   body: str,
   link: str.nullable(),
@@ -112,7 +112,6 @@ const wizardExample = z.object({
   brief: str,
   deliverables: z.array(str),
   rubric: z.array(criterion).min(1),
-  reward,
   applicantCap: z.number().int().positive().nullable(),
   hiringFor: str.nullable().optional(),
   deadlineInDays: z.number(),
@@ -192,10 +191,6 @@ export function validateContent(raw: unknown): ContentReport & { content: SeedCo
     const { participants, submissions, scored } = ch.seed;
     if (!(participants >= submissions && submissions >= scored)) {
       errors.push(`${where}: seed totals must satisfy participants ≥ submissions ≥ scored (got ${participants}/${submissions}/${scored})`);
-    }
-    const expectedAmounts = ch.reward.mode === 'winner' ? 1 : ch.reward.mode === 'top3' ? 3 : 0;
-    if (ch.reward.amounts.length !== expectedAmounts) {
-      warnings.push(`${where}: reward mode ${ch.reward.mode} expects ${expectedAmounts} amount(s), got ${ch.reward.amounts.length}`);
     }
     if (ch.summary.length > 140) warnings.push(`${where}: summary is ${ch.summary.length} chars (cards expect ≤ 140)`);
     if (ch.kind === 'practice' && (ch.deadlineInDays !== null || ch.applicantCap !== null)) {

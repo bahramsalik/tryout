@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import type { ServerEvent, ServerEventType, StudentProfile, SubmissionView } from '@shared/types';
+import type { ServerEvent, ServerEventType, SubmissionView } from '@shared/types';
 import { API_BASE, api } from './api';
 import { truncate } from './format';
 import { usePersona } from './persona';
@@ -14,8 +14,6 @@ const EVENT_TYPES: ServerEventType[] = [
   'submission.created',
   'submission.scored',
   'challenge.awarded',
-  'invite.created',
-  'invite.updated',
   'notification.created',
   'system.reset',
 ];
@@ -167,19 +165,6 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           for (const r of results ?? []) invalidate(qk.student(r.studentId));
           break;
         }
-        case 'invite.created': {
-          const inv = evt.payload.invite;
-          if (inv?.companyId !== mine) break;
-          invalidate(qk.dashboard, qk.invites, qk.student(inv.studentId));
-          break;
-        }
-        case 'invite.updated': {
-          const inv = evt.payload.invite;
-          if (inv?.companyId !== mine) break;
-          invalidate(qk.dashboard, qk.invites, qk.student(inv.studentId), qk.notifications);
-          if (inv.status !== 'pending') void announceInviteResponse(inv.studentId, inv.status);
-          break;
-        }
         case 'notification.created': {
           const n = evt.payload.notification;
           if (!n || n.recipientId !== mine) break;
@@ -221,27 +206,6 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           onClick: () => navigateRef.current(`/challenges/${challengeId}/review/${submissionId}`),
         },
       });
-    }
-
-    async function announceInviteResponse(studentId: string, inviteStatus: string) {
-      let name = 'A candidate';
-      try {
-        const profile = await queryClient.fetchQuery({
-          queryKey: qk.student(studentId),
-          queryFn: () => api<StudentProfile>(`/students/${encodeURIComponent(studentId)}`),
-        });
-        name = profile.name;
-      } catch {
-        /* keep generic */
-      }
-      if (disposed) return;
-      if (inviteStatus === 'accepted') {
-        toast(`${name} accepted your invite`, {
-          action: { label: 'Profile', onClick: () => navigateRef.current(`/candidates/${studentId}`) },
-        });
-      } else {
-        toast(`${name} declined your invite`);
-      }
     }
 
     return () => {

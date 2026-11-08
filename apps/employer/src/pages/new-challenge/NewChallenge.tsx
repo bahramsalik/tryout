@@ -10,11 +10,11 @@ import { qk, queryClient } from '@/lib/queries';
 import { StudentCard } from '@/components/StudentPreview';
 import { Button, ButtonLink, Card, InlineError, PageHeader, TabList, cn } from '@/components/ui';
 import { draftToInput, draftToPreview, emptyDraft, inputToDraft, stepValid, validateStep, type Draft } from './draft';
-import { StepRewards } from './StepRewards';
+import { StepLimits } from './StepLimits';
 import { StepRubric } from './StepRubric';
 import { StepTask } from './StepTask';
 
-const STEPS = ['Task', 'Judging', 'Reward'] as const;
+const STEPS = ['Task', 'Judging', 'Limits'] as const;
 const LAST = STEPS.length - 1;
 
 function draftKey(personaId: string) {
@@ -54,7 +54,7 @@ export function NewChallengePage() {
 
   const goTo = (next: number) => {
     setStep(next);
-    requestAnimationFrame(() => window.scrollTo({ top: 0 }));
+    requestAnimationFrame(() => document.getElementById('main')?.scrollTo({ top: 0 }));
   };
 
   /** Moving forward validates every step in between; errors show inline on the first invalid one. */
@@ -89,7 +89,7 @@ export function NewChallengePage() {
       queryClient.setQueryData(qk.challenge(challenge.id), challenge);
       void queryClient.invalidateQueries({ queryKey: qk.dashboard });
       setPublished(challenge);
-      window.scrollTo({ top: 0 });
+      document.getElementById('main')?.scrollTo({ top: 0 });
     },
   });
 
@@ -107,9 +107,9 @@ export function NewChallengePage() {
   if (published) return <PublishedScreen challenge={published} />;
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      <Link to="/" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-        <ArrowLeft className="size-4" aria-hidden /> Dashboard
+    <div className="mx-auto w-full max-w-7xl">
+      <Link to="/challenges" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
+        <ArrowLeft className="size-4" aria-hidden /> Challenges
       </Link>
       <PageHeader
         title="Add challenge"
@@ -132,7 +132,7 @@ export function NewChallengePage() {
         <Card className="@container p-5">
           {step === 0 && <StepTask draft={draft} set={set} errors={errors} company={company} />}
           {step === 1 && <StepRubric draft={draft} set={set} errors={errors} />}
-          {step === 2 && <StepRewards draft={draft} set={set} errors={errors} />}
+          {step === 2 && <StepLimits draft={draft} set={set} errors={errors} />}
 
           <InlineError error={publish.error} className="mt-4" />
           <div className="mt-6 flex items-center gap-2">
@@ -150,7 +150,7 @@ export function NewChallengePage() {
         </Card>
 
         {step === LAST && (
-          <aside className="sticky top-16 hidden min-[1100px]:block" aria-label="Student card">
+          <aside className="sticky top-4 hidden min-[1100px]:block" aria-label="Student card">
             <StudentCard challenge={preview} />
           </aside>
         )}
@@ -172,7 +172,7 @@ function PublishedScreen({ challenge }: { challenge: ChallengeView }) {
         <ButtonLink to={`/challenges/${challenge.id}`} variant="primary">
           View challenge
         </ButtonLink>
-        <ButtonLink to="/">Dashboard</ButtonLink>
+        <ButtonLink to="/challenges">Challenges</ButtonLink>
       </div>
     </div>
   );

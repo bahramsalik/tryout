@@ -3,27 +3,29 @@ import { Link } from 'react-router';
 import type { ChallengeView } from '@shared/types';
 import { Countdown, CompanyLogo, Placements, StatTile } from '@/components/brand';
 import { ChallengeCard, ChallengeCardSkeleton } from '@/components/ChallengeCard';
-import { ButtonLink, Card, ErrorState, MessageBar, PageHeader, SectionTitle, Skeleton } from '@/components/ui';
+import { ButtonLink, Card, ErrorState, PageHeader, SectionTitle, Skeleton } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import { continueItems, recommendedLive } from '@/lib/derive';
-import { firstName, money } from '@/lib/format';
-import { useChallenges, useCurrentStudent, useInvites, useMe, useStudentProfile } from '@/lib/queries';
+import { firstName } from '@/lib/format';
+import { useChallenges, useCurrentStudent, useMe, useStudentProfile } from '@/lib/queries';
 import { useNow } from '@/lib/useNow';
 
 function Stats({ studentId }: { studentId?: string }) {
   const q = useStudentProfile(studentId);
   const s = q.data?.stats;
   if (q.isError) return <ErrorState message={errorMessage(q.error)} onRetry={() => q.refetch()} />;
+  const hasPlacements = !s || s.placements.first + s.placements.second + s.placements.third > 0; // an award is optional
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className={cn('grid grid-cols-2 gap-3', hasPlacements ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
       {!s ? (
         [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[84px] rounded-lg" />)
       ) : (
         <>
           <StatTile label="Verified hours" value={s.verifiedHours} />
           <StatTile label="Tasks" value={s.tasksCompleted} />
-          <StatTile label="Earned" value={money(s.bountiesEarned)} />
-          <StatTile label="Placements" value={<Placements {...s.placements} />} />
+          <StatTile label="Avg score" value={s.avgScore ?? '–'} />
+          {hasPlacements ? <StatTile label="Placements" value={<Placements {...s.placements} />} /> : null}
         </>
       )}
     </div>
@@ -51,12 +53,10 @@ export function HomePage() {
   const me = useMe();
   const student = useCurrentStudent();
   const challenges = useChallenges();
-  const invites = useInvites();
   const now = useNow(60_000);
 
   const inProgress = useMemo(() => continueItems(challenges.data, now), [challenges.data, now]);
   const recs = useMemo(() => recommendedLive(challenges.data, student?.interests, now).slice(0, 3), [challenges.data, student?.interests, now]);
-  const invite = (invites.data ?? []).find((i) => i.status === 'pending');
 
   if (me.isError) {
     return <ErrorState title="API unreachable" message={errorMessage(me.error)} onRetry={() => void me.refetch()} />;
@@ -65,18 +65,6 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       <PageHeader title={student ? `Hi, ${firstName(student.name)}` : <Skeleton className="h-9 w-40" />} />
-
-      {invite ? (
-        <MessageBar
-          intent="success"
-          title={`${invite.company.name} wants to interview you.`}
-          actions={
-            <ButtonLink to="/work" size="small">
-              View
-            </ButtonLink>
-          }
-        />
-      ) : null}
 
       {inProgress[0] ? (
         <section>

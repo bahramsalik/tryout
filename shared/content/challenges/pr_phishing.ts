@@ -472,7 +472,6 @@ const mod: ChallengeModule = {
       { id: 'advisory', name: 'Staff advisory', description: 'A calm, jargon-free advisory under 200 words that shows staff the tells in this specific email and makes it safe to report a click.', weight: 25 },
       { id: 'response', name: 'Response steps', description: 'Ordered, specific steps: contain the employee who clicked, block the domains, purge all copies, find other clickers via proxy logs, and confirm no payroll changes.', weight: 20 },
     ],
-    reward: { mode: 'none', amounts: [] },
     applicantCap: null,
     status: 'open',
     hiringFor: null,

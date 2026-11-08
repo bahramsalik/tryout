@@ -42,7 +42,7 @@ export function TalentPage() {
   const list = students.data ?? [];
 
   return (
-    <div className="mx-auto w-full max-w-5xl">
+    <div className="mx-auto w-full max-w-7xl">
       <PageHeader title="Talent" meta={students.data ? `${list.length} students` : undefined} />
 
       <div className="mb-3 flex flex-wrap items-center gap-2">

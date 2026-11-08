@@ -1,13 +1,15 @@
 import { NavLink, Link, useLocation, useNavigate } from 'react-router';
-import { Check, ChevronsUpDown, LayoutDashboard, LayoutDashboardFilled, Users, UsersFilled } from '@/components/icons';
+import { Check, ChevronsUpDown, LayoutDashboard, LayoutDashboardFilled, PanelLeft, Trophy, TrophyFilled, Users, UsersFilled } from '@/components/icons';
 import { useMediaQuery } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
+import { useSidebar } from '@/lib/stores';
 import { CompanyLogo, EmployerPill, LogoMark, Wordmark } from '../brand';
 import { Popover } from '../overlay';
-import { cn } from '../ui';
+import { IconButton, cn } from '../ui';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, iconActive: LayoutDashboardFilled, end: true },
+  { to: '/challenges', label: 'Challenges', icon: Trophy, iconActive: TrophyFilled, end: false },
   { to: '/talent', label: 'Talent', icon: Users, iconActive: UsersFilled, end: false },
 ];
 
@@ -19,20 +21,19 @@ export function Sidebar() {
       className="sticky top-0 z-30 flex h-dvh w-14 shrink-0 flex-col border-r border-[var(--colorNeutralStroke2)] bg-[var(--colorNeutralBackground3)] lg:w-60"
       aria-label="Primary"
     >
-      <Link
-        to="/"
-        className="flex h-12 shrink-0 items-center justify-center gap-2 px-3 lg:justify-start lg:px-4"
-        aria-label="Tryout Employers, dashboard"
-      >
-        <LogoMark />
-        <span className="hidden items-baseline gap-1.5 lg:flex">
-          <Wordmark />
-          <EmployerPill />
-        </span>
-      </Link>
-
-      <div className="px-2 pt-1 lg:px-3">
-        <CompanySwitcher wide={wide} />
+      <div className="flex h-12 shrink-0 items-center gap-1 pr-2 lg:pr-3">
+        <Link
+          to="/"
+          className="flex h-full min-w-0 flex-1 items-center justify-center gap-2 px-3 lg:justify-start lg:px-4"
+          aria-label="Tryout Employers, dashboard"
+        >
+          <LogoMark />
+          <span className="hidden items-baseline gap-1.5 lg:flex">
+            <Wordmark />
+            <EmployerPill />
+          </span>
+        </Link>
+        <SidebarToggle className="max-lg:hidden" />
       </div>
 
       <nav className="mt-3 flex flex-col gap-0.5 px-2 lg:px-3" aria-label="Main">
@@ -67,7 +68,21 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      <div className="mt-auto border-t border-[var(--colorNeutralStroke2)] px-2 py-3 lg:px-3">
+        <CompanySwitcher wide={wide} />
+      </div>
     </aside>
+  );
+}
+
+/** Shows or hides the whole sidebar. Lives next to the logo, and in the top bar while the sidebar is hidden. */
+export function SidebarToggle({ className }: { className?: string }) {
+  const [open, toggle] = useSidebar();
+  return (
+    <IconButton label={open ? 'Hide sidebar' : 'Show sidebar'} aria-pressed={open} onClick={toggle} className={className}>
+      <PanelLeft className="size-5" aria-hidden />
+    </IconButton>
   );
 }
 
@@ -91,7 +106,7 @@ function CompanySwitcher({ wide }: { wide: boolean }) {
 
   return (
     <Popover
-      placement={wide ? 'bottom-start' : 'right-start'}
+      placement={wide ? 'top-start' : 'right-end'}
       panelClassName="w-72"
       trigger={({ toggle, ...aria }) => (
         <button

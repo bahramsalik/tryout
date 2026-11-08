@@ -6,31 +6,32 @@
 import {
   PLATFORM_RULES,
   computeTotalScore,
+  placementsFor,
+  prizeForPlace,
+  isVerified,
   type AwardResponse,
   type Challenge,
   type ChallengeView,
   type CreateChallengeInput,
-  type CreateInviteInput,
-  type InterviewInvite,
-  type InviteStatus,
-  type InviteView,
   type Notification,
   type ScoreSubmissionInput,
   type ServerEvent,
   type SubmissionView,
 } from '../../shared/types.ts';
 import { practiceReview, synthesizeAiHints } from './ai.ts';
+import { GRADER } from './config.ts';
 import type { Participation, SubmissionRecord } from './db.ts';
 import { badRequest, conflict, forbidden, notFound } from './errors.ts';
 import { emit } from './events.ts';
-import { aliasCode, applyAward, assignAlias, clipWords, computeAward, countWords, ordinal, usd } from './logic.ts';
+import { GraderUnavailable, gradeSubmission, type GradeResult } from './grader.ts';
+import { log } from './log.ts';
+import { aliasCode, applyAward, assignAlias, clipWords, computeAward, countWords, ordinal } from './logic.ts';
 import type { EmployerPersona, StudentPersona } from './persona.ts';
 import { randomId } from './rng.ts';
-import { getDb, persist, writeUpload } from './store.ts';
+import { getDb, loadUpload, persist, writeUpload } from './store.ts';
 import {
   challengeById,
   challengeView,
-  inviteView,
   isAcceptingWork,
   participationOf,
   studentById,
@@ -98,8 +99,9 @@ export function createChallenge(p: EmployerPersona, input: CreateChallengeInput)
     brief: input.brief,
     deliverables: input.deliverables.map((d) => d.trim()).filter(Boolean),
     rubric: input.rubric,
-    reward: input.reward,
     applicantCap: input.applicantCap,
+    ...(input.placements !== undefined ? { placements: input.placements } : {}),
+    ...(input.prizePool ? { prizePool: input.prizePool } : {}),
     deadline: new Date(input.deadline).toISOString(),
     status: 'open',
     hiringFor: input.hiringFor?.trim() || null,
@@ -239,11 +241,13 @@ export function submitWork(
     feedback: null,
     scoredAt: null,
     rank: null,
-    payout: null,
     shortlisted: false,
     alias: participation.alias,
     scoredBy: null,
   };
+
+  // Live work is graded by the AI right after submit when a key is set; without one, recruiters score by hand as before.
+  if (ch.kind === 'live' && GRADER.enabled) sub.gradingState = 'grading';
 
   if (ch.kind === 'practice') {
     // DUMMY-AI: instant Coach review (§5.5 #14).
@@ -285,7 +289,82 @@ export function submitWork(
     });
   }
   commit(events);
+  if (sub.gradingState) void runAiGrading(sub.id, file.buffer);
   return submissionView(sub, p);
+}
+
+/* ───────────── AI grading ───────────── */
+
+/** Waits before each retry when the AI request fails (then the submission stays 'delayed' until the next sweep). */
+const GRADING_RETRY_MS = [2_000, 10_000, 30_000];
+const GRADING_SWEEP_MS = 30 * 60_000;
+
+function applyAiGrade(sub: SubmissionRecord, ch: Challenge, r: GradeResult): void {
+  Object.assign(sub, {
+    status: 'scored',
+    reviewer: 'ai',
+    scores: r.scores,
+    scoreNotes: r.evidence,
+    totalScore: r.totalScore,
+    feedback: r.feedback,
+    scoredAt: nowIso(),
+    scoredBy: 'ai',
+  } satisfies Partial<SubmissionRecord>);
+  delete sub.gradingState;
+  const events: ServerEvent[] = [
+    { type: 'submission.scored', payload: { submissionId: sub.id, challengeId: ch.id, studentId: sub.studentId, companyId: ch.companyId, totalScore: r.totalScore } },
+  ];
+  notification(events, {
+    recipientId: sub.studentId,
+    kind: 'results',
+    title: `Graded · ${r.totalScore}/100`,
+    body: bodyTitle(ch.title),
+    link: `/challenges/${ch.id}`,
+  });
+  commit(events);
+  log.info(`AI graded ${sub.id}: ${r.totalScore}/100 (${r.usage.inputTokens} in / ${r.usage.outputTokens} out tokens)`);
+}
+
+/**
+ * Grades one live submission with the AI, in the background. On failure it retries a few times, then leaves the
+ * submission 'delayed' (no fake score); the periodic sweep tries again later. Never throws.
+ */
+export async function runAiGrading(subId: string, zip?: Buffer, attempt = 0): Promise<void> {
+  const sub = getDb().submissions.find((s) => s.id === subId);
+  if (!sub || sub.totalScore !== null) return; // gone, or already scored (e.g. by a recruiter)
+  const ch = challengeById(sub.challengeId);
+  if (!ch || ch.kind !== 'live') return;
+  try {
+    const buf = zip ?? (await loadUpload(subId));
+    if (!buf) throw new GraderUnavailable('api_error', 'The submission file is missing.');
+    const result = await gradeSubmission(ch, sub, buf);
+    if (sub.totalScore !== null) return; // a recruiter scored it while the AI worked: keep the human's score
+    applyAiGrade(sub, ch, result);
+  } catch (err) {
+    const reason = err instanceof GraderUnavailable ? err.reason : 'api_error';
+    const retryable = reason === 'api_error' || reason === 'bad_output';
+    if (retryable && attempt < GRADING_RETRY_MS.length) {
+      setTimeout(() => void runAiGrading(subId, zip, attempt + 1), GRADING_RETRY_MS[attempt]).unref();
+      return;
+    }
+    sub.gradingState = 'delayed';
+    persist();
+    log.warn(`AI grading for ${subId} delayed (${reason}): ${err instanceof Error ? err.message : 'unknown error'}`);
+  }
+}
+
+/** Picks up live submissions still waiting for an AI grade (after a restart, or after a delay). */
+export function resumeAiGradings(): void {
+  if (!GRADER.enabled) return;
+  for (const s of getDb().submissions) {
+    if (s.gradingState && s.totalScore === null) void runAiGrading(s.id);
+  }
+}
+
+/** Starts the sweep that retries delayed gradings every 30 minutes. */
+export function startAiGradingSweep(): void {
+  resumeAiGradings();
+  setInterval(resumeAiGradings, GRADING_SWEEP_MS).unref();
 }
 
 export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input: ScoreSubmissionInput): SubmissionView {
@@ -317,12 +396,26 @@ export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input
   sub.status = 'scored';
   sub.reviewer = 'employer';
   sub.scoredBy = p.id;
+  delete sub.scoreNotes; // the AI's evidence no longer matches the recruiter's scores
+  delete sub.gradingState;
   if (typeof input.shortlisted === 'boolean') sub.shortlisted = input.shortlisted;
   commit([
     {
       type: 'submission.scored',
       payload: { submissionId: sub.id, challengeId: ch.id, studentId: sub.studentId, companyId: ch.companyId, totalScore: sub.totalScore },
     },
+  ]);
+  return submissionView(sub, p);
+}
+
+/** A recruiter confirms an AI grade as it is. The result becomes Verified; the scores are untouched. */
+export function verifySubmission(p: EmployerPersona, sub: SubmissionRecord): SubmissionView {
+  const ch = challengeById(sub.challengeId)!;
+  if (sub.totalScore === null) throw conflict('NOT_GRADED', 'There is nothing to confirm yet.');
+  if (sub.reviewer === 'employer' || sub.verifiedBy) return submissionView(sub, p);
+  sub.verifiedBy = p.id;
+  commit([
+    { type: 'submission.scored', payload: { submissionId: sub.id, challengeId: ch.id, studentId: sub.studentId, companyId: ch.companyId, totalScore: sub.totalScore } },
   ]);
   return submissionView(sub, p);
 }
@@ -349,22 +442,35 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
     );
   }
   const lines = computeAward(ch, subs);
-  applyAward(lines);
+  const awardOn = placementsFor(ch) > 0; // an award is optional: without one nobody is ranked
+  // A prize goes only to Verified results: a person must confirm each prize place before it is paid.
+  const prizeOn = awardOn && (ch.prizePool ?? 0) > 0;
+  if (prizeOn) {
+    const unverified = lines.filter((l) => l.rank <= placementsFor(ch) && !isVerified(l.sub));
+    if (unverified.length) {
+      throw conflict(
+        'PRIZE_NEEDS_VERIFIED',
+        `Confirm the top ${unverified.length === 1 ? 'result' : unverified.length + ' results'} first: prizes go to verified results only.`,
+      );
+    }
+  }
+  applyAward(lines, awardOn);
+  if (prizeOn) for (const l of lines) if (l.status === 'awarded') l.sub.prize = prizeForPlace(ch, l.rank);
   ch.status = 'awarded';
   ch.awardedAt = nowIso();
 
   const events: ServerEvent[] = [
     {
       type: 'challenge.awarded',
-      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank, payout: l.payout })) },
+      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: awardOn ? l.rank : null, placed: l.status === 'awarded' })) },
     },
   ];
   for (const l of lines) {
-    if (l.payout > 0) {
+    if (l.status === 'awarded') {
       notification(events, {
         recipientId: l.sub.studentId,
         kind: 'awarded',
-        title: `${ordinal(l.rank)} place · ${usd(l.payout)}`,
+        title: l.sub.prize ? ordinal(l.rank) + ' place · $' + l.sub.prize : ordinal(l.rank) + ' place', // only placed when an award is on, so the rank is real
         body: bodyTitle(ch.title),
         link: `/challenges/${ch.id}`,
       });
@@ -381,67 +487,8 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
   commit(events);
   return {
     challenge: challengeView(ch, p),
-    results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: l.rank, payout: l.payout, status: l.status })),
+    results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: awardOn ? l.rank : null, status: l.status })),
   };
-}
-
-/* ───────────── invites ───────────── */
-
-export function createInvite(p: EmployerPersona, input: CreateInviteInput): InviteView {
-  const db = getDb();
-  const student = studentById(input.studentId);
-  if (!student) throw notFound('STUDENT_NOT_FOUND', `No student ${input.studentId}.`);
-  let ch: Challenge | undefined;
-  if (input.challengeId) {
-    ch = challengeById(input.challengeId);
-    if (!ch) throw notFound('CHALLENGE_NOT_FOUND', `No challenge ${input.challengeId}.`);
-    if (ch.companyId !== p.company.id) throw forbidden('NOT_OWNER', 'Use one of your own challenges.');
-  }
-  const message = input.message.trim();
-  if (message.length < 10) throw badRequest('VALIDATION_ERROR', 'Message needs 10+ characters.', [{ path: 'message', message: 'At least 10 characters' }]);
-  const dup = db.invites.find(
-    (i) => i.companyId === p.company.id && i.studentId === student.id && (i.challengeId ?? null) === (input.challengeId ?? null) && i.status === 'pending',
-  );
-  if (dup) throw conflict('ALREADY_INVITED', `${student.name} already has an invite.`);
-  const role = input.role?.trim() || ch?.hiringFor || p.company.hiringFor[0] || null;
-  const invite: InterviewInvite = {
-    id: uniqueId('inv', (id) => db.invites.some((i) => i.id === id)),
-    companyId: p.company.id,
-    studentId: student.id,
-    challengeId: input.challengeId ?? null,
-    role,
-    message,
-    createdAt: nowIso(),
-    status: 'pending',
-  };
-  db.invites.push(invite);
-  const events: ServerEvent[] = [{ type: 'invite.created', payload: { invite } }];
-  notification(events, {
-    recipientId: student.id,
-    kind: 'interview',
-    title: `Interview invite · ${p.company.name}`,
-    body: bodyTitle(role ?? message),
-    link: '/work',
-  });
-  commit(events);
-  return inviteView(invite, { withStudent: true });
-}
-
-export function respondToInvite(p: StudentPersona, invite: InterviewInvite, status: Exclude<InviteStatus, 'pending'>): InterviewInvite {
-  if (invite.studentId !== p.id) throw forbidden('NOT_YOURS', 'Not your invite.');
-  if (invite.status !== 'pending') throw conflict('ALREADY_RESPONDED', `Already ${invite.status}.`);
-  invite.status = status;
-  const events: ServerEvent[] = [{ type: 'invite.updated', payload: { invite } }];
-  const chTitle = invite.challengeId ? challengeById(invite.challengeId)?.title : null;
-  notification(events, {
-    recipientId: invite.companyId,
-    kind: 'invite_response',
-    title: `${p.student.name.split(' ')[0]} ${status} your invite`,
-    body: bodyTitle(invite.role ?? chTitle ?? 'Interview invite'),
-    link: `/candidates/${p.student.handle}`,
-  });
-  commit(events);
-  return invite;
 }
 
 /* ───────────── notifications ───────────── */

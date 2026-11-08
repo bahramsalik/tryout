@@ -5,26 +5,34 @@ import {
   Bell,
   BellOff,
   Inbox,
-  MailCheck,
   MoreHorizontal,
   Plus,
   RotateCcw,
   Sparkles,
   Trophy,
-  UserPlus,
   Users,
 } from '@/components/icons';
 import type { Notification, NotificationKind } from '@shared/types';
 import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 import { qk, queryClient, useNotifications } from '@/lib/queries';
-import { clearBlind } from '@/lib/stores';
+import { clearBlind, usePageTitle, useSidebar } from '@/lib/stores';
 import { Dialog, DialogBody, DialogFooter, DialogHeader, MenuItem, Popover } from '../overlay';
 import { Button, ButtonLink, InlineError, Skeleton, cn } from '../ui';
+import { SidebarToggle } from './Sidebar';
 
 export function TopBar() {
+  const [sidebarOpen] = useSidebar();
+  const title = usePageTitle();
   return (
     <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-1 border-b border-[var(--colorNeutralStroke2)] bg-[var(--colorNeutralBackground1)] px-3 sm:px-6">
+      {/* With the sidebar open on a wide screen the toggle sits beside the logo; here it covers the hidden and narrow cases. */}
+      <SidebarToggle className={sidebarOpen ? 'lg:hidden' : undefined} />
+      {title && (
+        <span className="ml-1 min-w-0 truncate text-base font-semibold text-[var(--colorNeutralForeground1)]" aria-hidden>
+          {title}
+        </span>
+      )}
       <div className="ml-auto flex items-center gap-1">
         <ButtonLink to="/challenges/new" variant="primary" icon={<Plus className="size-5" aria-hidden />}>
           Add challenge
@@ -41,8 +49,6 @@ const KIND_ICON: Record<NotificationKind, typeof Bell> = {
   submission_received: Inbox,
   results: Trophy,
   awarded: Trophy,
-  interview: UserPlus,
-  invite_response: MailCheck,
   coach_review: Sparkles,
   cap_reached: Users,
 };
@@ -53,6 +59,13 @@ function NotificationBell() {
   const unread = (data ?? []).filter((n) => !n.read).length;
   const markedRef = useRef(false);
   const wasOpen = useRef(false);
+
+  const readOne = useMutation({
+    mutationFn: (id: string) => api<Notification>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Notification[]>(qk.notifications, (prev) => prev?.map((n) => (n.id === updated.id ? { ...n, read: true } : n)));
+    },
+  });
 
   const readAll = useMutation({
     mutationFn: () => api<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
@@ -146,6 +159,7 @@ function NotificationBell() {
                       <button
                         type="button"
                         onClick={() => {
+                          if (!n.read) readOne.mutate(n.id);
                           close();
                           if (n.link) navigate(n.link);
                         }}

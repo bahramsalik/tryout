@@ -1,6 +1,6 @@
-import { Clock, Gauge, Trophy, Users as People } from './icons';
-import { DIFFICULTY_LABEL, rewardTotal, type ChallengeView } from '@shared/types';
-import { money, timeLeft } from '@/lib/format';
+import { Clock, Coins, Gauge, Users as People } from './icons';
+import { DIFFICULTY_LABEL, placementsFor, type ChallengeView } from '@shared/types';
+import { timeLeft, usd } from '@/lib/format';
 import { CompanyLogo, useNow } from './brand';
 import { Markdown } from './Markdown';
 import { Badge, Card, cn } from './ui';
@@ -18,7 +18,8 @@ export type PreviewChallenge = Pick<
   | 'brief'
   | 'deliverables'
   | 'rubric'
-  | 'reward'
+  | 'placements'
+  | 'prizePool'
   | 'applicantCap'
   | 'deadline'
   | 'hiringFor'
@@ -27,17 +28,18 @@ export type PreviewChallenge = Pick<
   | 'status'
 >;
 
-/** Meta row: reward · hours · level · spots · time left. */
+/** Meta row: hours · level · spots · time left. */
 function MetaRow({ c }: { c: PreviewChallenge }) {
   const now = useNow();
   const t = timeLeft(c.deadline, now);
-  const total = rewardTotal(c.reward);
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-600 [&_svg]:size-4 [&_svg]:text-slate-500">
-      <span className="inline-flex items-center gap-1 tabular-nums">
-        <Trophy aria-hidden />
-        {total > 0 ? money(total) : 'No reward'}
-      </span>
+      {(c.prizePool ?? 0) > 0 && placementsFor(c) > 0 && (
+        <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-slate-900">
+          <Coins aria-hidden />
+          {usd(c.prizePool!)} prize
+        </span>
+      )}
       <span className="inline-flex items-center gap-1">
         <Clock aria-hidden />~{c.estHours} h
       </span>

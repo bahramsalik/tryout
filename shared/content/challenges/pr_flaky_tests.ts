@@ -1200,7 +1200,6 @@ const mod: ChallengeModule = {
         weight: 20,
       },
     ],
-    reward: { mode: 'none', amounts: [] },
     applicantCap: null,
     status: 'open',
     hiringFor: null,

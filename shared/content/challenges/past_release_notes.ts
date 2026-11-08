@@ -442,7 +442,6 @@ const mod: ChallengeModule = {
       { id: 'channel_fit', name: 'Fit for each surface', description: 'Each piece fits its surface: the hook lands in the first 170 store characters, the card fits 40/120/18, and the help article is scannable by question.', weight: 15 },
       { id: 'brevity', name: 'Brevity', description: 'No wasted words on any surface; nothing could be cut without losing meaning.', weight: 10 },
     ],
-    reward: { mode: 'winner', amounts: [250] },
     applicantCap: 25,
     status: 'awarded',
     hiringFor: 'Associate Product Designer · Full-time · New York, NY (hybrid)',
