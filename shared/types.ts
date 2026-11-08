@@ -532,9 +532,9 @@ export interface SeedContent {
 /* ─────────────────────────── Helpers ─────────────────────────── */
 
 /** True when a recruiter should look at this submission: nothing graded yet, or a strong AI grade nobody has confirmed. */
-export function needsRecruiterReview(s: { totalScore: number | null; reviewer: ReviewerKind | null; verifiedBy?: string | null }): boolean {
+export function needsRecruiterReview(s: { totalScore: number | null; reviewer: ReviewerKind | null; verifiedBy?: string | null; verified?: boolean }): boolean {
   if (s.totalScore === null) return true;
-  return s.reviewer === 'ai' && !s.verifiedBy && s.totalScore >= PLATFORM_RULES.reviewThreshold;
+  return s.reviewer === 'ai' && !s.verifiedBy && !s.verified && s.totalScore >= PLATFORM_RULES.reviewThreshold;
 }
 
 /** A result is "verified" when a person confirmed it: the employer scored it, or someone confirmed an AI grade. */

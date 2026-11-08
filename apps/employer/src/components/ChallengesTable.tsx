@@ -145,7 +145,7 @@ export function ChallengesTable({
             </thead>
             <tbody>
               {sorted.map((c) => {
-                const awaiting = Math.max(0, c.submissionCount - c.scoredCount);
+                const awaiting = c.toReview ?? Math.max(0, c.submissionCount - c.scoredCount);
                 return (
                   <tr
                     key={c.id}

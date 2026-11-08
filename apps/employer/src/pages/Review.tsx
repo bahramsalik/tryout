@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useBlocker, useNavigate, useParams } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import { ArrowDown, ArrowLeft, Download } from '@/components/icons';
-import { PLATFORM_RULES, computeTotalScore, type ChallengeView, type ScoreSubmissionInput, type SubmissionView } from '@shared/types';
+import { PLATFORM_RULES, computeTotalScore, needsRecruiterReview, type ChallengeView, type ScoreSubmissionInput, type SubmissionView } from '@shared/types';
 import { ApiError, api, urlWithPersona } from '@/lib/api';
 import { bytes, timeAgo } from '@/lib/format';
 import { useDocumentTitle } from '@/lib/hooks';
@@ -29,10 +29,10 @@ import {
   cn,
 } from '@/components/ui';
 
-/** Oldest unscored first (FIFO), so nobody waits longest. */
+/** Oldest first (FIFO), so nobody waits longest. Only what needs a recruiter: ungraded work, or a strong AI grade nobody confirmed. */
 function nextUnscored(subs: SubmissionView[], excludeId?: string): SubmissionView | undefined {
   return [...subs]
-    .filter((s) => !isScored(s) && s.id !== excludeId)
+    .filter((s) => needsRecruiterReview(s) && s.id !== excludeId)
     .sort((a, b) => new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime())[0];
 }
 
@@ -215,18 +215,27 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
     return () => io.disconnect();
   }, []);
 
+  const refresh = (updated: SubmissionView) => {
+    queryClient.setQueryData(qk.submission(updated.id), updated);
+    queryClient.setQueryData<SubmissionView[]>(qk.submissions(challenge.id), (list) =>
+      list?.map((s) => (s.id === updated.id ? updated : s)),
+    );
+    void queryClient.invalidateQueries({ queryKey: qk.challenge(challenge.id) });
+    void queryClient.invalidateQueries({ queryKey: qk.leaderboard(challenge.id) });
+    void queryClient.invalidateQueries({ queryKey: qk.dashboard });
+  };
+
   const save = useMutation({
     mutationFn: (body: ScoreSubmissionInput) =>
       api<SubmissionView>(`/submissions/${encodeURIComponent(sub.id)}/score`, { method: 'POST', json: body }),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(qk.submission(updated.id), updated);
-      queryClient.setQueryData<SubmissionView[]>(qk.submissions(challenge.id), (list) =>
-        list?.map((s) => (s.id === updated.id ? updated : s)),
-      );
-      void queryClient.invalidateQueries({ queryKey: qk.challenge(challenge.id) });
-      void queryClient.invalidateQueries({ queryKey: qk.leaderboard(challenge.id) });
-      void queryClient.invalidateQueries({ queryKey: qk.dashboard });
-    },
+    onSuccess: refresh,
+  });
+
+  // Confirming an AI grade as it is: the scores stay, the result becomes Verified.
+  const aiGraded = sub.reviewer === 'ai' && !sub.verified && !readOnly;
+  const confirm = useMutation({
+    mutationFn: () => api<SubmissionView>(`/submissions/${encodeURIComponent(sub.id)}/verify`, { method: 'POST' }),
+    onSuccess: refresh,
   });
 
   // Don't silently drop unsaved scores when the reviewer navigates away.
@@ -235,6 +244,17 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
     ({ currentLocation, nextLocation }) =>
       !skipBlock.current && !readOnly && dirty && currentLocation.pathname !== nextLocation.pathname,
   );
+
+  const goNext = (updated: SubmissionView) => {
+    const following = nextUnscored(
+      subs.map((s) => (s.id === updated.id ? updated : s)),
+      updated.id,
+    );
+    skipBlock.current = true;
+    navigate(following ? `/challenges/${challenge.id}/review/${following.id}` : `/challenges/${challenge.id}?tab=leaderboard`);
+  };
+
+  const confirmGrade = () => confirm.mutate(undefined, { onSuccess: goNext });
 
   const submit = () => {
     setTried(true);
@@ -270,6 +290,11 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
               <span className="text-sm font-normal text-slate-500">/100</span>
             </p>
           </div>
+          {aiGraded && (
+            <p className="mx-4 mt-2 rounded-[var(--borderRadiusMedium)] bg-[var(--colorNeutralBackground3)] px-3 py-2 text-xs text-slate-600">
+              Graded automatically. Confirm it as it is, or change a score or the feedback and save.
+            </p>
+          )}
           {readOnly && sub.rank != null && (
             <div className="px-4 pt-1">
               <MedalBadge rank={sub.rank} medal={sub.status === 'awarded'} />
@@ -288,6 +313,7 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
                     </span>
                     <span className="shrink-0 text-xs text-slate-500 tabular-nums">{r.weight}%</span>
                   </div>
+                  {sub.scoreNotes?.[r.id] && <p className="mb-1.5 text-xs text-slate-600">{sub.scoreNotes[r.id]}</p>}
                   <div className="grid grid-cols-5 gap-1" role="radiogroup" aria-label={`${r.name} score`}>
                     {[1, 2, 3, 4, 5].map((n) => {
                       const active = value === n;
@@ -334,12 +360,17 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
                 placeholder="What worked, and one thing to improve"
               />
             </Field>
-            <InlineError error={save.error} />
-            {!readOnly && (
-              <Button variant="primary" className="w-full" loading={save.isPending} onClick={submit}>
-                Save &amp; next
-              </Button>
-            )}
+            <InlineError error={save.error ?? confirm.error} />
+            {!readOnly &&
+              (aiGraded && !dirty ? (
+                <Button variant="primary" className="w-full" loading={confirm.isPending} onClick={confirmGrade}>
+                  Confirm &amp; next
+                </Button>
+              ) : (
+                <Button variant="primary" className="w-full" loading={save.isPending} onClick={submit}>
+                  Save &amp; next
+                </Button>
+              ))}
           </div>
         </Card>
       </aside>

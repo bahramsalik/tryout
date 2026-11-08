@@ -308,7 +308,7 @@ export function employerDashboard(p: EmployerPersona): EmployerDashboard {
     kpis: {
       activeChallenges: active.length,
       totalSubmissions: subs.length,
-      awaitingReview: subs.filter((s) => activeIds.has(s.challengeId) && s.totalScore === null).length,
+      awaitingReview: subs.filter((s) => activeIds.has(s.challengeId) && needsRecruiterReview(s)).length,
       avgScore: avg === null ? null : Math.round(avg),
     },
     challenges: live.map((c) => challengeView(c, p)),
