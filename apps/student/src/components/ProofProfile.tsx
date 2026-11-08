@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import type { ProfileHistoryItem, StudentProfile } from '@shared/types';
 import { CompanyLogo, Placements, RankBadge, StatTile, VerifiedBadge } from './brand';
 import { SkillsRadar } from './SkillsRadar';
+import { cn } from '@/lib/cn';
 import { Avatar, Badge, Card, EmptyState, SectionTitle, Skeleton } from './ui';
 
 function HistoryRow({ h, linkable }: { h: ProfileHistoryItem; linkable: boolean }) {
@@ -55,6 +56,7 @@ export function ProofProfileSkeleton() {
 
 export function ProofProfile({ profile: p, publicView }: { profile: StudentProfile; publicView?: boolean }) {
   const s = p.stats;
+  const hasPlacements = s.placements.first + s.placements.second + s.placements.third > 0; // an award is optional
   const history = [...p.history].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 
   return (
@@ -73,11 +75,11 @@ export function ProofProfile({ profile: p, publicView }: { profile: StudentProfi
         </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={cn('grid grid-cols-2 gap-3', hasPlacements ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
         <StatTile label="Verified hours" value={s.verifiedHours} />
         <StatTile label="Tasks" value={s.tasksCompleted} />
         <StatTile label="Avg score" value={s.avgScore ?? '–'} />
-        <StatTile label="Placements" value={<Placements {...s.placements} />} />
+        {hasPlacements ? <StatTile label="Placements" value={<Placements {...s.placements} />} /> : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">

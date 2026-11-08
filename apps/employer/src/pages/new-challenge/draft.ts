@@ -58,7 +58,7 @@ export function emptyDraft(): Draft {
     rubric: [],
     capped: true,
     cap: 50,
-    placements: PLATFORM_RULES.placementCount,
+    placements: 0, // awards are optional: off unless the employer adds one
     deadline: daysFromNow(PLATFORM_RULES.defaultDeadlineDays),
   };
 }
@@ -151,7 +151,7 @@ export function draftToInput(d: Draft): CreateChallengeInput {
     deliverables: d.deliverables.map((x) => x.trim()).filter(Boolean),
     rubric: rubricWithIds(d.rubric),
     applicantCap: d.capped ? d.cap : null,
-    placements: d.placements ?? PLATFORM_RULES.placementCount,
+    placements: d.placements ?? 0,
     deadline: new Date(d.deadline).toISOString(),
     hiringFor: d.hiringFor.trim() || null,
   };

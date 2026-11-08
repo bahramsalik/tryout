@@ -4,32 +4,35 @@ import { BadgeCheck, Clock, Gauge, Trophy, TrophyFilled } from '@/components/ico
 import { CHALLENGE_TYPES, TYPE_META, type ProfileHistoryItem, type StudentStats } from '@shared/types';
 import { CompanyLogo, MEDAL_COLOR, MedalBadge, ScorePill, VerifiedBadge } from './brand';
 import { StatTile } from './StatTile';
-import { Card, CardHeader, EmptyState } from './ui';
+import { Card, CardHeader, EmptyState, cn } from './ui';
 
 export function ProofStats({ stats }: { stats: StudentStats }) {
   const p = stats.placements;
+  const hasPlacements = p.first + p.second + p.third > 0; // no award on a challenge means no placements to show
   return (
-    <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
+    <div className={cn('grid grid-cols-2 gap-3', hasPlacements ? '@3xl:grid-cols-4' : '@3xl:grid-cols-3')}>
       <StatTile label="Verified hours" value={stats.verifiedHours} suffix="h" icon={<Clock aria-hidden />} />
       <StatTile label="Tasks" value={stats.tasksCompleted} icon={<BadgeCheck aria-hidden />} />
       <StatTile label="Avg score" value={stats.avgScore ?? 0} icon={<Gauge aria-hidden />} />
-      <Card className="p-4">
-        <p className="flex items-center gap-1.5 text-sm text-slate-500 [&_svg]:size-4">
-          <Trophy aria-hidden />
-          Placements
-        </p>
-        <p
-          className="mt-1 flex items-center gap-3 text-2xl font-semibold tabular-nums"
-          aria-label={`${p.first} first, ${p.second} second, ${p.third} third places`}
-        >
-          {[p.first, p.second, p.third].map((n, i) => (
-            <span key={i} className="inline-flex items-center gap-1" title={['1st', '2nd', '3rd'][i]}>
-              <TrophyFilled className="size-5" style={{ color: MEDAL_COLOR[i + 1] }} aria-hidden />
-              {n}
-            </span>
-          ))}
-        </p>
-      </Card>
+      {hasPlacements && (
+        <Card className="p-4">
+          <p className="flex items-center gap-1.5 text-sm text-slate-500 [&_svg]:size-4">
+            <Trophy aria-hidden />
+            Placements
+          </p>
+          <p
+            className="mt-1 flex items-center gap-3 text-2xl font-semibold tabular-nums"
+            aria-label={`${p.first} first, ${p.second} second, ${p.third} third places`}
+          >
+            {[p.first, p.second, p.third].map((n, i) => (
+              <span key={i} className="inline-flex items-center gap-1" title={['1st', '2nd', '3rd'][i]}>
+                <TrophyFilled className="size-5" style={{ color: MEDAL_COLOR[i + 1] }} aria-hidden />
+                {n}
+              </span>
+            ))}
+          </p>
+        </Card>
+      )}
     </div>
   );
 }

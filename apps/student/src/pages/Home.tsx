@@ -5,6 +5,7 @@ import { Countdown, CompanyLogo, Placements, StatTile } from '@/components/brand
 import { ChallengeCard, ChallengeCardSkeleton } from '@/components/ChallengeCard';
 import { ButtonLink, Card, ErrorState, PageHeader, SectionTitle, Skeleton } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import { continueItems, recommendedLive } from '@/lib/derive';
 import { firstName } from '@/lib/format';
 import { useChallenges, useCurrentStudent, useMe, useStudentProfile } from '@/lib/queries';
@@ -14,8 +15,9 @@ function Stats({ studentId }: { studentId?: string }) {
   const q = useStudentProfile(studentId);
   const s = q.data?.stats;
   if (q.isError) return <ErrorState message={errorMessage(q.error)} onRetry={() => q.refetch()} />;
+  const hasPlacements = !s || s.placements.first + s.placements.second + s.placements.third > 0; // an award is optional
   return (
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className={cn('grid grid-cols-2 gap-3', hasPlacements ? 'lg:grid-cols-4' : 'lg:grid-cols-3')}>
       {!s ? (
         [0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[84px] rounded-lg" />)
       ) : (
@@ -23,7 +25,7 @@ function Stats({ studentId }: { studentId?: string }) {
           <StatTile label="Verified hours" value={s.verifiedHours} />
           <StatTile label="Tasks" value={s.tasksCompleted} />
           <StatTile label="Avg score" value={s.avgScore ?? '–'} />
-          <StatTile label="Placements" value={<Placements {...s.placements} />} />
+          {hasPlacements ? <StatTile label="Placements" value={<Placements {...s.placements} />} /> : null}
         </>
       )}
     </div>
