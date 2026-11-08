@@ -259,7 +259,7 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
       <aside
         ref={panelRef}
         id="score-panel"
-        className="scrollbar-thin @5xl:sticky @5xl:top-16 @5xl:max-h-[calc(100dvh-5rem)] @5xl:overflow-y-auto"
+        className="scrollbar-thin @5xl:sticky @5xl:top-4 @5xl:max-h-[calc(100dvh-5rem)] @5xl:overflow-y-auto"
         aria-label="Scoring"
       >
         <Card>

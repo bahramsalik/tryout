@@ -54,7 +54,7 @@ export function NewChallengePage() {
 
   const goTo = (next: number) => {
     setStep(next);
-    requestAnimationFrame(() => window.scrollTo({ top: 0 }));
+    requestAnimationFrame(() => document.getElementById('main')?.scrollTo({ top: 0 }));
   };
 
   /** Moving forward validates every step in between; errors show inline on the first invalid one. */
@@ -89,7 +89,7 @@ export function NewChallengePage() {
       queryClient.setQueryData(qk.challenge(challenge.id), challenge);
       void queryClient.invalidateQueries({ queryKey: qk.dashboard });
       setPublished(challenge);
-      window.scrollTo({ top: 0 });
+      document.getElementById('main')?.scrollTo({ top: 0 });
     },
   });
 
@@ -150,7 +150,7 @@ export function NewChallengePage() {
         </Card>
 
         {step === LAST && (
-          <aside className="sticky top-16 hidden min-[1100px]:block" aria-label="Student card">
+          <aside className="sticky top-4 hidden min-[1100px]:block" aria-label="Student card">
             <StudentCard challenge={preview} />
           </aside>
         )}
