@@ -25,6 +25,7 @@ import {
   TabList,
   ToggleButton,
   cn,
+  selectClass,
 } from '@/components/ui';
 
 type Tab = 'submissions' | 'leaderboard' | 'brief';
@@ -309,38 +310,59 @@ function LeaderboardTab({
 }) {
   const ranked = useMemo(() => rankSubmissions(subs), [subs]);
   const awarded = challenge.status === 'awarded';
+  // Order by the overall score (the official ranking) or by any one rubric criterion.
+  const [orderBy, setOrderBy] = useState('overall');
+  const criterion = challenge.rubric.find((r) => r.id === orderBy) ?? null;
+  const rows = useMemo(() => {
+    if (!criterion) return ranked;
+    // The sort is stable, so ties keep their overall order.
+    return [...ranked].sort((a, b) => (b.scores?.[criterion.id] ?? 0) - (a.scores?.[criterion.id] ?? 0));
+  }, [ranked, criterion]);
 
   if (query.isPending) return <TableSkeleton />;
   if (query.isError) return <ErrorState error={query.error} onRetry={() => query.refetch()} />;
 
   return (
     <div className="space-y-3">
-      {!awarded && challenge.kind !== 'practice' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-slate-600">{unscored > 0 ? `${unscored} left to score` : 'All scored'}</span>
-          <Button
-            variant="primary"
-            className="ml-auto"
-            icon={<Trophy className="size-5" aria-hidden />}
-            onClick={onAward}
-            disabled={subs.length === 0 || unscored > 0}
-          >
-            Publish results
-          </Button>
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          Order by
+          <select className={`${selectClass} w-48`} value={criterion ? criterion.id : 'overall'} onChange={(e) => setOrderBy(e.target.value)}>
+            <option value="overall">Overall</option>
+            {challenge.rubric.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {!awarded && challenge.kind !== 'practice' && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-sm text-slate-600">{unscored > 0 ? `${unscored} left to score` : 'All scored'}</span>
+            <Button
+              variant="primary"
+              icon={<Trophy className="size-5" aria-hidden />}
+              onClick={onAward}
+              disabled={subs.length === 0 || unscored > 0}
+            >
+              Publish results
+            </Button>
+          </div>
+        )}
+      </div>
 
       <Card className="@container overflow-hidden">
-        {ranked.length === 0 ? (
+        {rows.length === 0 ? (
           <EmptyState title="No scores yet" />
         ) : (
           <ol>
-            {ranked.map((s, i) => {
-              const rank = s.rank ?? i + 1;
+            {rows.map((s, i) => {
+              // Overall keeps the official rank and medals; ordering by a criterion just numbers the rows.
+              const rank = criterion ? i + 1 : (s.rank ?? i + 1);
               const name = blind ? s.alias : s.student.name;
               return (
                 <li key={s.id} className="flex items-center gap-3 border-b border-slate-200 px-3 py-2 last:border-0 @xl:px-4">
-                  <MedalBadge rank={rank} medal={rank <= placementsFor(challenge)} />
+                  <MedalBadge rank={rank} medal={!criterion && rank <= placementsFor(challenge)} />
                   <Link
                     to={blind ? `/challenges/${challenge.id}/review/${s.id}` : `/candidates/${s.student.handle || s.studentId}`}
                     className="flex min-w-0 flex-1 items-center gap-2.5 hover:underline"
@@ -348,6 +370,11 @@ function LeaderboardTab({
                     <Avatar name={s.student.name} color={s.student.avatarColor} size={28} blind={blind} />
                     <span className="truncate text-sm font-semibold">{name}</span>
                   </Link>
+                  {criterion && (
+                    <span className="w-12 shrink-0 text-right text-sm text-slate-600 tabular-nums" title={criterion.name}>
+                      <span className="font-semibold text-slate-900">{s.scores?.[criterion.id] ?? '–'}</span>/5
+                    </span>
+                  )}
                   <ScorePill score={s.totalScore ?? 0} className="text-right" />
                 </li>
               );
