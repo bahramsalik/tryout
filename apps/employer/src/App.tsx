@@ -3,6 +3,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ButtonLink, EmptyState, MessageBar } from '@/components/ui';
 import { useDocumentTitle } from '@/lib/hooks';
 import { CandidatePage } from '@/pages/Candidate';
+import { ChallengesPage } from '@/pages/Challenges';
 import { ChallengePage } from '@/pages/Challenge';
 import { DashboardPage } from '@/pages/Dashboard';
 import { NewChallengePage } from '@/pages/new-challenge/NewChallenge';
@@ -45,6 +46,7 @@ export const router = createBrowserRouter([
     errorElement: <RouteError />,
     children: [
       { index: true, element: <DashboardPage /> },
+      { path: 'challenges', element: <ChallengesPage /> },
       { path: 'challenges/new', element: <NewChallengeRoute /> },
       { path: 'challenges/:id', element: <ChallengeRoute /> },
       { path: 'challenges/:id/review/:submissionId', element: <ReviewPage /> },

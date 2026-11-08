@@ -108,8 +108,8 @@ export function NewChallengePage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl">
-      <Link to="/" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-        <ArrowLeft className="size-4" aria-hidden /> Dashboard
+      <Link to="/challenges" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
+        <ArrowLeft className="size-4" aria-hidden /> Challenges
       </Link>
       <PageHeader
         title="Add challenge"
@@ -172,7 +172,7 @@ function PublishedScreen({ challenge }: { challenge: ChallengeView }) {
         <ButtonLink to={`/challenges/${challenge.id}`} variant="primary">
           View challenge
         </ButtonLink>
-        <ButtonLink to="/">Dashboard</ButtonLink>
+        <ButtonLink to="/challenges">Challenges</ButtonLink>
       </div>
     </div>
   );

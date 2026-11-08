@@ -1,5 +1,5 @@
 import { NavLink, Link, useLocation, useNavigate } from 'react-router';
-import { Check, ChevronsUpDown, LayoutDashboard, LayoutDashboardFilled, PanelLeft, Users, UsersFilled } from '@/components/icons';
+import { Check, ChevronsUpDown, LayoutDashboard, LayoutDashboardFilled, PanelLeft, Trophy, TrophyFilled, Users, UsersFilled } from '@/components/icons';
 import { useMediaQuery } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
 import { useSidebar } from '@/lib/stores';
@@ -9,6 +9,7 @@ import { IconButton, cn } from '../ui';
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, iconActive: LayoutDashboardFilled, end: true },
+  { to: '/challenges', label: 'Challenges', icon: Trophy, iconActive: TrophyFilled, end: false },
   { to: '/talent', label: 'Talent', icon: Users, iconActive: UsersFilled, end: false },
 ];
 

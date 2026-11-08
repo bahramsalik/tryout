@@ -56,7 +56,7 @@ export function ChallengePage() {
     return (
       <Card className="mx-auto max-w-xl">
         {notFound ? (
-          <EmptyState title="Challenge not found" action={<ButtonLink to="/">Dashboard</ButtonLink>} />
+          <EmptyState title="Challenge not found" action={<ButtonLink to="/challenges">Challenges</ButtonLink>} />
         ) : (
           <ErrorState error={challenge.error} onRetry={() => challenge.refetch()} />
         )}
@@ -69,7 +69,7 @@ export function ChallengePage() {
       <Card className="mx-auto max-w-xl">
         <EmptyState
           title={`Posted by ${c.company?.name ?? 'another company'}`}
-          action={<ButtonLink to="/">Dashboard</ButtonLink>}
+          action={<ButtonLink to="/challenges">Challenges</ButtonLink>}
         />
       </Card>
     );
@@ -141,8 +141,8 @@ export function ChallengePage() {
 
 function Breadcrumb() {
   return (
-    <Link to="/" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
-      <ArrowLeft className="size-4" aria-hidden /> Dashboard
+    <Link to="/challenges" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
+      <ArrowLeft className="size-4" aria-hidden /> Challenges
     </Link>
   );
 }

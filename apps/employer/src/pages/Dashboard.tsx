@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { Check, ClipboardCheck, Filter, Inbox, Trophy, UserPlus } from '@/components/icons';
-import { CHALLENGE_TYPES, TYPE_META, type ActivityItem, type ChallengeType, type ChallengeView, type EmployerDashboard } from '@shared/types';
+import { Link } from 'react-router';
+import { ClipboardCheck, Inbox, Trophy, UserPlus } from '@/components/icons';
+import type { ActivityItem, EmployerDashboard } from '@shared/types';
 import { timeAgo } from '@/lib/format';
 import { useDocumentTitle, useNewIds } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
 import { useDashboard } from '@/lib/queries';
-import { Countdown, StatusBadge, TypeIcon, useNow } from '@/components/brand';
+import { useNow } from '@/components/brand';
+import { ChallengesTable } from '@/components/ChallengesTable';
 import { StatTile } from '@/components/StatTile';
-import { MenuItem, MenuSeparator, Popover } from '@/components/overlay';
-import { Badge, Button, ButtonLink, Card, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui';
+import { Badge, Card, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui';
 
 export function DashboardPage() {
   const { company } = usePersona();
@@ -26,7 +25,12 @@ export function DashboardPage() {
         <>
           <Kpis data={data} loading={isPending} />
           <div className="mt-4 grid gap-4 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
-            <ChallengesTable challenges={data?.challenges} loading={isPending} />
+            <ChallengesTable
+              challenges={data?.challenges.filter((c) => c.status !== 'awarded')}
+              loading={isPending}
+              title="Ongoing challenges"
+              emptyTitle="No ongoing challenges"
+            />
             <ActivityFeed items={data?.recentActivity} loading={isPending} />
           </div>
         </>
@@ -43,157 +47,6 @@ function Kpis({ data, loading }: { data: EmployerDashboard | undefined; loading:
       <StatTile label="To review" value={k?.awaitingReview ?? 0} loading={loading} icon={<ClipboardCheck aria-hidden />} />
       <StatTile label="Active challenges" value={k?.activeChallenges ?? 0} loading={loading} icon={<Trophy aria-hidden />} />
     </section>
-  );
-}
-
-const th = 'px-3 py-2 text-left text-xs font-semibold text-slate-500';
-
-function ChallengesTable({ challenges, loading }: { challenges: ChallengeView[] | undefined; loading: boolean }) {
-  const navigate = useNavigate();
-  useNow(60_000);
-  const [type, setType] = useState<ChallengeType | 'all'>('all');
-  const [order, setOrder] = useState<'newest' | 'oldest'>('newest');
-  const all = challenges ?? [];
-  const types = CHALLENGE_TYPES.filter((t) => all.some((c) => c.type === t));
-  const dir = order === 'newest' ? -1 : 1;
-  const sorted = all
-    .filter((c) => type === 'all' || c.type === type)
-    .sort((a, b) => {
-      const rank = (c: ChallengeView) => (c.status === 'awarded' ? 1 : 0);
-      if (rank(a) !== rank(b)) return rank(a) - rank(b);
-      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    });
-  const active = (type !== 'all' ? 1 : 0) + (order !== 'newest' ? 1 : 0);
-  const tick = (on: boolean) => (on ? <Check className="size-4" aria-hidden /> : null);
-
-  return (
-    <Card className="@container min-w-0 self-start">
-      <CardHeader
-        title="Challenges"
-        actions={
-          <Popover
-            placement="bottom-end"
-            panelClassName="w-56"
-            trigger={(p) => (
-              <Button size="sm" icon={<Filter />} onClick={p.toggle} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']}>
-                Filter{active > 0 ? ` · ${active}` : ''}
-              </Button>
-            )}
-          >
-            {() => (
-              <>
-                <p className="px-2 pt-1 pb-0.5 text-xs font-semibold text-slate-500">Field</p>
-                <MenuItem active={type === 'all'} hint={tick(type === 'all')} onSelect={() => setType('all')}>
-                  All fields
-                </MenuItem>
-                {types.map((t) => (
-                  <MenuItem key={t} active={type === t} hint={tick(type === t)} onSelect={() => setType(t)}>
-                    {TYPE_META[t].label}
-                  </MenuItem>
-                ))}
-                <MenuSeparator />
-                <p className="px-2 pt-1 pb-0.5 text-xs font-semibold text-slate-500">Posted</p>
-                <MenuItem active={order === 'newest'} hint={tick(order === 'newest')} onSelect={() => setOrder('newest')}>
-                  Newest first
-                </MenuItem>
-                <MenuItem active={order === 'oldest'} hint={tick(order === 'oldest')} onSelect={() => setOrder('oldest')}>
-                  Oldest first
-                </MenuItem>
-                {active > 0 && (
-                  <>
-                    <MenuSeparator />
-                    <MenuItem
-                      onSelect={() => {
-                        setType('all');
-                        setOrder('newest');
-                      }}
-                    >
-                      Clear filter
-                    </MenuItem>
-                  </>
-                )}
-              </>
-            )}
-          </Popover>
-        }
-      />
-      {loading ? (
-        <div className="space-y-3 p-4">
-          {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </div>
-      ) : sorted.length === 0 ? (
-        <EmptyState title="No challenges yet" />
-      ) : (
-        <div className="scrollbar-thin overflow-x-auto rounded-b-[inherit]">
-          <table className="w-full min-w-[26rem] table-fixed text-sm">
-            <thead>
-              <tr className="border-b border-slate-200">
-                <th scope="col" className={`${th} pl-4`}>
-                  Challenge
-                </th>
-                <th scope="col" className={`${th} hidden w-20 text-right @2xl:table-cell`}>
-                  Joined
-                </th>
-                <th scope="col" className={`${th} w-24 text-right`}>
-                  Submissions
-                </th>
-                <th scope="col" className={`${th} w-28`}>
-                  To review
-                </th>
-                <th scope="col" className={`${th} hidden w-28 @3xl:table-cell`}>
-                  Deadline
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((c) => {
-                const awaiting = Math.max(0, c.submissionCount - c.scoredCount);
-                return (
-                  <tr
-                    key={c.id}
-                    className="cursor-pointer border-b border-slate-200 last:border-0 hover:bg-[var(--colorNeutralBackground1Hover)]"
-                    onClick={() => navigate(`/challenges/${c.id}`)}
-                  >
-                    <td className="py-2.5 pr-3 pl-4">
-                      <div className="flex items-center gap-2">
-                        <TypeIcon type={c.type} className="size-5 shrink-0 text-slate-500" />
-                        <Link
-                          to={`/challenges/${c.id}`}
-                          className="min-w-0 truncate font-semibold hover:underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {c.title}
-                        </Link>
-                        {c.status !== 'open' && <StatusBadge status={c.status} />}
-                      </div>
-                    </td>
-                    <td className="hidden px-3 py-2.5 text-right tabular-nums @2xl:table-cell">
-                      {c.participantCount}
-                      {c.applicantCap != null && <span className="text-slate-500">/{c.applicantCap}</span>}
-                    </td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{c.submissionCount}</td>
-                    <td className="px-3 py-2.5" onClick={(e) => e.stopPropagation()}>
-                      {awaiting > 0 ? (
-                        <ButtonLink to={`/challenges/${c.id}/review/next`} size="sm">
-                          Review {awaiting}
-                        </ButtonLink>
-                      ) : (
-                        <span className="text-slate-500">–</span>
-                      )}
-                    </td>
-                    <td className="hidden px-3 py-2.5 @3xl:table-cell">
-                      <Countdown deadline={c.deadline} status={c.status} icon={false} />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Card>
   );
 }
 
