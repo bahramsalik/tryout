@@ -26,7 +26,7 @@
 4. **Cards:** title + one meta row of icon + value pairs (hours · spots · time left). No summary paragraph on list cards.
 5. **No taglines, no emoji, no exclamation marks.** Medals become a small `1st` / `2nd` / `3rd` badge or a Fluent `Trophy` icon colored gold/silver/bronze.
 6. **Empty states:** one short line + at most one button.
-7. **Toasts:** only for events that come from the *other* site (new submission, results published, invite received, new challenge). Your own action shows its result in place (button state, row update) instead of a toast.
+7. **Toasts:** only for events that come from the *other* site (new submission, results published, new challenge). Your own action shows its result in place (button state, row update) instead of a toast.
 8. **Confetti:** one moment only, on the student site when a placement arrives. Remove all other confetti.
 9. **Buttons:** one primary button per view. Delete duplicates and any link to the same place twice on a screen.
 10. If a sentence explains what the UI already shows, delete it. Target **≥ 50% fewer words** on every page in §1 (measure with `main.innerText`).
@@ -55,11 +55,11 @@ We use Fluent tokens + Fluent icons + Tailwind, **not** the `@fluentui/react-com
 | Area | Keep | Remove / change |
 |---|---|---|
 | Top bar | Logo, Explore, My work, Profile, bell, avatar menu (persona switch) | Home stays as the logo target. A single **Coach** button (subtle, with icon) in the top bar. |
-| Home | Title `Hi, Maya`; one **Continue** card for the joined challenge (title, time left, Submit); 4 stat tiles (Verified hours, Tasks, Avg score, Placements); **Recommended** (3 cards) | Gradient hero, hero Coach button, "Practice to level up" row, recent-notifications list (the bell has them), every subtitle. A pending invite becomes one Fluent MessageBar. |
+| Home | Title `Hi, Maya`; one **Continue** card for the joined challenge (title, time left, Submit); 4 stat tiles (Verified hours, Tasks, Avg score, Placements); **Recommended** (3 cards) | Gradient hero, hero Coach button, "Practice to level up" row, recent-notifications list (the bell has them), every subtitle. |
 | Explore | TabList `Live 7` / `Practice 7`; field filter as one row of toggle pills with counts; search box | The 7 big field tiles, the Coach banner, difficulty / length filters, the sort select (default sort = soonest deadline, practice = newest), the page subtitle. Cards: company logo + name, title, meta row, `Joined` badge. No summary. |
 | Challenge | Header: company, title, meta row (~hours, level, spots, time left), primary action (Join → Submit → Submitted → Result), secondary `Starter kit` button. TabList: **Brief** · **Rubric** · **Rules**. Brief = markdown + deliverables checklist + a "Uses" tag row of classroom concepts. Rubric = criteria with weight bars, no descriptions until expanded. Rules = the 4 fair-work items as 4 short lines. | The "Fair work, guaranteed" box, the "Skills you'll show" section, the About company card, step lists in the action card, and the 12 stacked sections |
 | Submit | Zip drop zone, Approach notes (placeholder template), AI use (optional), pledge checkbox, Submit (disabled until valid; inline field errors) | Demo link field, the "Still needed …" sentence, the deliverables / rubric repeated below the form. **Success:** `Submitted` + 2 buttons (My work, Explore). No timeline, no auto-check list, no confetti. |
-| My work | TabList `In progress` / `Submitted` / `Results`, plus an invite MessageBar | Per-tab descriptions |
+| My work | TabList `In progress` / `Submitted` / `Results` | Per-tab descriptions |
 | Profile | Avatar, name, school · major · year, 4 stat tiles, radar, history list (task, company, score, place badge, a 1-line feedback excerpt) | "New experience section" text, bio paragraph (one line max), the "Top verified skills" block |
 | Coach panel | Input, 3 quick prompts, replies, recommendation cards | The "Preview" explainer paragraph (keep a small `Preview` badge in the header) |
 
@@ -68,14 +68,14 @@ We use Fluent tokens + Fluent icons + Tailwind, **not** the `@fluentui/react-com
 | Area | Keep | Remove / change |
 |---|---|---|
 | Shell | Left nav (Dashboard, Talent) with Fluent icons, company switcher at top; top bar with **Add challenge** (primary), bell, menu (Reset demo data) | The header talent search (Talent page has it), the "Active challenges" list in the nav, "Open the student site", the "Live" indicator text, the skip-link stays (a11y). |
-| Dashboard | Title `Orbitline Logistics`; 4 stat tiles (Submissions, To review, Active challenges, Interviews); challenges table; activity feed | The meta line under the title, the 5th tile, section descriptions, the duplicate `New` button |
+| Dashboard | Title `Orbitline Logistics`; 3 stat tiles (Submissions, To review, Active challenges); challenges table; activity feed | The meta line under the title, extra tiles, section descriptions, the duplicate `New` button |
 | Challenge | Header meta + Blind review switch; TabList Submissions / Leaderboard / Brief; **Publish results** only on the Leaderboard tab | "View as a student", the header Publish button, the All/Needs review/Scored/⭐ filter chips (one `To review` toggle instead), per-row shortlist stars |
 | Review | Submission viewer (README collapsed to ~12 lines with "Show all", file tree + preview, notes, AI use, download), scoring panel (criterion name + 1–5 buttons + live total), feedback (required), **Save & next** | Keyboard legend, "Save without moving on", "Use a feedback template", prev/next arrows, shortlist button, criterion description text (put it in a tooltip) |
 | Wizard | 3 steps: **Task** · **Judging** · **Limits** (publish from step 3). **Use example** stays (demo). Fields: title, field, summary (counter), brief, deliverables, hours (1–5), level, hiring for, classroom concepts. Limits step: cap (number + "No cap") and deadline. | Every helper paragraph, the "Show student card preview" toggle, "Start over", the separate Review step (the limits step shows the student card on the right at ≥ 1100px only) |
 | Publish success | `Challenge is live` + card + `View challenge` / `Dashboard` | The 3 explanation bullets, confetti |
 | Award dialog | Top 3 + 1 line ("Reveals names and sends feedback to students.") → `Publish` | The long warning paragraph |
 | Talent | Search + field filter + list | Other filters |
-| Candidate | Same profile as the student site + **Invite to interview** | Text blocks as in §4 Profile |
+| Candidate | Same profile as the student site | Text blocks as in §4 Profile |
 
 ## 6. Server and content (`server/`, `shared/`): text diet
 

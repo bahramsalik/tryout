@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Check, ClipboardCheck, Filter, Inbox, Mail, Trophy, UserPlus } from '@/components/icons';
+import { Check, ClipboardCheck, Filter, Inbox, Trophy, UserPlus } from '@/components/icons';
 import { CHALLENGE_TYPES, TYPE_META, type ActivityItem, type ChallengeType, type ChallengeView, type EmployerDashboard } from '@shared/types';
 import { timeAgo } from '@/lib/format';
 import { useDocumentTitle, useNewIds } from '@/lib/hooks';
@@ -38,11 +38,10 @@ export function DashboardPage() {
 function Kpis({ data, loading }: { data: EmployerDashboard | undefined; loading: boolean }) {
   const k = data?.kpis;
   return (
-    <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
+    <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 @3xl:grid-cols-3">
       <StatTile label="Submissions" value={k?.totalSubmissions ?? 0} loading={loading} icon={<Inbox aria-hidden />} />
       <StatTile label="To review" value={k?.awaitingReview ?? 0} loading={loading} icon={<ClipboardCheck aria-hidden />} />
       <StatTile label="Active challenges" value={k?.activeChallenges ?? 0} loading={loading} icon={<Trophy aria-hidden />} />
-      <StatTile label="Interviews" value={k?.interviewsSent ?? 0} loading={loading} icon={<UserPlus aria-hidden />} />
     </section>
   );
 }
@@ -203,7 +202,6 @@ const ACTIVITY_ICON: Record<ActivityItem['kind'], typeof Inbox> = {
   submission: Inbox,
   scored: ClipboardCheck,
   award: Trophy,
-  invite: Mail,
 };
 
 function ActivityFeed({ items, loading }: { items: ActivityItem[] | undefined; loading: boolean }) {

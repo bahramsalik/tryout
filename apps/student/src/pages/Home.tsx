@@ -3,11 +3,11 @@ import { Link } from 'react-router';
 import type { ChallengeView } from '@shared/types';
 import { Countdown, CompanyLogo, Placements, StatTile } from '@/components/brand';
 import { ChallengeCard, ChallengeCardSkeleton } from '@/components/ChallengeCard';
-import { ButtonLink, Card, ErrorState, MessageBar, PageHeader, SectionTitle, Skeleton } from '@/components/ui';
+import { ButtonLink, Card, ErrorState, PageHeader, SectionTitle, Skeleton } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
 import { continueItems, recommendedLive } from '@/lib/derive';
 import { firstName } from '@/lib/format';
-import { useChallenges, useCurrentStudent, useInvites, useMe, useStudentProfile } from '@/lib/queries';
+import { useChallenges, useCurrentStudent, useMe, useStudentProfile } from '@/lib/queries';
 import { useNow } from '@/lib/useNow';
 
 function Stats({ studentId }: { studentId?: string }) {
@@ -51,12 +51,10 @@ export function HomePage() {
   const me = useMe();
   const student = useCurrentStudent();
   const challenges = useChallenges();
-  const invites = useInvites();
   const now = useNow(60_000);
 
   const inProgress = useMemo(() => continueItems(challenges.data, now), [challenges.data, now]);
   const recs = useMemo(() => recommendedLive(challenges.data, student?.interests, now).slice(0, 3), [challenges.data, student?.interests, now]);
-  const invite = (invites.data ?? []).find((i) => i.status === 'pending');
 
   if (me.isError) {
     return <ErrorState title="API unreachable" message={errorMessage(me.error)} onRetry={() => void me.refetch()} />;
@@ -65,18 +63,6 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       <PageHeader title={student ? `Hi, ${firstName(student.name)}` : <Skeleton className="h-9 w-40" />} />
-
-      {invite ? (
-        <MessageBar
-          intent="success"
-          title={`${invite.company.name} wants to interview you.`}
-          actions={
-            <ButtonLink to="/work" size="small">
-              View
-            </ButtonLink>
-          }
-        />
-      ) : null}
 
       {inProgress[0] ? (
         <section>

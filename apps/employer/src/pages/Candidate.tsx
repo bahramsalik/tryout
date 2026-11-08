@@ -1,19 +1,15 @@
-import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { ArrowLeft } from '@/components/icons';
 import { ApiError } from '@/lib/api';
 import { useDocumentTitle } from '@/lib/hooks';
-import { useInvitesByStudent, useStudent } from '@/lib/queries';
+import { useStudent } from '@/lib/queries';
 import { Avatar } from '@/components/brand';
-import { InviteModal, type InviteTarget } from '@/components/InviteModal';
 import { ProofHistory, ProofStats, SkillsRadar } from '@/components/ProofProfile';
-import { Button, ButtonLink, Card, EmptyState, ErrorState, Skeleton } from '@/components/ui';
+import { ButtonLink, Card, EmptyState, ErrorState, Skeleton } from '@/components/ui';
 
 export function CandidatePage() {
   const { idOrHandle } = useParams();
   const profile = useStudent(idOrHandle);
-  const invites = useInvitesByStudent();
-  const [invite, setInvite] = useState<InviteTarget | null>(null);
   const p = profile.data;
   useDocumentTitle(p?.name ?? 'Candidate');
 
@@ -31,9 +27,6 @@ export function CandidatePage() {
     );
   }
 
-  const lastInvite = invites.get(p.id);
-  const invited = !!lastInvite && lastInvite.status !== 'declined';
-  const latestYours = p.history.find((h) => h.canViewFiles);
 
   return (
     <div className="mx-auto w-full max-w-6xl">
@@ -50,18 +43,6 @@ export function CandidatePage() {
           </p>
           {p.bio && <p className="mt-1 truncate text-sm text-slate-700">{p.bio}</p>}
         </div>
-        <Button
-          variant={invited ? 'secondary' : 'primary'}
-          disabled={invited}
-          onClick={() =>
-            setInvite({
-              student: p,
-              challenge: latestYours ? { id: latestYours.challengeId, title: latestYours.challengeTitle, hiringFor: null } : null,
-            })
-          }
-        >
-          {lastInvite?.status === 'accepted' ? 'Interview accepted' : invited ? 'Invited' : 'Invite to interview'}
-        </Button>
       </div>
 
       <ProofStats stats={p.stats} />
@@ -70,8 +51,6 @@ export function CandidatePage() {
         <SkillsRadar stats={p.stats} />
         <ProofHistory items={p.history} />
       </div>
-
-      <InviteModal open={!!invite} target={invite} onClose={() => setInvite(null)} />
     </div>
   );
 }

@@ -10,10 +10,6 @@ import {
   type Challenge,
   type ChallengeView,
   type CreateChallengeInput,
-  type CreateInviteInput,
-  type InterviewInvite,
-  type InviteStatus,
-  type InviteView,
   type Notification,
   type ScoreSubmissionInput,
   type ServerEvent,
@@ -30,7 +26,6 @@ import { getDb, persist, writeUpload } from './store.ts';
 import {
   challengeById,
   challengeView,
-  inviteView,
   isAcceptingWork,
   participationOf,
   studentById,
@@ -381,65 +376,6 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
     challenge: challengeView(ch, p),
     results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: l.rank, status: l.status })),
   };
-}
-
-/* ───────────── invites ───────────── */
-
-export function createInvite(p: EmployerPersona, input: CreateInviteInput): InviteView {
-  const db = getDb();
-  const student = studentById(input.studentId);
-  if (!student) throw notFound('STUDENT_NOT_FOUND', `No student ${input.studentId}.`);
-  let ch: Challenge | undefined;
-  if (input.challengeId) {
-    ch = challengeById(input.challengeId);
-    if (!ch) throw notFound('CHALLENGE_NOT_FOUND', `No challenge ${input.challengeId}.`);
-    if (ch.companyId !== p.company.id) throw forbidden('NOT_OWNER', 'Use one of your own challenges.');
-  }
-  const message = input.message.trim();
-  if (message.length < 10) throw badRequest('VALIDATION_ERROR', 'Message needs 10+ characters.', [{ path: 'message', message: 'At least 10 characters' }]);
-  const dup = db.invites.find(
-    (i) => i.companyId === p.company.id && i.studentId === student.id && (i.challengeId ?? null) === (input.challengeId ?? null) && i.status === 'pending',
-  );
-  if (dup) throw conflict('ALREADY_INVITED', `${student.name} already has an invite.`);
-  const role = input.role?.trim() || ch?.hiringFor || p.company.hiringFor[0] || null;
-  const invite: InterviewInvite = {
-    id: uniqueId('inv', (id) => db.invites.some((i) => i.id === id)),
-    companyId: p.company.id,
-    studentId: student.id,
-    challengeId: input.challengeId ?? null,
-    role,
-    message,
-    createdAt: nowIso(),
-    status: 'pending',
-  };
-  db.invites.push(invite);
-  const events: ServerEvent[] = [{ type: 'invite.created', payload: { invite } }];
-  notification(events, {
-    recipientId: student.id,
-    kind: 'interview',
-    title: `Interview invite · ${p.company.name}`,
-    body: bodyTitle(role ?? message),
-    link: '/work',
-  });
-  commit(events);
-  return inviteView(invite, { withStudent: true });
-}
-
-export function respondToInvite(p: StudentPersona, invite: InterviewInvite, status: Exclude<InviteStatus, 'pending'>): InterviewInvite {
-  if (invite.studentId !== p.id) throw forbidden('NOT_YOURS', 'Not your invite.');
-  if (invite.status !== 'pending') throw conflict('ALREADY_RESPONDED', `Already ${invite.status}.`);
-  invite.status = status;
-  const events: ServerEvent[] = [{ type: 'invite.updated', payload: { invite } }];
-  const chTitle = invite.challengeId ? challengeById(invite.challengeId)?.title : null;
-  notification(events, {
-    recipientId: invite.companyId,
-    kind: 'invite_response',
-    title: `${p.student.name.split(' ')[0]} ${status} your invite`,
-    body: bodyTitle(invite.role ?? chTitle ?? 'Interview invite'),
-    link: `/candidates/${p.student.handle}`,
-  });
-  commit(events);
-  return invite;
 }
 
 /* ───────────── notifications ───────────── */

@@ -8,7 +8,7 @@ This is the UNHack26 prototype: **two websites on one live API**.
 | | URL | For |
 |---|---|---|
 | **Tryout** | http://localhost:5173 | Students: explore real tasks, submit work, build a Proof Profile |
-| **Tryout for Employers** | http://localhost:5174 | Employers: post challenges, review blind with a rubric, recognise the top performers, invite them to interview |
+| **Tryout for Employers** | http://localhost:5174 | Employers: post challenges, review blind with a rubric, recognise the top performers, read each candidate's Proof Profile |
 | **Tryout API** | http://localhost:4000/api/health | The shared data and real-time events behind both sites |
 
 **Hosted demo:** [student site](https://main.dhjcmj9cw8mvq.amplifyapp.com) · [employer site](https://main.d19oi9e8mi2t4d.amplifyapp.com). See [Hosting](#hosting).
@@ -24,7 +24,7 @@ Entry-level postings ask for 1–3 years of experience because hiring someone un
 1. **An employer posts a challenge.** It's a ≤ 5-hour task that mirrors the real job. The employer sets a weighted rubric, an applicant cap and the role they're hiring for.
 2. **Students take it on.** Each task shows *From the classroom*, the course concepts it applies. Coach (a preview AI) helps students find tasks in their field and break them down. A submission is a zip, approach notes, and a disclosure of any AI use.
 3. **The employer reviews blind.** They see the file tree, README and notes in the browser, score each rubric criterion 1–5, and can't publish results until every submission has scores and written feedback.
-4. **The best get placed and invited.** Results, placements and interview invites appear on the student's screen in real time. Every scored task adds employer-verified hours and placements to the student's **Proof Profile**.
+4. **Students get verified results.** Scores, feedback and placements appear on the student's screen in real time. A strong result is a certificate, not a ticket to an interview. Every scored task adds employer-verified hours and placements to the student's **Proof Profile**.
 
 ## Quick start
 

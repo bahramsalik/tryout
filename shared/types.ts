@@ -22,14 +22,11 @@ export type SubmissionStatus = 'submitted' | 'scored' | 'awarded' | 'not_selecte
 /** `coach` = instant dummy-AI review used for practice tasks. */
 export type ReviewerKind = 'employer' | 'coach';
 export type CoachQuickPrompt = 'testing' | 'steps' | 'greatLooksLike' | 'pitfalls';
-export type InviteStatus = 'pending' | 'accepted' | 'declined';
 export type NotificationKind =
   | 'new_challenge' // student: a challenge matching their interests was published
   | 'submission_received' // employer: a student submitted
   | 'results' // student: results published, not placed (feedback is ready)
   | 'awarded' // student: placed
-  | 'interview' // student: interview invite received
-  | 'invite_response' // employer: student accepted/declined an invite
   | 'coach_review' // student: practice task reviewed by Coach
   | 'cap_reached'; // employer: applicant cap reached
 
@@ -318,27 +315,9 @@ export interface Notification {
   read: boolean;
 }
 
-export interface InterviewInvite {
-  id: string; // "inv_xxxxxxxx"
-  companyId: string;
-  studentId: string;
-  challengeId: string | null;
-  role: string | null;
-  message: string;
-  createdAt: string;
-  status: InviteStatus;
-}
-
-export interface InviteView extends InterviewInvite {
-  company: Company;
-  challengeTitle: string | null;
-  /** Present when an employer lists their company's invites (GET /me/invites as an employer). Added by S1. */
-  student?: Student;
-}
-
 export interface ActivityItem {
   id: string;
-  kind: 'join' | 'submission' | 'scored' | 'award' | 'invite';
+  kind: 'join' | 'submission' | 'scored' | 'award';
   text: string; // "Candidate K7 submitted to Rate limiting…" — frontends may re-render with names
   challengeId: string | null;
   studentId: string | null;
@@ -352,7 +331,6 @@ export interface EmployerDashboard {
     totalSubmissions: number;
     awaitingReview: number;
     avgScore: number | null;
-    interviewsSent: number;
   };
   /** All of the company's live challenges, any status, newest first. */
   challenges: ChallengeView[];
@@ -403,13 +381,6 @@ export interface FilePreview {
   truncated: boolean;
 }
 
-export interface CreateInviteInput {
-  studentId: string;
-  challengeId?: string | null;
-  role?: string | null;
-  message: string;
-}
-
 export interface CoachRequest {
   message: string;
   challengeId?: string | null;
@@ -450,8 +421,6 @@ export type ServerEvent =
   | { type: 'submission.created'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null } }
   | { type: 'submission.scored'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null; totalScore: number } }
   | { type: 'challenge.awarded'; payload: { challengeId: string; companyId: string | null; results: { studentId: string; rank: number }[] } }
-  | { type: 'invite.created'; payload: { invite: InterviewInvite } }
-  | { type: 'invite.updated'; payload: { invite: InterviewInvite } }
   | { type: 'notification.created'; payload: { notification: Notification } }
   | { type: 'system.reset'; payload: Record<string, never> };
 

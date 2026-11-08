@@ -117,7 +117,6 @@ export function dataSummary() {
       participations: db.participations.length,
       submissions: db.submissions.length,
       notifications: db.notifications.length,
-      invites: db.invites.length,
     },
   };
 }

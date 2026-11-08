@@ -11,7 +11,7 @@ Each answer starts with a one-sentence version, followed by a detail line in cas
 **Tasks are time-boxed simulations of week-one work, not production tickets, and students keep their IP.** Challenges go through a 5-hour cap and a "Hiring for" role link. If an employer posts repeatedly without ever hiring or publishing results, that shows up in their public history, and we'd moderate it.
 
 ### 3. What stops cheating, or someone just using ChatGPT?
-**AI use is allowed but must be disclosed, because that's how the job works now. We grade thinking, and the interview is the final check.** Every submission requires approach notes and an AI-use disclosure. The rubric weights design reasoning, not just output. What follows is an interview, where someone who copied the work gets found out quickly. Originality checks and automated test harnesses are on the roadmap.
+**AI use is allowed but must be disclosed, because that's how the job works now. We grade thinking, and recruiters can probe the work themselves.** Every submission requires approach notes and an AI-use disclosure. The rubric weights design reasoning, not just output. Recruiters can probe the work in their own process, where someone who copied it gets found out quickly. Originality checks and automated test harnesses are on the roadmap.
 
 ### 4. Cold start: why would students come before employers do, or vice versa?
 **Students come first, because the Practice Arena is useful on day one with no employers at all.** Practice tasks get instant Coach feedback. We launch at one university with five local employers, and professors embed Practice Arena tasks into coursework, so students arrive through their classes. Every past employer challenge becomes evergreen practice, so content grows with each one.
@@ -35,20 +35,20 @@ Each answer starts with a one-sentence version, followed by a detail line in cas
 **Applicant caps bound the load, and the weighted rubric makes each review take minutes.** Employers set the cap (40 on the demo challenge). The review screen shows the file tree, README and notes in the browser, with no downloads, and "Save & next" moves straight to the next one. Auto-checks flag missing deliverables. Next comes AI-assisted triage that sorts the queue but **never auto-rejects**.
 
 ### 11. How is this different from LeetCode or HackerRank?
-**They test puzzles. We test the job.** Algorithm puzzles are coding-only and not tied to a role. Tryout tasks mirror week-one work in seven fields, the employer scores them, and they lead straight to an interview for an open role.
+**They test puzzles. We test the job.** Algorithm puzzles are coding-only and not tied to a role. Tryout tasks mirror week-one work in seven fields, the employer scores them, and they end in a verified Proof Profile that recruiters can read.
 
 ### 12. How is this different from Kaggle?
 **Kaggle is real work, but only for data, and it's built for leaderboards, not entry-level hiring.** The "verification" is a leaderboard score, and the competitions aren't scoped to 5 hours. We cover seven fields, every submitter gets feedback, and the result goes straight into hiring.
 
 ### 13. Aren't virtual job simulations (like Forage) the same thing?
-**They're the closest neighbour, but they're self-paced and nobody at the company scores you.** Simulations are great practice, and our Practice Arena is similar. The difference is Live Challenges: an employer with an open role reviews your work, ranks it and invites you to interview. That turns the work from practice into verified experience.
+**They're the closest neighbour, but they're self-paced and nobody at the company scores you.** Simulations are great practice, and our Practice Arena is similar. The difference is Live Challenges: an employer with an open role reviews your work and ranks it. That turns the work from practice into verified experience.
 
 ### 14. Why not just use Handshake or a job board?
 **Job boards still screen on résumés, which is exactly where the experience paradox bites.** Handshake is great for distribution, and we'd happily integrate. But a résumé can't show whether a junior can ship a rate limiter. A Proof Profile can. Longer term, Proof Profiles could be what students attach on those boards.
 
 ### 15. What's real and what's mocked in this prototype?
 **The loop is real. The login and the AI are not.**
-- **Real:** two separate web apps on one live API, real zip uploads, in-browser file tree and README viewing, real-time updates across both sites (server-sent events), rubric scoring, leaderboards, awards, invites and Proof Profiles computed from the scores.
+- **Real:** two separate web apps on one live API, real zip uploads, in-browser file tree and README viewing, real-time updates across both sites (server-sent events), rubric scoring, leaderboards, placements and Proof Profiles computed from the scores.
 - **Mocked:** auth (personas come from a dropdown), the Coach (a convincing dummy labelled "Preview", built to swap for an LLM) and the companies and people (fictional seed data). There's no plagiarism detection yet.
 
 ---

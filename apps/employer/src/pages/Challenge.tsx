@@ -6,11 +6,10 @@ import { ApiError } from '@/lib/api';
 import { dateTime, timeAgo, timeLeft } from '@/lib/format';
 import { useDocumentTitle } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
-import { isScored, rankSubmissions, useChallenge, useInvitesByStudent, useSubmissions } from '@/lib/queries';
+import { isScored, rankSubmissions, useChallenge, useSubmissions } from '@/lib/queries';
 import { isFreshArrival, useArrivals, useBlind } from '@/lib/stores';
 import { Avatar, MedalBadge, NeedsReview, ScorePill, useNow } from '@/components/brand';
 import { AwardModal } from '@/components/AwardModal';
-import { InviteModal, type InviteTarget } from '@/components/InviteModal';
 import { StudentChallengePreview } from '@/components/StudentPreview';
 import {
   Badge,
@@ -41,7 +40,6 @@ export function ChallengePage() {
   const submissions = useSubmissions(id, owns);
   const [blind, setBlind] = useBlind(id, c?.status);
   const [awardOpen, setAwardOpen] = useState(false);
-  const [invite, setInvite] = useState<InviteTarget | null>(null);
   useDocumentTitle(c?.title ?? 'Challenge');
 
   const subs = useMemo(() => submissions.data ?? [], [submissions.data]);
@@ -121,7 +119,6 @@ export function ChallengePage() {
             blind={blind}
             unscored={unscored}
             onAward={() => setAwardOpen(true)}
-            onInvite={setInvite}
           />
         )}
         {tab === 'brief' && (
@@ -137,9 +134,7 @@ export function ChallengePage() {
         challenge={c}
         submissions={subs}
         blind={blind}
-        onInvite={(t) => setInvite(t)}
       />
-      <InviteModal open={!!invite} target={invite} onClose={() => setInvite(null)} />
     </div>
   );
 }
@@ -303,7 +298,6 @@ function LeaderboardTab({
   blind,
   unscored,
   onAward,
-  onInvite,
 }: {
   challenge: ChallengeView;
   query: ReturnType<typeof useSubmissions>;
@@ -311,9 +305,7 @@ function LeaderboardTab({
   blind: boolean;
   unscored: number;
   onAward: () => void;
-  onInvite: (t: InviteTarget) => void;
 }) {
-  const invites = useInvitesByStudent();
   const ranked = useMemo(() => rankSubmissions(subs), [subs]);
   const awarded = challenge.status === 'awarded';
 
@@ -345,8 +337,6 @@ function LeaderboardTab({
             {ranked.map((s, i) => {
               const rank = s.rank ?? i + 1;
               const name = blind ? s.alias : s.student.name;
-              const invite = invites.get(s.studentId);
-              const alreadyInvited = !!invite && invite.status !== 'declined';
               return (
                 <li key={s.id} className="flex items-center gap-3 border-b border-slate-200 px-3 py-2 last:border-0 @xl:px-4">
                   <MedalBadge rank={rank} />
@@ -358,23 +348,6 @@ function LeaderboardTab({
                     <span className="truncate text-sm font-semibold">{name}</span>
                   </Link>
                   <ScorePill score={s.totalScore ?? 0} className="text-right" />
-                  {!blind && rank <= 3 && (
-                    <Button
-                      size="sm"
-                      variant={alreadyInvited ? 'subtle' : 'secondary'}
-                      disabled={alreadyInvited}
-                      onClick={() =>
-                        onInvite({
-                          student: s.student,
-                          challenge: { id: challenge.id, title: challenge.title, hiringFor: challenge.hiringFor },
-                          alias: null,
-                        })
-                      }
-                      aria-label={`Invite ${name} to interview`}
-                    >
-                      {invite?.status === 'accepted' ? 'Accepted' : alreadyInvited ? 'Invited' : 'Invite'}
-                    </Button>
-                  )}
                 </li>
               );
             })}

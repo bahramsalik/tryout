@@ -17,7 +17,7 @@ The prototype is **two websites sharing one live backend**:
 
 ## 0. TL;DR for builders
 
-- The demo is a **side-by-side, real-time loop** across the two sites. The employer posts a challenge and the student sees it instantly. The student submits and the employer reviews it instantly. The employer publishes results and the student sees their placement plus an interview invite instantly.
+- The demo is a **side-by-side, real-time loop** across the two sites. The employer posts a challenge and the student sees it instantly. The student submits and the employer reviews it instantly. The employer publishes results and the student sees their scores, feedback and placement instantly.
 - **P0** means that loop works flawlessly on seeded data. Everything else is P1 or P2.
 - No real auth, payments or AI. Personas are switched from a dropdown. The AI is a convincing dummy called **Coach**.
 - Sessions: **S1** API · **S2** Seed content · **S3** Student site · **S4** Employer site · **S5** Pitch (optional). Integration happens last, in the main session. See §9.
@@ -41,7 +41,7 @@ That second half is the **experience paradox**: you need experience to get a job
 Tryout is a two-sided marketplace of **real workplace tasks**:
 
 - **Students** practice in a **Practice Arena** and complete employer-posted **Live Challenges**. Every scored submission becomes **employer-verified evidence** on their **Proof Profile**, which rebuilds the experience section of a résumé around proof.
-- **Employers** post a 3–5 hour task that mirrors the actual job and set a rubric and an applicant cap. They review submissions blind, recognise the top performers and invite them to interview.
+- **Employers** post a 3–5 hour task that mirrors the actual job and set a rubric and an applicant cap. They review submissions blind, recognise the top performers. A strong result is a verified certificate on the candidate's Proof Profile, not a ticket to an interview.
 
 ### Why this beats what exists
 
@@ -77,7 +77,7 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 | Tasks take 3–5 h | **Hard rule: ≤ 5 h**, enforced in the Add Challenge form | It protects students' time and keeps tasks honest. |
 | Software-flavoured | **7 fields**: software, data, design, product, marketing, finance, security | It shows the gap isn't only a CS problem and widens the impact. |
 | Cap the number of applicants | Kept, and shown to students as **spots left** | Students get transparency and employers control their review load. |
-| — | A **Hiring for** field links a challenge to a real open role. **Invite to interview** is the conversion event. | It makes the employer's value concrete: challenge → shortlist → hire. |
+| — | A **Hiring for** field links a challenge to a real open role. Results become a verified certificate on the student's Proof Profile, and a score never triggers an interview by itself. | It makes the employer's value concrete: challenge → verified result → the recruiter's own decision. |
 | Ask AI | **Coach** (dummy): recommendations by field on Explore, plus per-task help with quick prompts | It feels real in the demo, carries an honest "Preview" label and is easy to swap for a real LLM later. |
 
 **Cut on purpose** (not in the prototype): real auth, a real LLM, messaging, teams, comments, plagiarism detection, mobile apps and a university portal (the portal appears in the pitch only).
@@ -99,7 +99,7 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 | 1:20 | Employer | Review in blind mode ("Candidate K7"): file tree, README, notes → score the rubric → 88 | A fast, fair, structured review |
 | 1:45 | Employer | Leaderboard → **Publish results & award** | The candidate is revealed as Maya, in 2nd place |
 | 1:55 | Student | Toast: "🥈 You placed 2nd", plus feedback | 4 hours of real work now sits on her Proof Profile |
-| 2:05 | Employer | **Invite to interview**, and the student sees the invite live | Challenge → hire pipeline |
+| 2:05 | Employer | Open the candidate's **Proof Profile**: per-criterion scores, feedback and approach notes | A certificate recruiters can read, not a ticket |
 | 2:15 | Employer | Open Maya's **Proof Profile**: 15 verified hours, 🥇🥈🥉, skills radar | "This is the new experience section." |
 | 2:30 | Employer | **+ Add challenge** → *Use example* → ✨ *Suggest rubric* → Top 3, cap 50 → Publish | Posting takes 30 seconds |
 | 2:45 | Student | The new challenge pops onto Maya's Explore **live** | The loop closes |
@@ -112,7 +112,7 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 ### 5.1 Priorities
 
 - **P0 (demo-critical):** everything in the §4 demo, on seeded data, with zero console errors.
-- **P1 (makes it shine):** zip file tree with click-to-preview, auto-checks, blind-review toggle, ✨ Suggest rubric, Use example, talent search, skills radar, public profile link, toast/confetti polish, accepting or declining an interview invite, live card preview in the wizard.
+- **P1 (makes it shine):** zip file tree with click-to-preview, auto-checks, blind-review toggle, ✨ Suggest rubric, Use example, talent search, skills radar, public profile link, toast/confetti polish, live card preview in the wizard.
 - **P2 (only if ahead):** resubmission, a waitlist when a challenge is full, challenge settings (extend or close), keyboard shortcuts in review, dark mode.
 - **Out of scope:** see "Cut on purpose" in §3.
 
@@ -126,7 +126,7 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 | `/explore` | P0 | **Browse by field:** 7 large tiles (icon, label, blurb, open count). This is the "view problems by type" screen, and clicking a tile filters the grid. Toggle between **Live challenges** and **Practice arena**. Type chips, filters (difficulty, ≤ 3 h / ≤ 5 h), search, and sort (newest, closing soon, most spots left). **Card:** company logo and name (or "Tryout Practice"), type chip, title, 2-line summary, ⏱ est. hours, difficulty, spots bar ("23/40 joined"), countdown, and a "Hiring" tag. Banner: "Not sure where to start? Ask Coach." |
 | `/challenges/:id` | P0 | **Header:** company, title, type, est. hours, difficulty, countdown, spots ("23 of 40 spots left") and hiring role. **Sections:** Brief (markdown), Deliverables, **How you'll be judged** (rubric with weights), **From the classroom**, starter kit download. **Sticky action card**, which changes with state: *Join (claims 1 of N spots)* → *Submit your work* → *Submitted · under review* → *Result* (rank, per-criterion scores, feedback). **Fair-work box:** feedback guaranteed · you keep your IP. **Ask Coach about this task**, with 4 quick prompts. |
 | `/challenges/:id/submit` | P0 | Drag-and-drop zip (validate `.zip` and ≤ 50 MB, show name and size). Approach notes (template placeholder: *What I built / Key decisions & trade-offs / What I'd do with more time*; ≥ 50 chars; counter). Optional demo/repo link and AI-use disclosure. Honor checkbox. Upload with a progress bar. **Success:** confetti and a "what happens next" timeline (Submitted → Employer review → Results & feedback). |
-| `/work` My work | P0 | Tabs: **In progress** · **Submitted** · **Results** (score ring, medal, feedback). Interview invites are pinned on top. Accept/decline is P1. |
+| `/work` My work | P0 | Tabs: **In progress** · **Submitted** · **Results** (score ring, medal, feedback). |
 | `/profile` | P0 | The current persona's Proof Profile, plus a "Copy public link" button (P1). |
 | `/p/:handle` | P1 | Public Proof Profile without app chrome. This is the link a student puts on LinkedIn. |
 | Coach panel | P0 | A chat panel that slides in from the right. **On Explore:** recommendations by field, with mini challenge cards. **On a challenge:** quick prompts (*What is this really testing? · Break it into steps · What does great look like? · Common pitfalls*) plus free text. Typing indicator, typewriter reveal and a "Preview" badge. |
@@ -143,14 +143,13 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 
 | Route | Pri | Requirements |
 |---|---|---|
-| `/` Dashboard | P0 | KPI tiles: Active challenges · Submissions · Awaiting review · Interviews sent. Challenges table: title, type, status, joined/cap bar, submissions, awaiting review, deadline, and a **Review** button. A live activity feed where new items animate in. |
+| `/` Dashboard | P0 | KPI tiles: Active challenges · Submissions · Awaiting review. Challenges table: title, type, status, joined/cap bar, submissions, awaiting review, deadline, and a **Review** button. A live activity feed where new items animate in. |
 | `/challenges/new` | P0 | A 4-step wizard (with a live preview of the student-facing card, P1). **1 · The task:** title, type (cards), skills (tags), summary ≤ 140 chars, brief (markdown + "Insert template"), deliverables list, est. hours slider 1–5 ("Platform rule: tasks must fit in 5 hours"), difficulty, classroom concepts (optional), hiring for (optional). **2 · How you'll judge:** rubric rows (name, description, weight %). Weights must total 100, with a live indicator. ✨ **Suggest rubric** (P1). **3 · Limits:** **Applicant cap** (number, presets 25/50/100, or no cap). Deadline (default +7 days). **4 · Review & publish:** the exact student-facing preview → Publish → success screen. A **Use example** button prefills a realistic challenge (P1, used in the demo). |
 | `/challenges/:id` | P0 | Header stats: joined/cap, submissions, scored, average score and deadline. **Blind review** toggle (on by default). Tabs: **Submissions** (alias or name, submitted time, auto-checks, your score or *Needs review*, ⭐ shortlist; clicking a row opens the review) · **Leaderboard** (ranked by score, with **Publish results & award**) · **Brief** (read-only preview). |
 | `/challenges/:id/review/:submissionId` | P0 | **Left, submission viewer:** README (rendered), a **Files** tree with click-to-preview (P1), approach notes, AI disclosure, demo link, download zip, and auto-checks (P1). **Right, sticky scoring panel:** each rubric criterion with 1–5 buttons, a **live weighted total** (`computeTotalScore`), required feedback, shortlist, and **Save & next unscored**, with progress ("12/15 scored"). |
-| Award modal | P0 | Disabled until every submission has scores and feedback ("2 left to score"). Shows the top 3 and reveals identities. Confirming fires confetti, and winners get an **Invite to interview** button. |
-| Invite modal | P0 | Prefilled message (name + challenge) and role (from *hiring for*), then Send. Reachable from the leaderboard, the review page and the candidate profile. |
+| Award modal | P0 | Disabled until every submission has scores and feedback ("2 left to score"). Shows the top 3 and reveals identities. Confirming fires confetti and gives the top 3 placement medals. Nothing else happens automatically. |
 | `/talent` | P1 | Search and filters (type, minimum average score, open to work). Cards show verified hours, average score, placements and top skills, and open the candidate profile. |
-| `/candidates/:idOrHandle` | P0 | The Proof Profile plus **Invite to interview**. Submissions to *your* challenges link to the review page. Results from other employers show the score and a feedback excerpt only (no files). |
+| `/candidates/:idOrHandle` | P0 | The Proof Profile. Submissions to *your* challenges link to the review page. Results from other employers show the score and a feedback excerpt only (no files). |
 
 ### 5.4 Real-time moments across the two sites (SSE)
 
@@ -161,7 +160,6 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 | Student submits | Employer: toast, activity feed, *Awaiting review* +1, and a new row in Submissions |
 | Employer scores | Employer only. Students see results when they're published, which keeps it fair. |
 | Employer publishes results | Student: "🥈 You placed 2nd — $150 is on its way" toast with confetti, and My work and Profile update. Students who didn't place get "Results and feedback are in." |
-| Employer sends an invite | Student: toast plus notification "Orbitline wants to interview you" |
 
 ### 5.5 Business rules
 
@@ -312,7 +310,7 @@ UNHack26/
 
 ### 7.5 Data model
 
-`shared/types.ts` is canonical. Entities: Company, EmployerUser, Student, Challenge (+ `ChallengeView`), Participation (internal), Submission (+ `SubmissionView`), Notification, InterviewInvite. Derived: `StudentStats`, `StudentProfile`, `EmployerDashboard`. IDs are prefixed strings (`co_`, `emp_`, `stu_`, `ch_` / `pr_` / `past_`, `sub_`, `ntf_`, `inv_`). Dates are ISO strings.
+`shared/types.ts` is canonical. Entities: Company, EmployerUser, Student, Challenge (+ `ChallengeView`), Participation (internal), Submission (+ `SubmissionView`), Notification. Derived: `StudentStats`, `StudentProfile`, `EmployerDashboard`. IDs are prefixed strings (`co_`, `emp_`, `stu_`, `ch_` / `pr_` / `past_`, `sub_`, `ntf_`). Dates are ISO strings.
 
 ### 7.6 API contract (base `http://localhost:4000/api`)
 
@@ -339,9 +337,6 @@ Errors look like `{ "error": { "code": "CAP_REACHED", "message": "…" } }`, sen
 | `POST /submissions/:id/score` | owner | `ScoreSubmissionInput` → `SubmissionView`. Validates criterion ids, scores 1–5 and feedback ≥ 20 chars. |
 | `POST /submissions/:id/shortlist` | owner | `{ shortlisted: boolean }` → `SubmissionView` |
 | `GET /me/submissions` | student | `SubmissionView[]` (results hidden until published) |
-| `GET /me/invites` | student | `InviteView[]` |
-| `POST /invites` | employer | `CreateInviteInput` → `InterviewInvite`. Emits `invite.created`. |
-| `POST /invites/:id/respond` | student | `{ status: 'accepted' \| 'declined' }` → `InterviewInvite` |
 | `GET /students` | employer | `StudentListItem[]`. Query: `q, type, minScore, openToWork, sort=hours\|score\|placements`. |
 | `GET /students/:idOrHandle` | any | `StudentProfile`, with `canViewFiles` computed for the viewer |
 | `GET /notifications` | persona | `Notification[]`, newest first (students by student id, employers by company id) |
@@ -435,7 +430,7 @@ Errors look like `{ "error": { "code": "CAP_REACHED", "message": "…" } }`, sen
 | Risk | Mitigation |
 |---|---|
 | Employers drown in submissions | Applicant cap, weighted rubric, auto-checks, Save & next, and AI triage later |
-| Cheating or AI-generated work | AI is allowed but must be disclosed; approach notes are required; the interview is the final check; originality checks are on the roadmap |
+| Cheating or AI-generated work | AI is allowed but must be disclosed; approach notes are required; recruiters can probe the work in their own process; originality checks are on the roadmap |
 | Bias | Blind review by default and rubric-first scoring |
 | Cold start | The Practice Arena exists on day one, and employers' past challenges become practice |
 | Demo failure | Offline-only stack, seeded data, `npm run reset`, a rehearsed script and a backup screen recording |

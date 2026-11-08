@@ -32,7 +32,7 @@ npm run smoke        # end-to-end test on a private instance (:4100 + temp DATA_
 | File | |
 |---|---|
 | `src/app.ts` | every route (SPEC §7.6), CORS, error format |
-| `src/actions.ts` | mutations: create/join/submit/score/shortlist/award/invite (+ notifications and SSE events) |
+| `src/actions.ts` | mutations: create/join/submit/score/shortlist/award (+ notifications and SSE events) |
 | `src/views.ts` | read models and the privacy rules (results hidden until published, file privacy, blind aliases) |
 | `src/seed.ts` | deterministic seeder |
 | `src/content.ts` | content import + zod/cross-reference validation + hash |

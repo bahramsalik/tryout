@@ -390,7 +390,6 @@ export function buildSeed(content: SeedContent, contentHash: string, now = Date.
     participations,
     submissions,
     notifications,
-    invites: [],
     content: {
       coachPacks: structuredClone(content.coachPacks),
       rubricTemplates: structuredClone(content.rubricTemplates),

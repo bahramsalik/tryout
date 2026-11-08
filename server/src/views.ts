@@ -16,8 +16,6 @@ import {
   type ChallengeView,
   type Company,
   type EmployerDashboard,
-  type InterviewInvite,
-  type InviteView,
   type ProfileHistoryItem,
   type Student,
   type StudentListItem,
@@ -249,23 +247,6 @@ export function studentListItem(student: Student): StudentListItem {
   return { ...student, stats: studentStats(student.id) };
 }
 
-/* ───────────── invites ───────────── */
-
-export function inviteView(inv: InterviewInvite, opts: { withStudent?: boolean } = {}): InviteView {
-  const company = companyById(inv.companyId);
-  if (!company) throw new Error(`dangling invite ${inv.id}`);
-  const view: InviteView = {
-    ...inv,
-    company,
-    challengeTitle: inv.challengeId ? (challengeById(inv.challengeId)?.title ?? null) : null,
-  };
-  if (opts.withStudent) {
-    const s = studentById(inv.studentId);
-    if (s) view.student = s;
-  }
-  return view;
-}
-
 /* ───────────── employer dashboard ───────────── */
 
 /** Feed lines are ≤ 8 words (SPEC-FLUENT §6). */
@@ -295,11 +276,6 @@ export function activityFeed(companyId: string, limit = 30): ActivityItem[] {
     const text = `Results out · ${feedTitle(ch.title, 6)}`;
     items.push({ id: `act_award_${ch.id}`, kind: 'award', text, challengeId: ch.id, studentId: null, at: ch.awardedAt });
   }
-  for (const inv of db.invites) {
-    if (inv.companyId !== companyId) continue;
-    const name = studentById(inv.studentId)?.name ?? 'a candidate';
-    items.push({ id: `act_inv_${inv.id}`, kind: 'invite', text: `Invite sent to ${name}`, challengeId: inv.challengeId, studentId: inv.studentId, at: inv.createdAt });
-  }
   return items.sort((a, b) => Date.parse(b.at) - Date.parse(a.at) || a.id.localeCompare(b.id)).slice(0, limit);
 }
 
@@ -322,7 +298,6 @@ export function employerDashboard(p: EmployerPersona): EmployerDashboard {
       totalSubmissions: subs.length,
       awaitingReview: subs.filter((s) => activeIds.has(s.challengeId) && s.totalScore === null).length,
       avgScore: avg === null ? null : Math.round(avg),
-      interviewsSent: db.invites.filter((i) => i.companyId === companyId).length,
     },
     challenges: live.map((c) => challengeView(c, p)),
     recentActivity: activityFeed(companyId),

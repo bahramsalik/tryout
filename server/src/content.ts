@@ -91,7 +91,7 @@ const scripted = z.object({
 });
 const notificationSeed = z.object({
   recipientId: str,
-  kind: z.enum(['new_challenge', 'submission_received', 'results', 'awarded', 'interview', 'invite_response', 'coach_review', 'cap_reached']),
+  kind: z.enum(['new_challenge', 'submission_received', 'results', 'awarded', 'coach_review', 'cap_reached']),
   title: str,
   body: str,
   link: str.nullable(),

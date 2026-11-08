@@ -39,9 +39,6 @@ This is the operator's checklist for the 3-minute demo in [SPEC.md §4](../SPEC.
 **Feedback (employer review):**
 > Clean token bucket with the math kept out of Express, and the minute-boundary comparison in the README is exactly the reasoning we want. Deterministic tests cover isolation, tiers and fail-open. To take first place: sketch the Redis Lua script and test Reset on a partially refilled bucket.
 
-**Interview invite message:**
-> Hi Maya, your rate-limiting write-up was one of the clearest we've seen, especially the minute-boundary example. We'd love to talk about our Junior Backend Engineer role. Are you free for a 30-minute call this week?
-
 ## If something goes wrong
 
 - **A site shows stale data:** refresh it. Both sites refetch everything on `system.reset`.

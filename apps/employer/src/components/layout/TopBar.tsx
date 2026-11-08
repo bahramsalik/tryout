@@ -5,13 +5,11 @@ import {
   Bell,
   BellOff,
   Inbox,
-  MailCheck,
   MoreHorizontal,
   Plus,
   RotateCcw,
   Sparkles,
   Trophy,
-  UserPlus,
   Users,
 } from '@/components/icons';
 import type { Notification, NotificationKind } from '@shared/types';
@@ -45,8 +43,6 @@ const KIND_ICON: Record<NotificationKind, typeof Bell> = {
   submission_received: Inbox,
   results: Trophy,
   awarded: Trophy,
-  interview: UserPlus,
-  invite_response: MailCheck,
   coach_review: Sparkles,
   cap_reached: Users,
 };

@@ -3,9 +3,8 @@ import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import { PLATFORM_RULES, type AwardResponse, type ChallengeView, type SubmissionView } from '@shared/types';
 import { api } from '@/lib/api';
-import { qk, queryClient, isScored, rankSubmissions, useInvitesByStudent } from '@/lib/queries';
+import { qk, queryClient, isScored, rankSubmissions } from '@/lib/queries';
 import { Avatar, MedalBadge, ScorePill } from './brand';
-import type { InviteTarget } from './InviteModal';
 import { Dialog, DialogBody, DialogFooter, DialogHeader } from './overlay';
 import { Button, InlineError } from './ui';
 
@@ -15,18 +14,16 @@ export function AwardModal({
   challenge,
   submissions,
   blind,
-  onInvite,
 }: {
   open: boolean;
   onClose: () => void;
   challenge: ChallengeView;
   submissions: SubmissionView[];
   blind: boolean;
-  onInvite: (target: InviteTarget) => void;
 }) {
   return (
     <Dialog open={open} onClose={onClose} width="30rem" labelledBy="award-title">
-      <AwardFlow challenge={challenge} submissions={submissions} blind={blind} onClose={onClose} onInvite={onInvite} />
+      <AwardFlow challenge={challenge} submissions={submissions} blind={blind} onClose={onClose} />
     </Dialog>
   );
 }
@@ -36,20 +33,17 @@ function AwardFlow({
   submissions,
   blind,
   onClose,
-  onInvite,
 }: {
   challenge: ChallengeView;
   submissions: SubmissionView[];
   blind: boolean;
   onClose: () => void;
-  onInvite: (target: InviteTarget) => void;
 }) {
   const navigate = useNavigate();
   const [result, setResult] = useState<AwardResponse | null>(null);
   const ranked = useMemo(() => rankSubmissions(submissions), [submissions]);
   const unscored = submissions.filter((s) => !isScored(s) || !s.feedback?.trim());
   const podium = ranked.slice(0, PLATFORM_RULES.placementCount);
-  const invites = useInvitesByStudent();
   const byStudent = useMemo(() => new Map(submissions.map((s) => [s.studentId, s])), [submissions]);
 
   const award = useMutation({
@@ -112,19 +106,6 @@ function AwardFlow({
                   >
                     {sub.student.name}
                   </Link>
-                  <Button
-                    size="sm"
-                    variant={invites.get(r.studentId) ? 'subtle' : 'secondary'}
-                    disabled={!!invites.get(r.studentId) && invites.get(r.studentId)?.status !== 'declined'}
-                    onClick={() =>
-                      onInvite({
-                        student: sub.student,
-                        challenge: { id: challenge.id, title: challenge.title, hiringFor: challenge.hiringFor },
-                      })
-                    }
-                  >
-                    {invites.get(r.studentId) && invites.get(r.studentId)?.status !== 'declined' ? 'Invited' : 'Invite'}
-                  </Button>
                 </li>
               );
             })}

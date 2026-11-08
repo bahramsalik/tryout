@@ -2,8 +2,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { PLATFORM_RULES, type ChallengeView, type InterviewInvite, type InviteView, type Notification, type ServerEvent, type ServerEventType } from '@shared/types';
-import { api, eventsUrl } from './api';
+import { PLATFORM_RULES, type ChallengeView, type Notification, type ServerEvent, type ServerEventType } from '@shared/types';
+import { eventsUrl } from './api';
 import { celebrate } from './confetti';
 import { ordinal } from './format';
 import { usePersona } from './persona';
@@ -25,8 +25,6 @@ const EVENT_TYPES: ServerEventType[] = [
   'submission.created',
   'submission.scored',
   'challenge.awarded',
-  'invite.created',
-  'invite.updated',
   'notification.created',
   'system.reset',
 ];
@@ -145,35 +143,6 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
               action: { label: 'View', onClick: go },
             });
           }
-          return;
-        }
-
-        case 'invite.created': {
-          const invite = event.payload.invite as InterviewInvite;
-          if (invite?.studentId !== me) return;
-          inv(['notifications']);
-          let company = 'An employer';
-          let role = invite.role;
-          try {
-            const list = await queryClient.fetchQuery({ queryKey: qk.invites(me), queryFn: () => api.myInvites(), staleTime: 0 });
-            const view = (list as InviteView[]).find((i) => i.id === invite.id);
-            if (view) {
-              company = view.company.name;
-              role = view.role ?? role;
-            }
-          } catch {
-            inv(['invites']);
-          }
-          toast(`Interview invite · ${company}`, {
-            description: role ?? undefined,
-            duration: 12000,
-            action: { label: 'View', onClick: () => navigateRef.current('/work') },
-          });
-          return;
-        }
-
-        case 'invite.updated': {
-          if (event.payload.invite?.studentId === me) inv(['invites']);
           return;
         }
 

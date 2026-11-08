@@ -17,11 +17,9 @@ import {
   assertCanSubmit,
   awardChallenge,
   createChallenge,
-  createInvite,
   joinChallenge,
   markAllRead,
   markRead,
-  respondToInvite,
   scoreSubmission,
   setShortlisted,
   submitWork,
@@ -42,7 +40,6 @@ import {
   challengeById,
   challengeView,
   employerDashboard,
-  inviteView,
   isOwner,
   resultsPublished,
   studentById,
@@ -208,13 +205,6 @@ const scoreSchema = z.object({
   scores: z.record(z.string(), z.number()),
   feedback: z.string().default(''),
   shortlisted: z.boolean().optional(),
-});
-
-const inviteSchema = z.object({
-  studentId: z.string().min(1),
-  challengeId: z.string().nullable().optional(),
-  role: z.string().max(200).nullable().optional(),
-  message: z.string().max(4000),
 });
 
 const coachSchema = z.object({
@@ -446,29 +436,6 @@ export function createApp() {
       .submissions.filter((s) => s.studentId === p.id && challengeById(s.challengeId))
       .sort((a, b) => Date.parse(b.submittedAt) - Date.parse(a.submittedAt));
     res.json(subs.map((s) => submissionView(s, p)));
-  });
-
-  api.get('/me/invites', (req, res) => {
-    const p = requirePersona(req);
-    const invites = getDb()
-      .invites.filter((i) => (p.kind === 'student' ? i.studentId === p.id : i.companyId === p.company.id))
-      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-    res.json(invites.map((i) => inviteView(i, { withStudent: p.kind === 'employer' })));
-  });
-
-  /* invites */
-
-  api.post('/invites', (req, res) => {
-    const p = requireEmployer(req);
-    res.status(201).json(createInvite(p, parseBody(inviteSchema, req.body)));
-  });
-
-  api.post('/invites/:id/respond', (req, res) => {
-    const p = requireStudent(req);
-    const invite = getDb().invites.find((i) => i.id === param(req, 'id'));
-    if (!invite) throw notFound('INVITE_NOT_FOUND', `No invite ${param(req, 'id')}.`);
-    const { status } = parseBody(z.object({ status: z.enum(['accepted', 'declined']) }), req.body);
-    res.json(respondToInvite(p, invite, status));
   });
 
   /* students */

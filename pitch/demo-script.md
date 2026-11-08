@@ -26,7 +26,7 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 *Slide 3: the solution.*
 
-> Tryout fixes the proof. Employers post real three-to-five-hour tasks. Students do the work and get scored blind, and the best get placed and interviewed. Let me show you.
+> Tryout fixes the proof. Employers post real three-to-five-hour tasks. Students do the work and get scored blind, and every result becomes verified evidence on their Proof Profile. Let me show you.
 
 *Slide 4 ("Live demo") flashes up; switch to the side-by-side windows.*
 
@@ -72,11 +72,11 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 > On Maya's side: second place, $150 for four hours of real work, plus written feedback Maya can actually learn from.
 
-## 2:05 – 2:15 · Invite to interview (both)
+## 2:05 – 2:15 · A certificate, not a ticket (employer)
 
-*Employer: **Invite to interview** → send. Student: point as the invite appears.*
+*Employer: open Maya's candidate page and scroll her per-criterion scores and feedback.*
 
-> And because the challenge is tied to a real open role, Jordan sends an interview invite. It lands on Maya's side live. Three rejections for "no experience" turned into an interview in one afternoon.
+> A high score isn't a ticket to an interview. It's a certificate: Jordan can see exactly what Maya built, how she scored on each criterion and how she worked, and decide what to do with that. Three rejections for "no experience", and now Maya has proof.
 
 ## 2:15 – 2:30 · Proof Profile (employer, right)
 
@@ -86,9 +86,9 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 
 ## 2:30 – 2:45 · Posting takes 30 seconds (employer, right)
 
-*Click **+ Add challenge** → **Use example** → **✨ Suggest rubric** → choose **Top 3** and set the cap to 50 → **Publish**.*
+*Click **+ Add challenge** → **Use example** → **✨ Suggest rubric** → set the cap to 50 → **Publish**.*
 
-> For employers, posting is quick: start from an example, get a suggested rubric, choose top three, cap it at 50, and publish.
+> For employers, posting is quick: start from an example, get a suggested rubric, cap it at 50, and publish.
 
 ## 2:45 – 2:50 · The loop closes (student, left)
 
@@ -111,7 +111,7 @@ The spoken words are what the presenter says out loud. Lines in *italics* tell t
 1. *The driver switches to the backup recording tab and presses play, muted. The presenter narrates over it.*
 2. If there's no recording either, stay on **slide 4** and say:
 
-> The demo gods are not with us, so here's what you would have seen, in thirty seconds. Maya opens a real Orbitline task: add rate limiting to their shipment API, four hours. Maya submits a zip and notes. On the employer site it appears instantly, and Jordan reviews it blind as "Candidate K7", scores it 88 on the rubric and publishes. Only then is the candidate revealed: Maya, second place, plus written feedback. Jordan sends an interview invite, and Maya's Proof Profile now shows verified hours and a medal: experience, earned in an afternoon. Happy to run it live at our table afterwards.
+> The demo gods are not with us, so here's what you would have seen, in thirty seconds. Maya opens a real Orbitline task: add rate limiting to their shipment API, four hours. Maya submits a zip and notes. On the employer site it appears instantly, and Jordan reviews it blind as "Candidate K7", scores it 88 on the rubric and publishes. Only then is the candidate revealed: Maya, second place, plus written feedback. Jordan opens Maya's Proof Profile, which now shows verified hours and a medal: experience, earned in an afternoon. Happy to run it live at our table afterwards.
 
 3. Go straight to **slide 5** and continue with the close.
 
