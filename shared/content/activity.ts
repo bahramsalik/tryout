@@ -34,8 +34,8 @@ export const seedNotifications: NotificationSeed[] = [
   },
   {
     recipientId: 'stu_maya',
-    kind: 'awarded',
-    title: '1st place · $250',
+    kind: 'results',
+    title: 'Graded · 92/100',
     body: 'Build a CSV shipment-import validator',
     link: '/challenges/past_csv_import',
     read: true,
@@ -43,8 +43,8 @@ export const seedNotifications: NotificationSeed[] = [
   },
   {
     recipientId: 'stu_maya',
-    kind: 'awarded',
-    title: '3rd place · $75',
+    kind: 'results',
+    title: 'Graded · 86/100',
     body: 'Build a clinic wait-time dashboard',
     link: '/challenges/past_wait_dashboard',
     read: true,

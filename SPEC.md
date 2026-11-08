@@ -159,7 +159,7 @@ Tryout is a two-sided marketplace of **real workplace tasks**:
 | Student joins | Employer: the joined counter and the activity feed update |
 | Student submits | Employer: toast, activity feed, *Awaiting review* +1, and a new row in Submissions |
 | Employer scores | Employer only. Students see results when they're published, which keeps it fair. |
-| Employer publishes results | Student: "🥈 You placed 2nd — $150 is on its way" toast with confetti, and My work and Profile update. Students who didn't place get "Results and feedback are in." |
+| Employer publishes results | Student: "🥈 You placed 2nd" toast with confetti, and My work and Profile update. Students who didn't place get "Results and feedback are in." |
 
 ### 5.5 Business rules
 
@@ -371,7 +371,7 @@ Errors look like `{ "error": { "code": "CAP_REACHED", "message": "…" } }`, sen
 - **Student mood:** bright, encouraging and roomy. Gradient hero, rounded-2xl cards, soft shadows, playful micro-interactions, confetti on submit and award.
 - **Employer mood:** calm, dense, "pro tool." Dark sidebar `#0F172A`, white content area, rounded-xl, crisp borders, tables, tabular numbers.
 - **Components** (each app builds its own): Button, Card, TypeChip, CompanyLogo (monogram from `logoColor` / `logoInitials`), Avatar (initials), SpotsBar, Countdown, StatTile, Tabs, Dialog/Sheet, Toasts, Skeletons, EmptyState, Markdown.
-- **Copy:** warm and direct for students ("You placed 2nd — $150 is on its way"); outcome-focused for employers ("15 submissions · 3 need review").
+- **Copy:** warm and direct for students ("You placed 2nd"); outcome-focused for employers ("15 submissions · 3 need review").
 - **Quality bar:** both sites must look great at **~720 px wide** (side-by-side demo) **and** at 1440 px. Visible focus rings, AA contrast, skeletons instead of layout jumps, and no console errors.
 
 ---
