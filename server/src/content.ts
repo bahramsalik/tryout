@@ -62,6 +62,8 @@ const challengeSeed = z.object({
   deliverables: z.array(str),
   rubric: z.array(criterion).min(1),
   applicantCap: z.number().int().positive().nullable(),
+  placements: z.number().int().min(0).max(10).optional(),
+  prizePool: z.number().int().min(0).optional(),
   status: z.enum(['open', 'reviewing', 'awarded']),
   hiringFor: str.nullable(),
   starterFiles: z.array(starterFile),

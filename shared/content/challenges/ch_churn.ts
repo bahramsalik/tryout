@@ -606,6 +606,8 @@ const mod: ChallengeModule = {
       },
     ],
     applicantCap: 50,
+    placements: 1,
+    prizePool: 300,
     status: 'open',
     hiringFor: 'Data Analyst I · Full-time · Minneapolis, MN (hybrid)',
     starterFiles: [

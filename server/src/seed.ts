@@ -10,6 +10,7 @@ import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
   placementsFor,
+  prizeForPlace,
   TYPE_META,
   computeTotalScore,
   type Challenge,
@@ -350,6 +351,9 @@ export function buildSeed(content: SeedContent, contentHash: string, now = Date.
 
     const mine = submissions.filter((s) => s.challengeId === cs.id);
     if (isAwarded) applyAward(computeAward(challenge, mine), placementsFor(challenge) > 0);
+    if (isAwarded && (challenge.prizePool ?? 0) > 0) {
+      for (const s of mine) if (s.status === 'awarded' && s.rank) s.prize = prizeForPlace(challenge, s.rank);
+    }
 
     if (cs.starterFiles.length > 0) files.set(`starters/${cs.id}.zip`, buildZip(cs.starterFiles));
 

@@ -1491,6 +1491,8 @@ const mod: ChallengeModule = {
       },
     ],
     applicantCap: 40,
+    placements: 3,
+    prizePool: 500,
     status: 'open',
     hiringFor: 'Junior Backend Engineer · Full-time · Remote (US)',
     starterFiles: [
