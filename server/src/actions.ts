@@ -94,6 +94,7 @@ export function createChallenge(p: EmployerPersona, input: CreateChallengeInput)
     deliverables: input.deliverables.map((d) => d.trim()).filter(Boolean),
     rubric: input.rubric,
     applicantCap: input.applicantCap,
+    ...(input.placements !== undefined ? { placements: input.placements } : {}),
     deadline: new Date(input.deadline).toISOString(),
     status: 'open',
     hiringFor: input.hiringFor?.trim() || null,

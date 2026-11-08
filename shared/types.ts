@@ -174,6 +174,8 @@ export interface Challenge {
   rubric: RubricCriterion[];
   /** null = no cap. */
   applicantCap: number | null;
+  /** How many top finishers get a medal when results are published. 0 = no medals. Omitted = PLATFORM_RULES.placementCount. */
+  placements?: number;
   /** ISO. null = evergreen (practice). */
   deadline: string | null;
   status: ChallengeStatus;
@@ -360,6 +362,8 @@ export interface CreateChallengeInput {
   deliverables: string[];
   rubric: RubricCriterion[];
   applicantCap: number | null;
+  /** 0 = no medals. Omitted = PLATFORM_RULES.placementCount. */
+  placements?: number;
   deadline: string; // ISO
   hiringFor?: string | null;
 }
@@ -512,6 +516,11 @@ export interface SeedContent {
 }
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
+
+/** How many top finishers of a challenge get a medal (0 = none). Medals are separate from grading. */
+export function placementsFor(challenge: { placements?: number }): number {
+  return challenge.placements ?? PLATFORM_RULES.placementCount;
+}
 
 /** Weighted total 0–100; missing criteria count as 0. Used by the API and the review UI's live total. */
 export function computeTotalScore(rubric: RubricCriterion[], scores: Record<string, number>): number {

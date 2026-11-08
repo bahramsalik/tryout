@@ -1,5 +1,5 @@
 /** Pure business rules shared by the seeder and the live endpoints. */
-import { PLATFORM_RULES, type Challenge, type SubmissionStatus } from '../../shared/types.ts';
+import { placementsFor, type Challenge, type SubmissionStatus } from '../../shared/types.ts';
 import type { SubmissionRecord } from './db.ts';
 import { shortHash } from './rng.ts';
 
@@ -54,11 +54,12 @@ export interface AwardLine {
   status: SubmissionStatus;
 }
 
-/** The top `placementCount` finishers are placed (medal); everyone else still gets feedback. */
-export function computeAward(_challenge: Challenge, subs: SubmissionRecord[]): AwardLine[] {
+/** The top finishers (see `placementsFor`) are placed (medal); everyone else still gets feedback. */
+export function computeAward(challenge: Challenge, subs: SubmissionRecord[]): AwardLine[] {
+  const places = placementsFor(challenge);
   return rankScored(subs).map((sub, i) => {
     const rank = i + 1;
-    return { sub, rank, status: rank <= PLATFORM_RULES.placementCount ? 'awarded' : 'not_selected' };
+    return { sub, rank, status: rank <= places ? 'awarded' : 'not_selected' };
   });
 }
 

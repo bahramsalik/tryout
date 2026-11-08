@@ -185,6 +185,7 @@ const createChallengeSchema = z
     deliverables: z.array(z.string().trim().min(1).max(300)).min(1).max(10),
     rubric: z.array(criterionSchema).min(1).max(8),
     applicantCap: z.number().int().min(1).max(10_000).nullable(),
+    placements: z.number().int().min(0).max(10).optional(),
     deadline: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'deadline must be an ISO date'),
     hiringFor: z.string().max(200).nullable().optional(),
   })
