@@ -23,7 +23,7 @@ export interface Participation {
 
 export interface SubmissionRecord extends Submission {
   alias: string;
-  /** Employer user id that scored it, "coach" for practice reviews, null when unscored. */
+  /** Employer user id that scored it, "coach" for practice reviews, "ai" for AI grades, null when unscored. */
   scoredBy: string | null;
 }
 

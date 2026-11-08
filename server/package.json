@@ -13,6 +13,7 @@
     "seed": "tsx --env-file-if-exists=.env src/seed-cli.ts",
     "check-content": "tsx src/check-content.ts",
     "check-grader": "tsx src/check-grader.ts",
+    "check-grading-flow": "tsx src/check-grading-flow.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "smoke": "tsx smoke/smoke.ts"
   },

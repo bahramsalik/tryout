@@ -16,13 +16,16 @@ import {
   type SubmissionView,
 } from '../../shared/types.ts';
 import { practiceReview, synthesizeAiHints } from './ai.ts';
+import { GRADER } from './config.ts';
 import type { Participation, SubmissionRecord } from './db.ts';
 import { badRequest, conflict, forbidden, notFound } from './errors.ts';
 import { emit } from './events.ts';
+import { GraderUnavailable, gradeSubmission, type GradeResult } from './grader.ts';
+import { log } from './log.ts';
 import { aliasCode, applyAward, assignAlias, clipWords, computeAward, countWords, ordinal } from './logic.ts';
 import type { EmployerPersona, StudentPersona } from './persona.ts';
 import { randomId } from './rng.ts';
-import { getDb, persist, writeUpload } from './store.ts';
+import { getDb, loadUpload, persist, writeUpload } from './store.ts';
 import {
   challengeById,
   challengeView,
@@ -239,6 +242,9 @@ export function submitWork(
     scoredBy: null,
   };
 
+  // Live work is graded by the AI right after submit when a key is set; without one, recruiters score by hand as before.
+  if (ch.kind === 'live' && GRADER.enabled) sub.gradingState = 'grading';
+
   if (ch.kind === 'practice') {
     // DUMMY-AI: instant Coach review (§5.5 #14).
     const review = practiceReview(ch, { submissionId: id, notes, autoChecks });
@@ -279,7 +285,82 @@ export function submitWork(
     });
   }
   commit(events);
+  if (sub.gradingState) void runAiGrading(sub.id, file.buffer);
   return submissionView(sub, p);
+}
+
+/* ───────────── AI grading ───────────── */
+
+/** Waits before each retry when the AI request fails (then the submission stays 'delayed' until the next sweep). */
+const GRADING_RETRY_MS = [2_000, 10_000, 30_000];
+const GRADING_SWEEP_MS = 30 * 60_000;
+
+function applyAiGrade(sub: SubmissionRecord, ch: Challenge, r: GradeResult): void {
+  Object.assign(sub, {
+    status: 'scored',
+    reviewer: 'ai',
+    scores: r.scores,
+    scoreNotes: r.evidence,
+    totalScore: r.totalScore,
+    feedback: r.feedback,
+    scoredAt: nowIso(),
+    scoredBy: 'ai',
+  } satisfies Partial<SubmissionRecord>);
+  delete sub.gradingState;
+  const events: ServerEvent[] = [
+    { type: 'submission.scored', payload: { submissionId: sub.id, challengeId: ch.id, studentId: sub.studentId, companyId: ch.companyId, totalScore: r.totalScore } },
+  ];
+  notification(events, {
+    recipientId: sub.studentId,
+    kind: 'results',
+    title: `Graded · ${r.totalScore}/100`,
+    body: bodyTitle(ch.title),
+    link: `/challenges/${ch.id}`,
+  });
+  commit(events);
+  log.info(`AI graded ${sub.id}: ${r.totalScore}/100 (${r.usage.inputTokens} in / ${r.usage.outputTokens} out tokens)`);
+}
+
+/**
+ * Grades one live submission with the AI, in the background. On failure it retries a few times, then leaves the
+ * submission 'delayed' (no fake score); the periodic sweep tries again later. Never throws.
+ */
+export async function runAiGrading(subId: string, zip?: Buffer, attempt = 0): Promise<void> {
+  const sub = getDb().submissions.find((s) => s.id === subId);
+  if (!sub || sub.totalScore !== null) return; // gone, or already scored (e.g. by a recruiter)
+  const ch = challengeById(sub.challengeId);
+  if (!ch || ch.kind !== 'live') return;
+  try {
+    const buf = zip ?? (await loadUpload(subId));
+    if (!buf) throw new GraderUnavailable('api_error', 'The submission file is missing.');
+    const result = await gradeSubmission(ch, sub, buf);
+    if (sub.totalScore !== null) return; // a recruiter scored it while the AI worked: keep the human's score
+    applyAiGrade(sub, ch, result);
+  } catch (err) {
+    const reason = err instanceof GraderUnavailable ? err.reason : 'api_error';
+    const retryable = reason === 'api_error' || reason === 'bad_output';
+    if (retryable && attempt < GRADING_RETRY_MS.length) {
+      setTimeout(() => void runAiGrading(subId, zip, attempt + 1), GRADING_RETRY_MS[attempt]).unref();
+      return;
+    }
+    sub.gradingState = 'delayed';
+    persist();
+    log.warn(`AI grading for ${subId} delayed (${reason}): ${err instanceof Error ? err.message : 'unknown error'}`);
+  }
+}
+
+/** Picks up live submissions still waiting for an AI grade (after a restart, or after a delay). */
+export function resumeAiGradings(): void {
+  if (!GRADER.enabled) return;
+  for (const s of getDb().submissions) {
+    if (s.gradingState && s.totalScore === null) void runAiGrading(s.id);
+  }
+}
+
+/** Starts the sweep that retries delayed gradings every 30 minutes. */
+export function startAiGradingSweep(): void {
+  resumeAiGradings();
+  setInterval(resumeAiGradings, GRADING_SWEEP_MS).unref();
 }
 
 export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input: ScoreSubmissionInput): SubmissionView {
@@ -311,6 +392,8 @@ export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input
   sub.status = 'scored';
   sub.reviewer = 'employer';
   sub.scoredBy = p.id;
+  delete sub.scoreNotes; // the AI's evidence no longer matches the recruiter's scores
+  delete sub.gradingState;
   if (typeof input.shortlisted === 'boolean') sub.shortlisted = input.shortlisted;
   commit([
     {

@@ -1,5 +1,6 @@
 /** Tryout API entry point. `npm run dev` runs this under `tsx watch` (also watching ../shared). */
 import http from 'node:http';
+import { startAiGradingSweep } from './actions.ts';
 import { createApp } from './app.ts';
 import { initData } from './boot.ts';
 import { DATA_DIR, PORT } from './config.ts';
@@ -22,6 +23,7 @@ server.on('error', (err: NodeJS.ErrnoException) => {
 
 server.listen(PORT, () => {
   log.info(`Tryout API listening on http://localhost:${PORT}/api (data: ${DATA_DIR})`);
+  startAiGradingSweep();
 });
 
 let stopping = false;
