@@ -84,7 +84,8 @@ function AwardFlow({
 
   /* ── Done: identities revealed ── */
   if (result) {
-    const results = [...result.results].sort((a, b) => a.rank - b.rank);
+    // Ranks exist only when the challenge has an award.
+    const results = result.results.flatMap((r) => (r.rank === null ? [] : [{ ...r, rank: r.rank }])).sort((a, b) => a.rank - b.rank);
     const shown = results.slice(0, placementsFor(challenge));
     return (
       <>

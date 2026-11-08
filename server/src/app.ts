@@ -7,6 +7,7 @@ import { z } from 'zod';
 import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
+  placementsFor,
   type Challenge,
   type ChallengeView,
   type CreateChallengeInput,
@@ -377,6 +378,7 @@ export function createApp() {
     if (p.kind === 'student' && !(ch.kind === 'live' && ch.status === 'awarded')) {
       throw forbidden('RESULTS_NOT_PUBLISHED', 'Leaderboard opens when results are out.');
     }
+    if (p.kind === 'student' && placementsFor(ch) === 0) throw forbidden('NO_AWARD', 'This challenge has no award, so nobody is ranked.');
     const ranked = rankScored(getDb().submissions.filter((s) => s.challengeId === ch.id));
     res.json(
       ranked.map((s, i) => {

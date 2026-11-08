@@ -469,7 +469,7 @@ async function run() {
   check(`Maya rank ${expectedRank} = computed`, mayaResult?.rank === expectedRank, JSON.stringify(mayaResult));
   check(
     'top 3 → awarded, others → not_selected',
-    award.body.results.every((r) => r.status === (r.rank <= PLATFORM_RULES.placementCount ? 'awarded' : 'not_selected')),
+    award.body.results.every((r) => r.status === (r.rank !== null && r.rank <= PLATFORM_RULES.placementCount ? 'awarded' : 'not_selected')),
   );
   check('challenge.status = awarded (+ awardedAt)', award.body.challenge.status === 'awarded' && !!award.body.challenge.awardedAt);
   const evAward = await sse.waitFor((e) => e.type === 'challenge.awarded');

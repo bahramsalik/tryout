@@ -390,7 +390,8 @@ export interface ScoreSubmissionInput {
 
 export interface AwardResponse {
   challenge: ChallengeView;
-  results: { submissionId: string; studentId: string; rank: number; status: SubmissionStatus }[];
+  /** `rank` is null when the challenge has no award: nobody is ranked. */
+  results: { submissionId: string; studentId: string; rank: number | null; status: SubmissionStatus }[];
 }
 
 export interface FilePreview {
@@ -438,7 +439,7 @@ export type ServerEvent =
     }
   | { type: 'submission.created'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null } }
   | { type: 'submission.scored'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null; totalScore: number } }
-  | { type: 'challenge.awarded'; payload: { challengeId: string; companyId: string | null; results: { studentId: string; rank: number; placed: boolean }[] } }
+  | { type: 'challenge.awarded'; payload: { challengeId: string; companyId: string | null; results: { studentId: string; rank: number | null; placed: boolean }[] } }
   | { type: 'notification.created'; payload: { notification: Notification } }
   | { type: 'system.reset'; payload: Record<string, never> };
 

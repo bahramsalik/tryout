@@ -9,6 +9,7 @@ import path from 'node:path';
 import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
+  placementsFor,
   TYPE_META,
   computeTotalScore,
   type Challenge,
@@ -348,7 +349,7 @@ export function buildSeed(content: SeedContent, contentHash: string, now = Date.
     for (const s of genJoiners) join(s.id, windowStart + Math.pow(r.next(), 1.4) * span);
 
     const mine = submissions.filter((s) => s.challengeId === cs.id);
-    if (isAwarded) applyAward(computeAward(challenge, mine));
+    if (isAwarded) applyAward(computeAward(challenge, mine), placementsFor(challenge) > 0);
 
     if (cs.starterFiles.length > 0) files.set(`starters/${cs.id}.zip`, buildZip(cs.starterFiles));
 

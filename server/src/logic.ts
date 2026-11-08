@@ -63,10 +63,10 @@ export function computeAward(challenge: Challenge, subs: SubmissionRecord[]): Aw
   });
 }
 
-/** Mutates the submissions in place. */
-export function applyAward(lines: AwardLine[]): void {
+/** Mutates the submissions in place. Ranks are only stored when the challenge has an award; otherwise nobody is ranked. */
+export function applyAward(lines: AwardLine[], awardOn: boolean): void {
   for (const l of lines) {
-    l.sub.rank = l.rank;
+    if (awardOn) l.sub.rank = l.rank;
     l.sub.status = l.status;
   }
 }

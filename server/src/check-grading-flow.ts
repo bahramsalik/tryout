@@ -152,6 +152,18 @@ await test('a recruiter scoring it replaces the AI grade and verifies it', () =>
   assert.equal(after.verified, true);
 });
 
+await test('publishing a challenge with no award ranks nobody and awards nothing', () => {
+  ch.placements = 0;
+  const placeNotificationsBefore = db.notifications.filter((n: Notification) => n.title.includes(' place')).length;
+  const res = actions.awardChallenge(employerP, ch);
+  const mine = db.submissions.filter((x) => x.challengeId === ch.id);
+  assert.ok(mine.length > 1);
+  assert.ok(mine.every((x) => x.rank === null), 'no stored ranks');
+  assert.ok(mine.every((x) => x.status !== 'awarded'), 'nobody placed');
+  assert.ok(res.results.every((r) => r.rank === null && r.status !== 'awarded'));
+  assert.equal(db.notifications.filter((n: Notification) => n.title.includes(' place')).length, placeNotificationsBefore, 'no "place" notifications');
+});
+
 await test('leaves work "delayed" instead of inventing a score when the API fails', async () => {
   mode = 'fail';
   const clone = { ...sub, id: 'sub_delayed_test', totalScore: null, scores: null, feedback: null, scoredAt: null, reviewer: null, status: 'submitted' as const, gradingState: 'grading' as const };

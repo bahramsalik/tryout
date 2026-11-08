@@ -6,6 +6,7 @@
 import {
   PLATFORM_RULES,
   computeTotalScore,
+  placementsFor,
   type AwardResponse,
   type Challenge,
   type ChallengeView,
@@ -438,14 +439,15 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
     );
   }
   const lines = computeAward(ch, subs);
-  applyAward(lines);
+  const awardOn = placementsFor(ch) > 0; // an award is optional: without one nobody is ranked
+  applyAward(lines, awardOn);
   ch.status = 'awarded';
   ch.awardedAt = nowIso();
 
   const events: ServerEvent[] = [
     {
       type: 'challenge.awarded',
-      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank, placed: l.status === 'awarded' })) },
+      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: awardOn ? l.rank : null, placed: l.status === 'awarded' })) },
     },
   ];
   for (const l of lines) {
@@ -453,7 +455,7 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
       notification(events, {
         recipientId: l.sub.studentId,
         kind: 'awarded',
-        title: `${ordinal(l.rank)} place`,
+        title: `${ordinal(l.rank)} place`, // only placed when an award is on, so the rank is real
         body: bodyTitle(ch.title),
         link: `/challenges/${ch.id}`,
       });
@@ -470,7 +472,7 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
   commit(events);
   return {
     challenge: challengeView(ch, p),
-    results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: l.rank, status: l.status })),
+    results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: awardOn ? l.rank : null, status: l.status })),
   };
 }
 

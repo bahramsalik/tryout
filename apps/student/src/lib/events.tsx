@@ -129,7 +129,7 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const info = findChallengeAnywhere(queryClient, me, challengeId);
           const title = info?.title ?? 'your challenge';
           const go = () => navigateRef.current(`/challenges/${challengeId}`);
-          if (mine?.placed) {
+          if (mine?.placed && mine.rank !== null) {
             celebrate();
             toast.success(`${ordinal(mine.rank)} place`, {
               description: title,
