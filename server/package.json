@@ -8,9 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "tsx watch --clear-screen=false --include \"../shared/**/*.ts\" src/index.ts",
-    "start": "tsx src/index.ts",
-    "seed": "tsx src/seed-cli.ts",
+    "dev": "tsx --env-file-if-exists=.env watch --clear-screen=false --include \"../shared/**/*.ts\" src/index.ts",
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
+    "seed": "tsx --env-file-if-exists=.env src/seed-cli.ts",
     "check-content": "tsx src/check-content.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "smoke": "tsx smoke/smoke.ts"
