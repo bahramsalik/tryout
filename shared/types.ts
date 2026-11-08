@@ -85,6 +85,8 @@ export const PLATFORM_RULES = {
   generatedScoreCeiling: 85,
   /** Top finishers who get a placement medal when results are published. */
   placementCount: 3,
+  /** AI-graded scores at or above this go to the recruiter to confirm or adjust; lower ones stay with the AI. */
+  reviewThreshold: 75,
   defaultDeadlineDays: 7,
 } as const;
 
@@ -209,6 +211,8 @@ export interface ChallengeView extends Omit<Challenge, 'starterFiles'> {
   viewer?: ChallengeViewer;
   /** Average total of scored submissions. Only present for the owning company's employers. Added by S1. */
   avgScore?: number | null;
+  /** Only for the owning company's employers: submissions that need a recruiter (ungraded, or AI-graded at or above the review threshold and not yet confirmed). */
+  toReview?: number;
 }
 
 export type ChallengeSummary = Pick<
@@ -526,6 +530,12 @@ export interface SeedContent {
 }
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
+
+/** True when a recruiter should look at this submission: nothing graded yet, or a strong AI grade nobody has confirmed. */
+export function needsRecruiterReview(s: { totalScore: number | null; reviewer: ReviewerKind | null; verifiedBy?: string | null }): boolean {
+  if (s.totalScore === null) return true;
+  return s.reviewer === 'ai' && !s.verifiedBy && s.totalScore >= PLATFORM_RULES.reviewThreshold;
+}
 
 /** A result is "verified" when a person confirmed it: the employer scored it, or someone confirmed an AI grade. */
 export function isVerified(s: { reviewer: ReviewerKind | null; verifiedBy?: string | null }): boolean {

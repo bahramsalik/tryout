@@ -10,6 +10,7 @@ import {
   CHALLENGE_TYPES,
   PLATFORM_RULES,
   isVerified,
+  needsRecruiterReview,
   type ActivityItem,
   type Challenge,
   type ChallengeSummary,
@@ -113,6 +114,7 @@ export function challengeView(ch: Challenge, viewer: Persona | null): ChallengeV
   if (isOwner(viewer, ch)) {
     const avg = mean(scored.map((s) => s.totalScore ?? 0));
     view.avgScore = avg === null ? null : Math.round(avg);
+    view.toReview = subs.filter(needsRecruiterReview).length;
   }
   return view;
 }

@@ -21,6 +21,7 @@ import {
   markAllRead,
   markRead,
   scoreSubmission,
+  verifySubmission,
   setShortlisted,
   submitWork,
   updateChallenge,
@@ -419,6 +420,13 @@ export function createApp() {
       throw badRequest('INVALID_SCORES', 'Send { scores: { <criterionId>: 1–5 }, feedback }.');
     }
     res.json(scoreSubmission(p, sub, parseBody(scoreSchema, body)));
+  });
+
+  api.post('/submissions/:id/verify', (req, res) => {
+    const sub = submissionById(param(req, 'id'));
+    if (!sub) throw notFound('SUBMISSION_NOT_FOUND', `No submission ${param(req, 'id')}.`);
+    const p = mustOwner(req, mustChallenge(sub.challengeId));
+    res.json(verifySubmission(p, sub));
   });
 
   api.post('/submissions/:id/shortlist', (req, res) => {

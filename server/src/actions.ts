@@ -404,6 +404,18 @@ export function scoreSubmission(p: EmployerPersona, sub: SubmissionRecord, input
   return submissionView(sub, p);
 }
 
+/** A recruiter confirms an AI grade as it is. The result becomes Verified; the scores are untouched. */
+export function verifySubmission(p: EmployerPersona, sub: SubmissionRecord): SubmissionView {
+  const ch = challengeById(sub.challengeId)!;
+  if (sub.totalScore === null) throw conflict('NOT_GRADED', 'There is nothing to confirm yet.');
+  if (sub.reviewer === 'employer' || sub.verifiedBy) return submissionView(sub, p);
+  sub.verifiedBy = p.id;
+  commit([
+    { type: 'submission.scored', payload: { submissionId: sub.id, challengeId: ch.id, studentId: sub.studentId, companyId: ch.companyId, totalScore: sub.totalScore } },
+  ]);
+  return submissionView(sub, p);
+}
+
 export function setShortlisted(p: EmployerPersona, sub: SubmissionRecord, shortlisted: boolean): SubmissionView {
   sub.shortlisted = shortlisted;
   const ch = challengeById(sub.challengeId)!;

@@ -73,7 +73,7 @@ const { getDb } = await import('./store.ts');
 const actions = await import('./actions.ts');
 const views = await import('./views.ts');
 const { writeUpload } = await import('./store.ts');
-const { computeTotalScore } = await import('../../shared/types.ts');
+const { computeTotalScore, needsRecruiterReview } = await import('../../shared/types.ts');
 
 await initData();
 const db = getDb();
@@ -125,6 +125,23 @@ await test('shows the result to the student straight away, unverified', () => {
 await test('notifies the student', () => {
   const n = db.notifications.find((x: Notification) => x.recipientId === student.id && x.title.startsWith('Graded'));
   assert.ok(n, 'a "Graded" notification');
+});
+
+await test('puts a strong AI grade in the recruiter queue', () => {
+  assert.ok(sub.totalScore! >= 75);
+  assert.equal(needsRecruiterReview(sub), true);
+  assert.ok((views.challengeView(ch, employerP).toReview ?? 0) >= 1);
+});
+
+await test('confirming keeps the AI scores and makes the result verified', () => {
+  const before = { total: sub.totalScore, scores: { ...sub.scores } };
+  const after = actions.verifySubmission(employerP, sub);
+  assert.equal(sub.reviewer, 'ai');
+  assert.equal(sub.verifiedBy, employer.id);
+  assert.equal(sub.totalScore, before.total);
+  assert.deepEqual(sub.scores, before.scores);
+  assert.equal(after.verified, true);
+  assert.equal(needsRecruiterReview(sub), false);
 });
 
 await test('a recruiter scoring it replaces the AI grade and verifies it', () => {
