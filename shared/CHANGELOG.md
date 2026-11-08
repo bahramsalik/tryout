@@ -5,6 +5,7 @@ Only the API session (S1) edits it, and only additively. Log every change here, 
 
 | Date/time | Change | Why | Frontends need to… |
 |---|---|---|---|
+| 2026-11-08 | `Challenge.prizePool?: number` and `CreateChallengeInput.prizePool?` (whole dollars, needs `placements` above 0), `Submission.prize?: number`, helpers `prizeForPlace` and `prizeTotal`; `POST /challenges/:id/award` returns 409 `PRIZE_NEEDS_VERIFIED` until every prize place is Verified | Optional prizes, paid (simulated) to Verified winners only | Optional: show the prize on cards and on a winner's result |
 | 2026-11-08 | **Removed** interview invites: `InterviewInvite`, `InviteView`, `InviteStatus`, `CreateInviteInput`, `invite.created` / `invite.updated` events, notification kinds `interview` and `invite_response`, activity kind `invite`, `kpis.interviewsSent`, and the `/invites` and `/me/invites` endpoints | A strong result is a certificate, not a ticket to an interview | Drop any invite UI |
 | 2026-11-08 | **Removed** rewards: `Reward`, `RewardMode`, `rewardTotal`, `payout`, `bountiesEarned`, `kpis.bountiesOpen` / `bountiesPaid`, `PLATFORM_RULES.platformFeePct`; added `PLATFORM_RULES.placementCount` (top finishers get a medal) | Tryout is a certificate, not a bounty platform | Drop any reward or payout UI |
 | 2026-11-07 (S8) | Values only: `TYPE_META` colors → Fluent palette (≥ 4.5:1 on white and on `softBg`), matching light `softBg`, `blurb` ≤ 5 words with no period | SPEC-FLUENT §6 text diet + Fluent 2 | Nothing; don't add a period after `blurb` |
