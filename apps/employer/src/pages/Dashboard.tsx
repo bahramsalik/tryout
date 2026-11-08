@@ -20,18 +20,18 @@ export function DashboardPage() {
       {isError ? (
         <ErrorState error={error} onRetry={() => refetch()} />
       ) : (
-        <>
-          <Kpis data={data} loading={isPending} />
-          <div className="mt-4 grid gap-4 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid items-start gap-4 @5xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0 space-y-4">
+            <Kpis data={data} loading={isPending} />
             <ChallengesTable
               challenges={data?.challenges.filter((c) => c.status !== 'awarded')}
               loading={isPending}
               title="Ongoing challenges"
               emptyTitle="No ongoing challenges"
             />
-            <ActivityFeed items={data?.recentActivity} loading={isPending} />
           </div>
-        </>
+          <ActivityFeed items={data?.recentActivity} loading={isPending} />
+        </div>
       )}
     </div>
   );
@@ -40,7 +40,7 @@ export function DashboardPage() {
 function Kpis({ data, loading }: { data: EmployerDashboard | undefined; loading: boolean }) {
   const k = data?.kpis;
   return (
-    <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 @3xl:grid-cols-3">
+    <section aria-label="Key numbers" className="grid grid-cols-3 gap-3">
       <StatTile label="Submissions" value={k?.totalSubmissions ?? 0} loading={loading} icon={<Inbox aria-hidden />} />
       <StatTile label="To review" value={k?.awaitingReview ?? 0} loading={loading} icon={<ClipboardCheck aria-hidden />} />
       <StatTile label="Active challenges" value={k?.activeChallenges ?? 0} loading={loading} icon={<Trophy aria-hidden />} />
