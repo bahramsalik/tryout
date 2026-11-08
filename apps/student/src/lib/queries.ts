@@ -104,6 +104,19 @@ export function useJoinChallenge() {
   });
 }
 
+/** Marks one notification read right away (when it is clicked). */
+export function useMarkRead() {
+  const { personaId } = usePersona();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.readNotification(id),
+    onMutate: (id) => {
+      queryClient.setQueryData<Notification[]>(qk.notifications(personaId), (list) => list?.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    },
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+}
+
 export function useMarkAllRead() {
   const { personaId } = usePersona();
   const queryClient = useQueryClient();

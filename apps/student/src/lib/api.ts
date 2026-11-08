@@ -158,6 +158,7 @@ export const api = {
     request<StudentProfile>(`/students/${encodeURIComponent(idOrHandle)}`, { signal }),
   notifications: (signal?: AbortSignal) => request<Notification[]>('/notifications', { signal }),
   readAllNotifications: () => request<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
+  readNotification: (id: string) => request<Notification>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
   coach: (input: CoachRequest) => request<CoachResponse>('/ai/coach', { method: 'POST', body: input }),
 };
 

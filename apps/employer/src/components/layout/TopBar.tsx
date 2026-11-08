@@ -60,6 +60,13 @@ function NotificationBell() {
   const markedRef = useRef(false);
   const wasOpen = useRef(false);
 
+  const readOne = useMutation({
+    mutationFn: (id: string) => api<Notification>(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' }),
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Notification[]>(qk.notifications, (prev) => prev?.map((n) => (n.id === updated.id ? { ...n, read: true } : n)));
+    },
+  });
+
   const readAll = useMutation({
     mutationFn: () => api<{ ok: true }>('/notifications/read-all', { method: 'POST' }),
     onSuccess: () => {
@@ -152,6 +159,7 @@ function NotificationBell() {
                       <button
                         type="button"
                         onClick={() => {
+                          if (!n.read) readOne.mutate(n.id);
                           close();
                           if (n.link) navigate(n.link);
                         }}
