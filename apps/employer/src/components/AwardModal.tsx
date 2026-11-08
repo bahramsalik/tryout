@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { PLATFORM_RULES, type AwardResponse, type ChallengeView, type SubmissionView } from '@shared/types';
+import { placementsFor, type AwardResponse, type ChallengeView, type SubmissionView } from '@shared/types';
 import { api } from '@/lib/api';
 import { qk, queryClient, isScored, rankSubmissions } from '@/lib/queries';
 import { Avatar, MedalBadge, ScorePill } from './brand';
@@ -43,7 +43,7 @@ function AwardFlow({
   const [result, setResult] = useState<AwardResponse | null>(null);
   const ranked = useMemo(() => rankSubmissions(submissions), [submissions]);
   const unscored = submissions.filter((s) => !isScored(s) || !s.feedback?.trim());
-  const podium = ranked.slice(0, PLATFORM_RULES.placementCount);
+  const podium = ranked.slice(0, placementsFor(challenge));
   const byStudent = useMemo(() => new Map(submissions.map((s) => [s.studentId, s])), [submissions]);
 
   const award = useMutation({
@@ -85,7 +85,7 @@ function AwardFlow({
   /* ── Done: identities revealed ── */
   if (result) {
     const results = [...result.results].sort((a, b) => a.rank - b.rank);
-    const shown = results.slice(0, PLATFORM_RULES.placementCount);
+    const shown = results.slice(0, placementsFor(challenge));
     return (
       <>
         <DialogHeader id="award-title" title="Results published" onClose={onClose} />

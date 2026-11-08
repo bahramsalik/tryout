@@ -245,8 +245,9 @@ const ORDINAL = ['', '1st', '2nd', '3rd'];
 export const MEDAL_COLOR: Record<number, string> = { 1: '#C19C00', 2: '#7A7574', 3: '#A74109' };
 
 /** `1st` / `2nd` / `3rd` badge with a colored Fluent trophy; plain rank number after that. */
-export function MedalBadge({ rank, className }: { rank: number; className?: string }) {
-  if (rank > 3) {
+/** `medal` = this rank earns a placement medal (a challenge can turn medals off); otherwise just "#rank". */
+export function MedalBadge({ rank, medal = true, className }: { rank: number; medal?: boolean; className?: string }) {
+  if (rank > 3 || !medal) {
     return <span className={cn('inline-block w-10 text-sm text-[var(--colorNeutralForeground3)] tabular-nums', className)}>#{rank}</span>;
   }
   return (

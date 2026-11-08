@@ -272,7 +272,7 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
           </div>
           {readOnly && sub.rank != null && (
             <div className="px-4 pt-1">
-              <MedalBadge rank={sub.rank} />
+              <MedalBadge rank={sub.rank} medal={sub.status === 'awarded'} />
             </div>
           )}
 

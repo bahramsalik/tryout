@@ -112,7 +112,7 @@ function HistoryRow({ item: h }: { item: ProfileHistoryItem }) {
         {h.feedbackExcerpt && <p className="mt-1 truncate text-sm text-slate-700">{h.feedbackExcerpt}</p>}
       </div>
       <div className="flex shrink-0 items-start gap-3 text-sm">
-        {h.rank != null && h.rank <= 3 && <MedalBadge rank={h.rank} />}
+        {h.status === 'awarded' && h.rank != null && <MedalBadge rank={h.rank} />}
         {h.totalScore != null ? <ScorePill score={h.totalScore} className="text-right" /> : <span className="text-slate-500">–</span>}
       </div>
     </div>

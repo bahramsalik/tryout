@@ -40,7 +40,7 @@ function ResultRow({ s }: { s: SubmissionView }) {
       }
       end={
         <span className="flex items-center gap-2">
-          <RankBadge rank={s.rank} />
+          <RankBadge rank={s.rank} placed={s.status === 'awarded'} />
           {s.totalScore !== null ? <span className="w-8 text-right text-subtitle2 font-semibold tabular-nums">{s.totalScore}</span> : null}
         </span>
       }

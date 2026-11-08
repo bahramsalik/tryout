@@ -98,7 +98,7 @@ function ResultCard({ c, sub }: { c: ChallengeView; sub: SubmissionView | undefi
     <Card className="space-y-4 p-5">
       <div className="flex flex-wrap items-center gap-3">
         {sub.totalScore !== null ? <Score score={sub.totalScore} /> : null}
-        <RankBadge rank={sub.rank} />
+        <RankBadge rank={sub.rank} placed={sub.status === 'awarded'} />
         <span className="ml-auto text-caption text-fg3">{coach ? 'Coach review' : `Scored by ${c.company?.name ?? 'employer'}`}</span>
       </div>
       <CriterionScores rubric={c.rubric} scores={sub.scores} />

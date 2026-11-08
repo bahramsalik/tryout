@@ -138,10 +138,12 @@ export function Placements({ first, second, third }: { first: number; second: nu
   );
 }
 
-export function RankBadge({ rank, className }: { rank: number | null; className?: string }) {
+/** `placed` = the submission earned a placement medal (a challenge can turn medals off). */
+export function RankBadge({ rank, placed = true, className }: { rank: number | null; placed?: boolean; className?: string }) {
   if (!rank) return null;
+  const medal = placed && rank <= 3;
   return (
-    <Badge color={rank === 1 ? 'warning' : 'neutral'} icon={rank <= 3 ? Trophy16Filled : undefined} className={className}>
+    <Badge color={medal && rank === 1 ? 'warning' : 'neutral'} icon={medal ? Trophy16Filled : undefined} className={className}>
       {ordinal(rank)}
     </Badge>
   );

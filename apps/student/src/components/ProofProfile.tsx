@@ -25,7 +25,7 @@ function HistoryRow({ h, linkable }: { h: ProfileHistoryItem; linkable: boolean 
       </div>
       <span className="flex shrink-0 items-center gap-2">
         {!published ? <Badge color="brand">Under review</Badge> : null}
-        <RankBadge rank={h.rank} />
+        <RankBadge rank={h.rank} placed={h.status === 'awarded'} />
         {published ? <span className="w-8 text-right text-subtitle2 font-semibold tabular-nums">{h.totalScore}</span> : null}
       </span>
     </li>

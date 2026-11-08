@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import { PLATFORM_RULES, type ChallengeView, type Notification, type ServerEvent, type ServerEventType } from '@shared/types';
+import { type ChallengeView, type Notification, type ServerEvent, type ServerEventType } from '@shared/types';
 import { eventsUrl } from './api';
 import { celebrate } from './confetti';
 import { ordinal } from './format';
@@ -129,7 +129,7 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const info = findChallengeAnywhere(queryClient, me, challengeId);
           const title = info?.title ?? 'your challenge';
           const go = () => navigateRef.current(`/challenges/${challengeId}`);
-          if (mine && mine.rank <= PLATFORM_RULES.placementCount) {
+          if (mine?.placed) {
             celebrate();
             toast.success(`${ordinal(mine.rank)} place`, {
               description: title,

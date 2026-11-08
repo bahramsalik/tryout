@@ -350,7 +350,7 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
   const events: ServerEvent[] = [
     {
       type: 'challenge.awarded',
-      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank })) },
+      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank, placed: l.status === 'awarded' })) },
     },
   ];
   for (const l of lines) {

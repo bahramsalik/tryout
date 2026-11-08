@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Trophy } from '@/components/icons';
-import { TYPE_META, type ChallengeView, type SubmissionView } from '@shared/types';
+import { TYPE_META, placementsFor, type ChallengeView, type SubmissionView } from '@shared/types';
 import { ApiError } from '@/lib/api';
 import { dateTime, timeAgo, timeLeft } from '@/lib/format';
 import { useDocumentTitle } from '@/lib/hooks';
@@ -339,7 +339,7 @@ function LeaderboardTab({
               const name = blind ? s.alias : s.student.name;
               return (
                 <li key={s.id} className="flex items-center gap-3 border-b border-slate-200 px-3 py-2 last:border-0 @xl:px-4">
-                  <MedalBadge rank={rank} />
+                  <MedalBadge rank={rank} medal={rank <= placementsFor(challenge)} />
                   <Link
                     to={blind ? `/challenges/${challenge.id}/review/${s.id}` : `/candidates/${s.student.handle || s.studentId}`}
                     className="flex min-w-0 flex-1 items-center gap-2.5 hover:underline"
