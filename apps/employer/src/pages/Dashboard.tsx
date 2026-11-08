@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { ClipboardCheck, Inbox, Mail, Trophy, UserPlus } from '@/components/icons';
-import type { ActivityItem, ChallengeView, EmployerDashboard } from '@shared/types';
+import { Check, ClipboardCheck, Filter, Inbox, Mail, Trophy, UserPlus } from '@/components/icons';
+import { CHALLENGE_TYPES, TYPE_META, type ActivityItem, type ChallengeType, type ChallengeView, type EmployerDashboard } from '@shared/types';
 import { timeAgo } from '@/lib/format';
 import { useDocumentTitle, useNewIds } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
 import { useDashboard } from '@/lib/queries';
 import { Countdown, StatusBadge, TypeIcon, useNow } from '@/components/brand';
 import { StatTile } from '@/components/StatTile';
-import { Badge, ButtonLink, Card, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui';
+import { MenuItem, MenuSeparator, Popover } from '@/components/overlay';
+import { Badge, Button, ButtonLink, Card, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui';
 
 export function DashboardPage() {
   const { company } = usePersona();
@@ -50,15 +52,72 @@ const th = 'px-3 py-2 text-left text-xs font-semibold text-slate-500';
 function ChallengesTable({ challenges, loading }: { challenges: ChallengeView[] | undefined; loading: boolean }) {
   const navigate = useNavigate();
   useNow(60_000);
-  const sorted = [...(challenges ?? [])].sort((a, b) => {
-    const rank = (c: ChallengeView) => (c.status === 'awarded' ? 1 : 0);
-    if (rank(a) !== rank(b)) return rank(a) - rank(b);
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  const [type, setType] = useState<ChallengeType | 'all'>('all');
+  const [order, setOrder] = useState<'newest' | 'oldest'>('newest');
+  const all = challenges ?? [];
+  const types = CHALLENGE_TYPES.filter((t) => all.some((c) => c.type === t));
+  const dir = order === 'newest' ? -1 : 1;
+  const sorted = all
+    .filter((c) => type === 'all' || c.type === type)
+    .sort((a, b) => {
+      const rank = (c: ChallengeView) => (c.status === 'awarded' ? 1 : 0);
+      if (rank(a) !== rank(b)) return rank(a) - rank(b);
+      return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    });
+  const active = (type !== 'all' ? 1 : 0) + (order !== 'newest' ? 1 : 0);
+  const tick = (on: boolean) => (on ? <Check className="size-4" aria-hidden /> : null);
 
   return (
-    <Card className="@container min-w-0 self-start overflow-hidden">
-      <CardHeader title="Challenges" />
+    <Card className="@container min-w-0 self-start">
+      <CardHeader
+        title="Challenges"
+        actions={
+          <Popover
+            placement="bottom-end"
+            panelClassName="w-56"
+            trigger={(p) => (
+              <Button size="sm" icon={<Filter />} onClick={p.toggle} aria-expanded={p['aria-expanded']} aria-haspopup={p['aria-haspopup']}>
+                Filter{active > 0 ? ` · ${active}` : ''}
+              </Button>
+            )}
+          >
+            {() => (
+              <>
+                <p className="px-2 pt-1 pb-0.5 text-xs font-semibold text-slate-500">Field</p>
+                <MenuItem active={type === 'all'} hint={tick(type === 'all')} onSelect={() => setType('all')}>
+                  All fields
+                </MenuItem>
+                {types.map((t) => (
+                  <MenuItem key={t} active={type === t} hint={tick(type === t)} onSelect={() => setType(t)}>
+                    {TYPE_META[t].label}
+                  </MenuItem>
+                ))}
+                <MenuSeparator />
+                <p className="px-2 pt-1 pb-0.5 text-xs font-semibold text-slate-500">Posted</p>
+                <MenuItem active={order === 'newest'} hint={tick(order === 'newest')} onSelect={() => setOrder('newest')}>
+                  Newest first
+                </MenuItem>
+                <MenuItem active={order === 'oldest'} hint={tick(order === 'oldest')} onSelect={() => setOrder('oldest')}>
+                  Oldest first
+                </MenuItem>
+                {active > 0 && (
+                  <>
+                    <MenuSeparator />
+                    <MenuItem
+                      onSelect={() => {
+                        setType('all');
+                        setOrder('newest');
+                      }}
+                    >
+                      Clear filter
+                    </MenuItem>
+                  </>
+                )}
+              </>
+            )}
+          </Popover>
+        }
+      />
       {loading ? (
         <div className="space-y-3 p-4">
           {[0, 1, 2].map((i) => (
@@ -68,7 +127,7 @@ function ChallengesTable({ challenges, loading }: { challenges: ChallengeView[] 
       ) : sorted.length === 0 ? (
         <EmptyState title="No challenges yet" />
       ) : (
-        <div className="scrollbar-thin overflow-x-auto">
+        <div className="scrollbar-thin overflow-x-auto rounded-b-[inherit]">
           <table className="w-full min-w-[26rem] table-fixed text-sm">
             <thead>
               <tr className="border-b border-slate-200">
