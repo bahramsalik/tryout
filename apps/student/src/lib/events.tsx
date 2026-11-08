@@ -200,9 +200,18 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
     let es: EventSource | null = null;
     let hadError = false;
     let closed = false;
+    // Hosted API (Lambda) answers each stream like a poll and sends `rotate` before a planned close.
+    let rotating = false;
+    let polling = false;
+    let lastId = '';
+    let retryTimer: number | undefined;
 
     const connect = () => {
-      es = new EventSource(eventsUrl());
+      window.clearTimeout(retryTimer);
+      const url = eventsUrl();
+      // Resume after the last event seen, so a manual reconnect misses nothing.
+      es = new EventSource(lastId ? `${url}${url.includes('?') ? '&' : '?'}lastEventId=${encodeURIComponent(lastId)}` : url);
+      const self = es;
       es.onopen = () => {
         setStatus('live');
         if (hadError) {
@@ -212,12 +221,24 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
         }
       };
       es.onerror = () => {
-        if (closed) return;
+        if (closed || es !== self) return;
+        if (rotating) {
+          rotating = false;
+          return;
+        }
         hadError = true;
         setStatus('reconnecting');
+        // A refused reconnect (e.g. throttled) closes the EventSource for good, so retry by hand.
+        if (self.readyState === EventSource.CLOSED) retryTimer = window.setTimeout(connect, 3000);
       };
+      es.addEventListener('rotate', (e) => {
+        rotating = true;
+        polling = true;
+        lastId = (e as MessageEvent).lastEventId || lastId;
+      });
       for (const type of EVENT_TYPES) {
         es.addEventListener(type, (e) => {
+          lastId = (e as MessageEvent).lastEventId || lastId;
           try {
             const data = (e as MessageEvent).data ? JSON.parse((e as MessageEvent).data) : {};
             void handleRef.current(normalize(type, data));
@@ -237,9 +258,24 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
       };
     };
 
+    // When polling, a hidden tab stops asking and catches up (replayed events) once shown again.
+    const onVisibility = () => {
+      if (!polling || closed) return;
+      if (document.hidden) {
+        window.clearTimeout(retryTimer);
+        es?.close();
+        es = null;
+      } else if (!es) {
+        connect();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
     connect();
     return () => {
       closed = true;
+      window.clearTimeout(retryTimer);
+      document.removeEventListener('visibilitychange', onVisibility);
       es?.close();
     };
   }, [queryClient]);

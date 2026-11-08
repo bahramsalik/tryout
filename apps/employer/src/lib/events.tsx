@@ -53,24 +53,15 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let disposed = false;
     let hadError = false;
-    const es = new EventSource(`${API_BASE}/events`);
-
-    es.onopen = () => {
-      if (disposed) return;
-      setStatus('live');
-      if (hadError) {
-        // Catch up on anything missed while disconnected.
-        hadError = false;
-        void queryClient.invalidateQueries();
-      }
-    };
-    es.onerror = () => {
-      if (disposed) return;
-      hadError = true;
-      setStatus(es.readyState === EventSource.CLOSED ? 'offline' : 'connecting');
-    };
+    // Hosted API (Lambda) answers each stream like a poll and sends `rotate` before a planned close.
+    let rotating = false;
+    let polling = false;
+    let lastId = '';
+    let retryTimer: number | undefined;
+    let es: EventSource | null = null;
 
     const handle = (type: ServerEventType) => (e: MessageEvent<string>) => {
+      lastId = e.lastEventId || lastId;
       let parsed: unknown;
       try {
         parsed = JSON.parse(e.data);
@@ -89,11 +80,56 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const listeners = EVENT_TYPES.map((type) => {
-      const fn = handle(type);
-      es.addEventListener(type, fn as EventListener);
-      return [type, fn] as const;
-    });
+    const listeners = EVENT_TYPES.map((type) => [type, handle(type)] as const);
+    const onRotate = (e: MessageEvent<string>) => {
+      rotating = true;
+      polling = true;
+      lastId = e.lastEventId || lastId;
+    };
+
+    function connect() {
+      window.clearTimeout(retryTimer);
+      const base = `${API_BASE}/events`;
+      // Resume after the last event seen, so a manual reconnect misses nothing.
+      const next = new EventSource(lastId ? `${base}?lastEventId=${encodeURIComponent(lastId)}` : base);
+      es = next;
+      next.onopen = () => {
+        if (disposed) return;
+        setStatus('live');
+        if (hadError) {
+          // Catch up on anything missed while disconnected.
+          hadError = false;
+          void queryClient.invalidateQueries();
+        }
+      };
+      next.onerror = () => {
+        if (disposed || es !== next) return;
+        if (rotating) {
+          rotating = false;
+          return;
+        }
+        hadError = true;
+        setStatus(next.readyState === EventSource.CLOSED ? 'offline' : 'connecting');
+        // A refused reconnect (e.g. throttled) closes the EventSource for good, so retry by hand.
+        if (next.readyState === EventSource.CLOSED) retryTimer = window.setTimeout(connect, 3000);
+      };
+      next.addEventListener('rotate', onRotate as EventListener);
+      for (const [type, fn] of listeners) next.addEventListener(type, fn as EventListener);
+    }
+
+    // When polling, a hidden tab stops asking and catches up (replayed events) once shown again.
+    const onVisibility = () => {
+      if (!polling || disposed) return;
+      if (document.hidden) {
+        window.clearTimeout(retryTimer);
+        es?.close();
+        es = null;
+      } else if (!es) {
+        connect();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    connect();
 
     function onEvent(evt: ServerEvent) {
       const mine = companyRef.current;
@@ -210,8 +246,9 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
 
     return () => {
       disposed = true;
-      for (const [type, fn] of listeners) es.removeEventListener(type, fn as EventListener);
-      es.close();
+      window.clearTimeout(retryTimer);
+      document.removeEventListener('visibilitychange', onVisibility);
+      es?.close();
     };
   }, []);
 

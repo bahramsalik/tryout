@@ -60,6 +60,15 @@ export interface Db {
   notifications: Notification[];
   invites: InterviewInvite[];
   content: RuntimeContent;
+  /** Cloud mode only: recent live events, replayed by /api/events to clients polling from other instances. */
+  events?: StoredEvent[];
+  eventSeq?: number;
+}
+
+export interface StoredEvent {
+  seq: number;
+  type: string;
+  payload: unknown;
 }
 
 export function emptyDb(): Db {

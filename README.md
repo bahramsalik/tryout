@@ -11,6 +11,8 @@ This is the UNHack26 prototype: **two websites on one live API**.
 | **Tryout for Employers** | http://localhost:5174 | Employers: post challenges, review blind with a rubric, pay the top performers, invite them to interview |
 | **Tryout API** | http://localhost:4000/api/health | The shared data and real-time events behind both sites |
 
+**Hosted demo:** [student site](https://main.dhjcmj9cw8mvq.amplifyapp.com) · [employer site](https://main.d19oi9e8mi2t4d.amplifyapp.com). See [Hosting](#hosting).
+
 ## The problem
 
 *How might we help university students build practical industry skills alongside their theoretical classroom knowledge, so they can land an entry-level job?*
@@ -93,6 +95,40 @@ The demo personas are **Maya Chen** (student) and **Jordan Park, Orbitline Logis
 | `npm run smoke` | End-to-end API test on a private instance (:4100) |
 | `npm run check` | Typechecks all three projects and validates the seed content |
 | `npm run build` | Production builds of both websites |
+
+## Hosting
+
+The hosted demo runs on AWS for about $0 a month.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Student site | Amplify app `tryout-student` · https://main.dhjcmj9cw8mvq.amplifyapp.com | Static build, manual deploys |
+| Employer site | Amplify app `tryout-employer` · https://main.d19oi9e8mi2t4d.amplifyapp.com | Static build, manual deploys |
+| API | Lambda `tryout-api` (arm64, Lambda Web Adapter) · https://2rxzmdleannt6n3pgpeedfpfqm0xihga.lambda-url.us-east-1.on.aws/api/health | Free tier |
+| Data | S3 bucket `tryout-api-data-224989089453` | `db.json` + submission zips |
+
+Lambda runs many short-lived copies of the API, so **cloud mode** (`TRYOUT_S3_BUCKET` set, see `server/src/cloud.ts`) keeps the data in S3 instead of on disk:
+
+- Each request pulls `db.json` if it changed, and saves changes before responding. A conditional write means two copies can't overwrite each other.
+- Live events are stored in `db.json`. `/api/events` answers each request like a poll, and the browser reconnects every 1.5 s, so toasts arrive within about 2 s.
+- A hidden tab stops polling and catches up when it's shown again.
+- Local dev is unchanged.
+
+**Reset the hosted demo:** use the employer site's ⋯ menu, or run `curl -X POST <api>/api/admin/reset`. The demo challenge's 24-hour countdown restarts from the reset.
+
+**Redeploy:**
+
+```bash
+# API
+deploy/build-lambda.sh
+aws lambda update-function-code --function-name tryout-api --zip-file fileb://deploy/out/tryout-api-lambda.zip
+
+# Sites
+export VITE_API_URL=https://2rxzmdleannt6n3pgpeedfpfqm0xihga.lambda-url.us-east-1.on.aws
+export VITE_STUDENT_URL=https://main.dhjcmj9cw8mvq.amplifyapp.com
+deploy/deploy-site.sh student dhjcmj9cw8mvq
+deploy/deploy-site.sh employer d19oi9e8mi2t4d
+```
 
 ## Built with
 

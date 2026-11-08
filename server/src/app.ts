@@ -36,7 +36,8 @@ import { clientCount, emit, sseHandler } from './events.ts';
 import { log } from './log.ts';
 import { rankScored, slugify } from './logic.ts';
 import { optionalPersona, requireEmployer, requirePersona, requireStudent, type Persona } from './persona.ts';
-import { getDb, starterPath, uploadPath } from './store.ts';
+import { cloudMode } from './cloud.ts';
+import { flushToCloud, getDb, hasPendingCloudWrites, loadUpload, pullFromCloud, starterPath } from './store.ts';
 import {
   challengeById,
   challengeView,
@@ -104,12 +105,42 @@ function mustSubmissionAccess(req: Request, id: string) {
   return { p, sub, ch };
 }
 
-function readUpload(id: string): Buffer {
-  try {
-    return fs.readFileSync(uploadPath(id));
-  } catch {
-    throw notFound('FILE_MISSING', 'Zip missing on the server. Try reseeding.');
-  }
+async function readUpload(id: string): Promise<Buffer> {
+  const buf = await loadUpload(id);
+  if (!buf) throw notFound('FILE_MISSING', 'Zip missing on the server. Try reseeding.');
+  return buf;
+}
+
+/**
+ * Cloud mode: pull the latest db before each request, and save any change before the response leaves
+ * (Lambda may freeze the instance right after). A write that lost a race becomes a 409 to retry.
+ */
+function cloudSync(req: Request, res: Response, next: NextFunction): void {
+  pullFromCloud()
+    .catch((err) => log.error(`S3 pull failed: ${err instanceof Error ? err.message : String(err)}`))
+    .finally(() => {
+      const end = res.end.bind(res) as (...a: unknown[]) => Response;
+      let flushing = false;
+      res.end = ((...args: unknown[]) => {
+        if (flushing || !hasPendingCloudWrites()) return end(...args);
+        flushing = true;
+        flushToCloud()
+          .then((ok) => {
+            if (ok || req.method === 'GET') return end(...args);
+            const body = JSON.stringify({ error: { code: 'CONFLICT', message: 'Someone saved at the same moment. Try again.' } });
+            res.statusCode = 409;
+            res.setHeader('Content-Type', 'application/json; charset=utf-8');
+            res.setHeader('Content-Length', Buffer.byteLength(body));
+            return end(body);
+          })
+          .catch((err) => {
+            log.error(`S3 write failed: ${err instanceof Error ? err.message : String(err)}`);
+            end(...args);
+          });
+        return res;
+      }) as Response['end'];
+      next();
+    });
 }
 
 function sendZip(res: Response, buf: Buffer, filename: string) {
@@ -223,6 +254,7 @@ export function createApp() {
     }),
   );
   app.use(express.json({ limit: '2mb' }));
+  if (cloudMode) app.use(cloudSync);
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     const t0 = Date.now();
@@ -384,15 +416,15 @@ export function createApp() {
     res.json(submissionView(sub, p));
   });
 
-  api.get('/submissions/:id/download', (req, res) => {
+  api.get('/submissions/:id/download', async (req, res) => {
     const { p, sub, ch } = mustSubmissionAccess(req, param(req, 'id'));
     const blind = p.kind === 'employer' && !resultsPublished(ch);
-    sendZip(res, readUpload(sub.id), blind ? `${slugify(sub.alias)}.zip` : sub.file.originalName);
+    sendZip(res, await readUpload(sub.id), blind ? `${slugify(sub.alias)}.zip` : sub.file.originalName);
   });
 
-  api.get('/submissions/:id/file', (req, res) => {
+  api.get('/submissions/:id/file', async (req, res) => {
     const { sub } = mustSubmissionAccess(req, param(req, 'id'));
-    res.json(previewZipFile(readUpload(sub.id), q(req, 'path') ?? ''));
+    res.json(previewZipFile(await readUpload(sub.id), q(req, 'path') ?? ''));
   });
 
   api.post('/submissions/:id/score', (req, res) => {

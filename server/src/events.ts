@@ -8,8 +8,14 @@
 import { randomBytes } from 'node:crypto';
 import type { Request, Response } from 'express';
 import type { ServerEvent } from '../../shared/types.ts';
+import { cloudMode } from './cloud.ts';
 import { SSE_HEARTBEAT_MS } from './config.ts';
-import { getDb } from './store.ts';
+import { getDb, persist } from './store.ts';
+
+/** Cloud mode keeps this many recent events in db.json for clients to catch up on. */
+const STORED_EVENTS = 100;
+/** Cloud mode: how long (ms) the browser waits before reopening the stream; this is the poll interval. */
+const CLOUD_RETRY_MS = 1500;
 
 const clients = new Set<Response>();
 const bootId = randomBytes(3).toString('hex');
@@ -30,6 +36,14 @@ function frame(event: ServerEvent): string {
 }
 
 export function emit(event: ServerEvent): void {
+  if (cloudMode) {
+    const db = getDb();
+    const seq = (db.eventSeq ?? 0) + 1;
+    db.eventSeq = seq;
+    db.events = [...(db.events ?? []), { seq, type: event.type, payload: event.payload }].slice(-STORED_EVENTS);
+    persist();
+    return;
+  }
   const chunk = frame(event);
   for (const res of clients) write(res, chunk);
 }
@@ -38,7 +52,38 @@ export function clientCount(): number {
   return clients.size;
 }
 
+/**
+ * Cloud mode: Lambda can't hold a stream open across instances, so each request answers like a poll.
+ * It sends the events the client hasn't seen (by Last-Event-ID), a `rotate` event telling the
+ * client this close is planned, then ends; the browser reconnects after `retry` ms.
+ */
+function cloudPoll(req: Request, res: Response): void {
+  const db = getDb();
+  const seedId = db.meta.seedId;
+  const head = db.eventSeq ?? 0;
+  const id = (seq: number) => `${seedId}.s3.${seq}`;
+  const out: string[] = [`retry: ${CLOUD_RETRY_MS}\n\n`];
+
+  const lastId = req.get('last-event-id') ?? (typeof req.query.lastEventId === 'string' ? req.query.lastEventId : '');
+  const [lastSeed, lastBoot, lastSeqRaw] = lastId.split('.');
+  const lastSeq = Number(lastSeqRaw);
+  if (lastId && lastSeed !== seedId) {
+    out.push(`id: ${id(head)}\nevent: system.reset\ndata: {}\n\n`);
+  } else if (lastId && lastBoot === 's3' && Number.isFinite(lastSeq)) {
+    for (const e of db.events ?? []) {
+      if (e.seq > lastSeq) out.push(`id: ${id(e.seq)}\nevent: ${e.type}\ndata: ${JSON.stringify(e.payload)}\n\n`);
+    }
+  }
+  out.push(`id: ${id(head)}\nevent: rotate\ndata: {}\n\n`);
+
+  res.status(200);
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.end(out.join(''));
+}
+
 export function sseHandler(req: Request, res: Response): void {
+  if (cloudMode) return cloudPoll(req, res);
   res.status(200);
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');

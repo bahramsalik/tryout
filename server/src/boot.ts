@@ -1,11 +1,12 @@
 /** Startup data flow: load + validate content, then reuse db.json or reseed when the content hash changed. */
 import type { SeedContent } from '../../shared/types.ts';
+import * as cloud from './cloud.ts';
 import { DB_FILE, SEED_VERSION } from './config.ts';
 import { loadContent } from './content.ts';
 import { HttpError } from './errors.ts';
 import { log } from './log.ts';
 import { buildSeed, writeSeedFiles, type SeedSummary } from './seed.ts';
-import { getDb, persist, readDbFile, replaceDb } from './store.ts';
+import { flushToCloud, getDb, persist, pullFromCloud, readDbFile, replaceDb } from './store.ts';
 
 let current: { content: SeedContent; hash: string } | null = null;
 
@@ -29,6 +30,9 @@ export function reseed(): SeedSummary {
   const t0 = Date.now();
   const out = buildSeed(current.content, current.hash);
   writeSeedFiles(out.files);
+  if (cloud.cloudMode) {
+    for (const [rel, buf] of out.files) if (!rel.startsWith('starters/')) cloud.queueUpload(rel, buf);
+  }
   replaceDb(out.db);
   persist();
   const s = out.summary;
@@ -41,6 +45,7 @@ export function reseed(): SeedSummary {
 
 export async function initData(opts: { forceReseed?: boolean } = {}): Promise<void> {
   const loaded = await loadContent();
+  if (cloud.cloudMode) return initCloudData(loaded);
   const existing = readDbFile();
   if (loaded.ok) {
     current = { content: loaded.content, hash: loaded.hash };
@@ -73,6 +78,29 @@ export async function initData(opts: { forceReseed?: boolean } = {}): Promise<vo
     log.error('No previous db.json either: serving an EMPTY dataset until shared/content is fixed.');
   }
   log.error('──────────────────────────────────────────────────────────────');
+}
+
+/** Cloud mode: S3 is the source of truth. Seed it only when it is empty or on older content. */
+async function initCloudData(loaded: Awaited<ReturnType<typeof loadContent>>): Promise<void> {
+  const remote = await pullFromCloud(true);
+  if (!loaded.ok) {
+    status = { ok: false, hash: null, error: loaded.error, details: loaded.details, warnings: [], checkedAt: new Date().toISOString() };
+    log.error(`SEED CONTENT ERROR: ${loaded.error}`);
+    return;
+  }
+  current = { content: loaded.content, hash: loaded.hash };
+  status = { ok: true, hash: loaded.hash, error: null, details: [], warnings: loaded.warnings, checkedAt: new Date().toISOString() };
+  if (remote && remote !== 'unchanged' && remote.meta.contentHash === loaded.hash && remote.meta.seedVersion === SEED_VERSION) {
+    log.info(`Loaded s3://${cloud.CLOUD_BUCKET}/db.json (seeded ${remote.meta.seededAt}, seed ${remote.meta.seedId})`);
+    return;
+  }
+  log.info(remote ? 'Seed content changed → reseeding S3…' : 'S3 is empty → seeding…');
+  reseed();
+  if (!(await flushToCloud())) {
+    // Another instance seeded at the same moment: use theirs.
+    await pullFromCloud(true);
+    log.info('Another instance seeded first; using its data.');
+  }
 }
 
 export function dataSummary() {

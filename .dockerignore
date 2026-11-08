@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.vite
+server/data
+server/uploads
+apps
+demo
+pitch
+.git
+*.md
+!shared/**/*.md
