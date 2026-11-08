@@ -9,7 +9,7 @@
     "dev": "npm run demo",
     "reset": "npm --prefix server run seed",
     "smoke": "npm --prefix server run smoke",
-    "check": "npm --prefix server run typecheck && npm --prefix apps/student run typecheck && npm --prefix apps/employer run typecheck && npx -y tsx shared/content/check.ts",
+    "check": "npm --prefix server run typecheck && npm --prefix server run check-grader && npm --prefix apps/student run typecheck && npm --prefix apps/employer run typecheck && npx -y tsx shared/content/check.ts",
     "build": "npm --prefix apps/student run build && npm --prefix apps/employer run build"
   },
   "devDependencies": {
