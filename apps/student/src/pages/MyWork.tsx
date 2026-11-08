@@ -127,7 +127,7 @@ export function MyWorkPage() {
                 title={s.challenge.title}
                 to={`/challenges/${s.challengeId}`}
                 meta={<span>Submitted {timeAgo(s.submittedAt, now)}</span>}
-                end={<Badge color="brand">Under review</Badge>}
+                end={<Badge color="brand">{s.gradingState ? 'Grading…' : 'Under review'}</Badge>}
               />
             ))
           )

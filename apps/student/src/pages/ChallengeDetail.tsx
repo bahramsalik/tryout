@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from 'react-router';
 import { PLATFORM_RULES, type ChallengeView, type RubricCriterion, type SubmissionView } from '@shared/types';
 import { ChallengeMeta, CompanyLogo, RankBadge, Score, VerifiedBadge } from '@/components/brand';
 import { Markdown } from '@/components/Markdown';
-import { AnchorButton, Badge, Button, ButtonLink, Card, ErrorState, Skeleton, TabList } from '@/components/ui';
+import { AnchorButton, Badge, Button, ButtonLink, Card, ErrorState, Skeleton, Spinner, TabList } from '@/components/ui';
 import { errorMessage, isApiError, starterKitUrl } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { isPastDeadline } from '@/lib/derive';
@@ -18,7 +18,7 @@ function actionState(c: ChallengeView, now: number): ActionState {
   const v = c.viewer;
   if (v?.submissionId) {
     if (v.submissionStatus === 'awarded' || v.submissionStatus === 'not_selected') return 'result';
-    if (c.kind === 'practice' && v.submissionStatus === 'scored') return 'result';
+    if (v.submissionStatus === 'scored') return 'result'; // practice Coach review or an AI grade; recruiter scores stay hidden until published
     return 'submitted';
   }
   if (c.kind === 'practice') return c.status === 'open' ? 'practice' : 'closed';
@@ -69,25 +69,43 @@ function PrimaryAction({ c, state }: { c: ChallengeView; state: ActionState }) {
 
 /* ─────────────────────────────── Result ─────────────────────────────── */
 
-function CriterionScores({ rubric, scores }: { rubric: RubricCriterion[]; scores: Record<string, number> | null }) {
+function CriterionScores({ rubric, scores, notes }: { rubric: RubricCriterion[]; scores: Record<string, number> | null; notes?: Record<string, string> }) {
   if (!scores) return null;
   return (
     <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
       {rubric.map((r) => {
         const s = scores[r.id] ?? 0;
         return (
-          <li key={r.id} className="flex items-center gap-3 text-body">
-            <span className="min-w-0 flex-1 truncate text-fg2">{r.name}</span>
-            <span className="flex gap-0.5" aria-hidden>
-              {[1, 2, 3, 4, 5].map((i) => (
-                <span key={i} className={cn('h-1.5 w-4 rounded-full', i <= s ? 'bg-brand' : 'bg-bg5')} />
-              ))}
-            </span>
-            <span className="w-7 text-right tabular-nums text-fg1">{s}/5</span>
+          <li key={r.id} className="text-body">
+            <div className="flex items-center gap-3">
+              <span className="min-w-0 flex-1 truncate text-fg2">{r.name}</span>
+              <span className="flex gap-0.5" aria-hidden>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <span key={i} className={cn('h-1.5 w-4 rounded-full', i <= s ? 'bg-brand' : 'bg-bg5')} />
+                ))}
+              </span>
+              <span className="w-7 text-right tabular-nums text-fg1">{s}/5</span>
+            </div>
+            {notes?.[r.id] ? <p className="mt-0.5 text-caption text-fg3">{notes[r.id]}</p> : null}
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/** Shown while the AI is still working on a live submission. */
+function GradingCard({ delayed }: { delayed: boolean }) {
+  return (
+    <Card className="flex items-center gap-3 p-5" aria-live="polite">
+      <Spinner size={20} />
+      <div>
+        <div className="text-body font-semibold text-fg1">Grading your work…</div>
+        <div className="text-caption text-fg3">
+          {delayed ? 'This is taking longer than usual. We will keep trying, and your result will appear here.' : 'This usually takes a few seconds. Your result will appear here.'}
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -103,7 +121,7 @@ function ResultCard({ c, sub }: { c: ChallengeView; sub: SubmissionView | undefi
           {sub.verified ? <VerifiedBadge company={c.company?.name} /> : coach ? 'Coach review' : null}
         </span>
       </div>
-      <CriterionScores rubric={c.rubric} scores={sub.scores} />
+      <CriterionScores rubric={c.rubric} scores={sub.scores} notes={sub.scoreNotes} />
       {sub.feedback ? <blockquote className="border-l-2 border-stroke1 pl-3 text-body text-fg2">{sub.feedback}</blockquote> : null}
     </Card>
   );
@@ -197,7 +215,7 @@ export function ChallengeDetailPage() {
   const [params, setParams] = useSearchParams();
   const tab: Tab = params.get('tab') === 'rubric' ? 'rubric' : params.get('tab') === 'rules' ? 'rules' : 'brief';
   const state = c ? actionState(c, now) : null;
-  const subQ = useSubmission(state === 'result' ? c?.viewer?.submissionId : null);
+  const subQ = useSubmission(state === 'result' || state === 'submitted' ? c?.viewer?.submissionId : null);
 
   if (q.isLoading && !c) {
     return (
@@ -244,6 +262,7 @@ export function ChallengeDetailPage() {
       </header>
 
       {state === 'result' ? <ResultCard c={c} sub={subQ.data} /> : null}
+      {state === 'submitted' && subQ.data?.gradingState ? <GradingCard delayed={subQ.data.gradingState === 'delayed'} /> : null}
 
       <Card className="px-5 pb-6">
         <TabList<Tab>

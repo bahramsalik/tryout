@@ -30,7 +30,7 @@ export function recommendedLive(list: ChallengeView[] | undefined, interests: Ch
 
 /** Results are visible to the student: published live results, or an instant Coach review. */
 export function hasVisibleResult(s: SubmissionView): boolean {
-  return s.status === 'awarded' || s.status === 'not_selected' || (s.reviewer === 'coach' && s.totalScore !== null);
+  return s.status === 'awarded' || s.status === 'not_selected' || ((s.reviewer === 'coach' || s.reviewer === 'ai') && s.totalScore !== null);
 }
 
 export type SortKey = 'newest' | 'deadline' | 'spots';

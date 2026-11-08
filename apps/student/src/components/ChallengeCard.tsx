@@ -8,7 +8,7 @@ export function ViewerBadge({ challenge }: { challenge: ChallengeView }) {
   const v = challenge.viewer;
   if (!v) return null;
   if (v.submissionId) {
-    const done = v.submissionStatus === 'awarded' || v.submissionStatus === 'not_selected';
+    const done = v.submissionStatus === 'awarded' || v.submissionStatus === 'not_selected' || v.submissionStatus === 'scored';
     return <Badge color={done ? 'success' : 'brand'}>{done ? 'Result' : 'Submitted'}</Badge>;
   }
   if (v.joined) return <Badge color="brand">Joined</Badge>;
