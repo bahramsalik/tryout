@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * Tiny localStorage-backed stores shared across components.
- * - Blind review: per challenge, ON by default (SPEC §5.5 rule 11). Not part of the API contract.
+ * - Blind review: per challenge, ON by default (SPEC §5.5 rule 10). Not part of the API contract.
  */
 
 type Listener = () => void;

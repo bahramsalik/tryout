@@ -534,7 +534,6 @@ const mod: ChallengeModule = {
       { id: 'metrics', name: 'Success metrics', weight: 15, description: 'WISMO contacts per 1,000 shipments as the primary metric, with a baseline, a target, a guardrail like SMS opt-outs and a clean comparison group.' },
       { id: 'clarity', name: 'Clarity', weight: 15, description: 'A reader gets the decision and its rationale from the README in two minutes, and the PRD is concise, scannable and consistent throughout.' },
     ],
-    reward: { mode: 'none', amounts: [] },
     applicantCap: 25,
     status: 'open',
     hiringFor: 'Associate Product Manager · Full-time · Chicago, IL (hybrid)',

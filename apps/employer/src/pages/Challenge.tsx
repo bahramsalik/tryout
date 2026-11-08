@@ -1,9 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Trophy } from '@/components/icons';
-import { TYPE_META, payoutForRank, type ChallengeView, type SubmissionView } from '@shared/types';
+import { TYPE_META, type ChallengeView, type SubmissionView } from '@shared/types';
 import { ApiError } from '@/lib/api';
-import { dateTime, money, timeAgo, timeLeft } from '@/lib/format';
+import { dateTime, timeAgo, timeLeft } from '@/lib/format';
 import { useDocumentTitle } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
 import { isScored, rankSubmissions, useChallenge, useInvitesByStudent, useSubmissions } from '@/lib/queries';
@@ -98,7 +98,7 @@ export function ChallengePage() {
         actions={<Switch showLabel checked={blind} onChange={setBlind} disabled={awarded} label="Blind review" />}
       />
 
-      {awarded && <AwardedBar challenge={c} subs={subs} />}
+      {awarded && <AwardedBar challenge={c} />}
 
       <TabList<Tab>
         label="Challenge sections"
@@ -157,7 +157,6 @@ function MetaLine({ challenge: c, avg }: { challenge: ChallengeView; avg: number
   const now = useNow(60_000);
   const parts: ReactNode[] = [
     TYPE_META[c.type]?.label ?? c.type,
-    c.rewardTotal > 0 ? money(c.rewardTotal) : 'No reward',
     `${c.participantCount}${c.applicantCap != null ? `/${c.applicantCap}` : ''} joined`,
   ];
   if (avg != null) parts.push(`avg ${avg}`);
@@ -177,12 +176,10 @@ function MetaLine({ challenge: c, avg }: { challenge: ChallengeView; avg: number
   );
 }
 
-function AwardedBar({ challenge, subs }: { challenge: ChallengeView; subs: SubmissionView[] }) {
-  const paid = subs.reduce((s, x) => s + (x.payout ?? 0), 0);
+function AwardedBar({ challenge }: { challenge: ChallengeView }) {
   return (
     <MessageBar intent="success" className="mb-3">
       Results published{challenge.awardedAt ? ` ${timeAgo(challenge.awardedAt)}` : ''}
-      {paid > 0 ? ` · ${money(paid)} paid` : ''}
     </MessageBar>
   );
 }
@@ -347,7 +344,6 @@ function LeaderboardTab({
           <ol>
             {ranked.map((s, i) => {
               const rank = s.rank ?? i + 1;
-              const payout = awarded ? (s.payout ?? 0) : payoutForRank(challenge.reward, rank);
               const name = blind ? s.alias : s.student.name;
               const invite = invites.get(s.studentId);
               const alreadyInvited = !!invite && invite.status !== 'declined';
@@ -362,9 +358,6 @@ function LeaderboardTab({
                     <span className="truncate text-sm font-semibold">{name}</span>
                   </Link>
                   <ScorePill score={s.totalScore ?? 0} className="text-right" />
-                  <span className="w-14 text-right text-sm tabular-nums" title={awarded ? 'Paid' : 'Projected payout'}>
-                    {payout > 0 ? money(payout) : '–'}
-                  </span>
                   {!blind && rank <= 3 && (
                     <Button
                       size="sm"

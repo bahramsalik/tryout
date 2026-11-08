@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router';
-import { ClipboardCheck, Inbox, Lock, Mail, Trophy, UserPlus } from '@/components/icons';
+import { ClipboardCheck, Inbox, Mail, Trophy, UserPlus } from '@/components/icons';
 import type { ActivityItem, ChallengeView, EmployerDashboard } from '@shared/types';
 import { timeAgo } from '@/lib/format';
 import { useDocumentTitle, useNewIds } from '@/lib/hooks';
@@ -39,7 +39,7 @@ function Kpis({ data, loading }: { data: EmployerDashboard | undefined; loading:
     <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
       <StatTile label="Submissions" value={k?.totalSubmissions ?? 0} loading={loading} icon={<Inbox aria-hidden />} />
       <StatTile label="To review" value={k?.awaitingReview ?? 0} loading={loading} icon={<ClipboardCheck aria-hidden />} />
-      <StatTile label="Escrowed" value={k?.bountiesEscrowed ?? 0} format="money" loading={loading} icon={<Lock aria-hidden />} />
+      <StatTile label="Active challenges" value={k?.activeChallenges ?? 0} loading={loading} icon={<Trophy aria-hidden />} />
       <StatTile label="Interviews" value={k?.interviewsSent ?? 0} loading={loading} icon={<UserPlus aria-hidden />} />
     </section>
   );

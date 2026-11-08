@@ -498,7 +498,6 @@ const mod: ChallengeModule = {
       { id: 'usability', name: 'Usability', description: 'Inputs, calculations and outputs are clearly separated and labeled, so a lender could change churn or CAC and follow the results.', weight: 10 },
       { id: 'communication', name: 'Communication', description: 'The lender summary answers first draw, peak, payback and downside in plain numbers, and proposes a fix if the limit is breached.', weight: 15 },
     ],
-    reward: { mode: 'none', amounts: [] },
     applicantCap: null,
     status: 'open',
     hiringFor: null,

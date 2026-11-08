@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { money } from '@/lib/format';
 import { Card, Skeleton, cn } from './ui';
 
 export type StatTone = 'slate' | 'indigo' | 'amber' | 'emerald' | 'violet';
@@ -8,7 +7,6 @@ export type StatTone = 'slate' | 'indigo' | 'amber' | 'emerald' | 'violet';
 export function StatTile({
   label,
   value,
-  format = 'count',
   icon,
   className,
   loading,
@@ -16,7 +14,6 @@ export function StatTile({
 }: {
   label: string;
   value: number;
-  format?: 'count' | 'money';
   sub?: ReactNode;
   icon?: ReactNode;
   tone?: StatTone;
@@ -34,7 +31,7 @@ export function StatTile({
         <Skeleton className="mt-1 h-8 w-16" />
       ) : (
         <p className="mt-1 flex items-baseline gap-1.5 text-2xl font-semibold tabular-nums">
-          {format === 'money' ? money(value) : value.toLocaleString('en-US')}
+          {value.toLocaleString('en-US')}
           {suffix && <span className="text-sm font-normal text-[var(--colorNeutralForeground3)]">{suffix}</span>}
         </p>
       )}

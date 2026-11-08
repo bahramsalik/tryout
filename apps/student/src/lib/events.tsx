@@ -2,10 +2,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import type { ChallengeView, InterviewInvite, InviteView, Notification, ServerEvent, ServerEventType } from '@shared/types';
+import { PLATFORM_RULES, type ChallengeView, type InterviewInvite, type InviteView, type Notification, type ServerEvent, type ServerEventType } from '@shared/types';
 import { api, eventsUrl } from './api';
 import { celebrate } from './confetti';
-import { money, ordinal } from './format';
+import { ordinal } from './format';
 import { usePersona } from './persona';
 import { findChallengeAnywhere, qk, useCurrentStudent } from './queries';
 
@@ -85,9 +85,8 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const interests = interestsRef.current;
           if (challenge.kind === 'live' && interests?.includes(challenge.type)) {
             const from = challenge.company?.name ?? 'Tryout';
-            const reward = challenge.rewardTotal > 0 ? money(challenge.rewardTotal) : 'No bounty';
             toast(`New challenge · ${from}`, {
-              description: `${challenge.title} · ${reward}`,
+              description: challenge.title,
               duration: 9000,
               action: { label: 'View', onClick: () => navigateRef.current(`/challenges/${challenge.id}`) },
             });
@@ -132,9 +131,9 @@ export function LiveEventsProvider({ children }: { children: ReactNode }) {
           const info = findChallengeAnywhere(queryClient, me, challengeId);
           const title = info?.title ?? 'your challenge';
           const go = () => navigateRef.current(`/challenges/${challengeId}`);
-          if (mine && mine.payout > 0) {
+          if (mine && mine.rank <= PLATFORM_RULES.placementCount) {
             celebrate();
-            toast.success(`${ordinal(mine.rank)} place · ${money(mine.payout)}`, {
+            toast.success(`${ordinal(mine.rank)} place`, {
               description: title,
               duration: 12000,
               action: { label: 'View', onClick: go },

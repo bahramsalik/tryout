@@ -309,7 +309,6 @@ export function buildSeed(content: SeedContent, contentHash: string, now = Date.
         feedback: args.scores ? ensureFeedback(args.feedback ?? tpl.feedback) : null,
         scoredAt: args.scores ? iso(scoreTime(args.submittedAt)) : null,
         rank: null,
-        payout: null,
         shortlisted: false,
         alias: args.alias,
         scoredBy: args.scores ? (isPractice ? 'coach' : (owner?.id ?? null)) : null,

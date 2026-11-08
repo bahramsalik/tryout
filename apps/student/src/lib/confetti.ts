@@ -1,6 +1,6 @@
 import confetti from 'canvas-confetti';
 
-/** The one confetti moment: results arrive with a payout. Colors come from the Fluent tokens. */
+/** The one confetti moment: a placement arrives. Colors come from the Fluent tokens. */
 export function celebrate() {
   if (typeof window === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
   const css = getComputedStyle(document.documentElement);

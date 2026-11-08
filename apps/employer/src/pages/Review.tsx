@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { ArrowDown, ArrowLeft, Download } from '@/components/icons';
 import { PLATFORM_RULES, computeTotalScore, type ChallengeView, type ScoreSubmissionInput, type SubmissionView } from '@shared/types';
 import { ApiError, api, urlWithPersona } from '@/lib/api';
-import { bytes, money, timeAgo } from '@/lib/format';
+import { bytes, timeAgo } from '@/lib/format';
 import { useDocumentTitle } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
 import { isScored, qk, queryClient, useChallenge, useSubmission, useSubmissions } from '@/lib/queries';
@@ -273,7 +273,6 @@ function ScorePanel({ sub, challenge, subs }: { sub: SubmissionView; challenge: 
           {readOnly && sub.rank != null && (
             <div className="px-4 pt-1">
               <MedalBadge rank={sub.rank} />
-              {sub.payout ? <span className="ml-1 text-sm tabular-nums">{money(sub.payout)}</span> : null}
             </div>
           )}
 

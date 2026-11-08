@@ -35,7 +35,7 @@ if (maya) {
   console.log(`\nMaya: ${subs.length} submission(s)`);
   for (const s of subs) {
     const ch = db.challenges.find((c) => c.id === s.challengeId);
-    console.log(`  · ${s.challengeId.padEnd(22)} ${String(s.totalScore ?? '—').padStart(3)}  rank ${s.rank ?? '—'}  $${s.payout ?? 0}  ${ch?.status}`);
+    console.log(`  · ${s.challengeId.padEnd(22)} ${String(s.totalScore ?? '—').padStart(3)}  rank ${s.rank ?? '—'}  ${ch?.status}`);
   }
   const joined = db.participations.filter((p) => p.studentId === 'stu_maya' && !subs.some((s) => s.challengeId === p.challengeId));
   for (const p of joined) console.log(`  · ${p.challengeId.padEnd(22)} joined, not submitted (${p.alias})`);

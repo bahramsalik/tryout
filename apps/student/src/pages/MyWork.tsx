@@ -5,7 +5,7 @@ import { Countdown, CompanyLogo, RankBadge } from '@/components/brand';
 import { Badge, Button, ButtonLink, Card, EmptyState, ErrorState, MessageBar, PageHeader, Skeleton, TabList } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
 import { continueItems, hasVisibleResult } from '@/lib/derive';
-import { money, timeAgo } from '@/lib/format';
+import { timeAgo } from '@/lib/format';
 import { useChallenges, useInvites, useMySubmissions, useRespondInvite } from '@/lib/queries';
 import { useNow } from '@/lib/useNow';
 
@@ -60,7 +60,6 @@ function Row({ company, title, to, meta, end }: { company: ChallengeView['compan
 }
 
 function ResultRow({ s }: { s: SubmissionView }) {
-  const paid = (s.payout ?? 0) > 0;
   return (
     <Row
       company={s.challenge.company}
@@ -75,11 +74,6 @@ function ResultRow({ s }: { s: SubmissionView }) {
       end={
         <span className="flex items-center gap-2">
           <RankBadge rank={s.rank} />
-          {paid ? (
-            <Badge color="success" appearance="filled">
-              {money(s.payout)}
-            </Badge>
-          ) : null}
           {s.totalScore !== null ? <span className="w-8 text-right text-subtitle2 font-semibold tabular-nums">{s.totalScore}</span> : null}
         </span>
       }

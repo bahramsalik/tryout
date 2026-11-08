@@ -486,7 +486,6 @@ const mod: ChallengeModule = {
       { id: 'fixes', name: 'Fix recommendations', description: 'Each fix is concrete enough to implement without guessing, with code-level detail such as the element, attribute or CSS value to use.', weight: 20 },
       { id: 'communication', name: 'Communication', description: 'The owner\'s summary is short, jargon-free and says what to fix first; the audit itself is easy for a developer to work through.', weight: 15 },
     ],
-    reward: { mode: 'none', amounts: [] },
     applicantCap: null,
     status: 'open',
     hiringFor: null,

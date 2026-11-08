@@ -13,7 +13,7 @@
 | # | Sign | What we found |
 |---|---|---|
 | 1 | Generic AI aesthetic | 34 gradient uses in the student site and 14 in the employer site; a purple hero; Inter everywhere; 57 emoji in the UI (✨🎉👋🥇…); rounded-2xl cards with soft shadows |
-| 2 | Model-sounding copy | Taglines ("Real work. Real pay. Real proof."), a subtitle under every heading ("Countable, employer-verified evidence. This is your new experience section."), helper text under every wizard field, and Coach replies with lead-ins and learning paths. Word counts: challenge page **888**, Explore **527**, Home **454**, wizard step 1 **254**. |
+| 2 | Model-sounding copy | Taglines ("Real work. Real proof."), a subtitle under every heading ("Countable, employer-verified evidence. This is your new experience section."), helper text under every wizard field, and Coach replies with lead-ins and learning paths. Word counts: challenge page **888**, Explore **527**, Home **454**, wizard step 1 **254**. |
 | 3 | Breadth without depth | 12 stacked sections on the challenge page; Explore has field tiles *and* field chips *and* 4 more filters *and* sort *and* search (48 controls) |
 | 4 | Inconsistency | The student site runs Vite 8 and lucide 1.x; the employer site runs Vite 7 and lucide 0.577; the two sites have different card and button styles |
 | 5 | Decoration over interaction | Confetti on join, submit, publish and award (7 calls); 54 toasts, including toasts for the user's own actions; keyboard-shortcut legends; "View as a student", "Save without moving on", "Use a feedback template", "Start over" and "Show student card preview" |
@@ -23,11 +23,11 @@
 1. **Page header:** a title only. At most one meta line of numbers (e.g. `2 active · 38 submissions · 2 to review`). Never an explanatory subtitle.
 2. **Section header:** a noun, with no description line under it.
 3. **Forms:** label + placeholder. Helper text only for a hard limit (shown as a counter, e.g. `42/140`) or a validation error (Fluent field validation message, shown only when invalid).
-4. **Cards:** title + one meta row of icon + value pairs (reward · hours · spots · time left). No summary paragraph on list cards.
+4. **Cards:** title + one meta row of icon + value pairs (hours · spots · time left). No summary paragraph on list cards.
 5. **No taglines, no emoji, no exclamation marks.** Medals become a small `1st` / `2nd` / `3rd` badge or a Fluent `Trophy` icon colored gold/silver/bronze.
 6. **Empty states:** one short line + at most one button.
 7. **Toasts:** only for events that come from the *other* site (new submission, results published, invite received, new challenge). Your own action shows its result in place (button state, row update) instead of a toast.
-8. **Confetti:** one moment only, on the student site when results arrive with a payout. Remove all other confetti.
+8. **Confetti:** one moment only, on the student site when a placement arrives. Remove all other confetti.
 9. **Buttons:** one primary button per view. Delete duplicates and any link to the same place twice on a screen.
 10. If a sentence explains what the UI already shows, delete it. Target **≥ 50% fewer words** on every page in §1 (measure with `main.innerText`).
 
@@ -38,7 +38,7 @@ Reference: https://fluent2.microsoft.design (read the Color, Typography, Shape, 
 | Area | Rule |
 |---|---|
 | Font | `var(--fontFamilyBase)` (Segoe UI, with system fallbacks). Remove Inter / `@fontsource`. Use only the type ramp in the token file (Caption 12/16, Body1 14/20, Subtitle 16–20, Title 24–32; the largest on any page is Title2 28/36). Weights 400 and 600 only. |
-| Color | Neutral greys for 90% of the UI. Brand `--colorBrandBackground` (#0F6CBD) for primary buttons, selected states, links and focus. Status colors only for status (success = paid / passed, danger = errors, warning = deadline < 24 h). No gradients anywhere. App background `--colorNeutralBackground2`; cards `--colorNeutralBackground1`. |
+| Color | Neutral greys for 90% of the UI. Brand `--colorBrandBackground` (#0F6CBD) for primary buttons, selected states, links and focus. Status colors only for status (success = placed / passed, danger = errors, warning = deadline < 24 h). No gradients anywhere. App background `--colorNeutralBackground2`; cards `--colorNeutralBackground1`. |
 | Shape | Controls `--borderRadiusMedium` (4px); cards and dialogs `--borderRadiusLarge` (8px)/`XLarge`; avatars circular; badges `--borderRadiusCircular` or 4px. |
 | Elevation | Cards `--shadow4` (or a 1px `--colorNeutralStroke2` border, not both); flyouts and menus `--shadow16`; dialogs `--shadow64`. |
 | Spacing | 4px grid. Page padding 24px (16px under 760px wide), card padding 16–20px, gaps 8/12/16/24. |
@@ -55,12 +55,12 @@ We use Fluent tokens + Fluent icons + Tailwind, **not** the `@fluentui/react-com
 | Area | Keep | Remove / change |
 |---|---|---|
 | Top bar | Logo, Explore, My work, Profile, bell, avatar menu (persona switch) | Home stays as the logo target. A single **Coach** button (subtle, with icon) in the top bar. |
-| Home | Title `Hi, Maya`; one **Continue** card for the joined challenge (title, time left, Submit); 4 stat tiles (Verified hours, Tasks, Earned, Placements); **Recommended** (3 cards) | Gradient hero, hero Coach button, "Practice to level up" row, recent-notifications list (the bell has them), every subtitle. A pending invite becomes one Fluent MessageBar. |
-| Explore | TabList `Live 7` / `Practice 7`; field filter as one row of toggle pills with counts; search box | The 7 big field tiles, the Coach banner, difficulty / length / bounty-only filters, the sort select (default sort = soonest deadline, practice = newest), the page subtitle. Cards: company logo + name, title, meta row, `Joined` badge. No summary. |
-| Challenge | Header: company, title, meta row (reward, ~hours, level, spots, time left), primary action (Join → Submit → Submitted → Result), secondary `Starter kit` button. TabList: **Brief** · **Rubric** · **Rules**. Brief = markdown + deliverables checklist + a "Uses" tag row of classroom concepts. Rubric = criteria with weight bars, no descriptions until expanded. Rules = the 4 fair-work items as 4 short lines. | The "Fair work, guaranteed" box, the "Skills you'll show" section, the About company card, step lists in the action card, and the 12 stacked sections |
+| Home | Title `Hi, Maya`; one **Continue** card for the joined challenge (title, time left, Submit); 4 stat tiles (Verified hours, Tasks, Avg score, Placements); **Recommended** (3 cards) | Gradient hero, hero Coach button, "Practice to level up" row, recent-notifications list (the bell has them), every subtitle. A pending invite becomes one Fluent MessageBar. |
+| Explore | TabList `Live 7` / `Practice 7`; field filter as one row of toggle pills with counts; search box | The 7 big field tiles, the Coach banner, difficulty / length filters, the sort select (default sort = soonest deadline, practice = newest), the page subtitle. Cards: company logo + name, title, meta row, `Joined` badge. No summary. |
+| Challenge | Header: company, title, meta row (~hours, level, spots, time left), primary action (Join → Submit → Submitted → Result), secondary `Starter kit` button. TabList: **Brief** · **Rubric** · **Rules**. Brief = markdown + deliverables checklist + a "Uses" tag row of classroom concepts. Rubric = criteria with weight bars, no descriptions until expanded. Rules = the 4 fair-work items as 4 short lines. | The "Fair work, guaranteed" box, the "Skills you'll show" section, the About company card, step lists in the action card, and the 12 stacked sections |
 | Submit | Zip drop zone, Approach notes (placeholder template), AI use (optional), pledge checkbox, Submit (disabled until valid; inline field errors) | Demo link field, the "Still needed …" sentence, the deliverables / rubric repeated below the form. **Success:** `Submitted` + 2 buttons (My work, Explore). No timeline, no auto-check list, no confetti. |
 | My work | TabList `In progress` / `Submitted` / `Results`, plus an invite MessageBar | Per-tab descriptions |
-| Profile | Avatar, name, school · major · year, 4 stat tiles, radar, history list (task, company, score, place badge, payout, a 1-line feedback excerpt) | "New experience section" text, bio paragraph (one line max), the "Top verified skills" block |
+| Profile | Avatar, name, school · major · year, 4 stat tiles, radar, history list (task, company, score, place badge, a 1-line feedback excerpt) | "New experience section" text, bio paragraph (one line max), the "Top verified skills" block |
 | Coach panel | Input, 3 quick prompts, replies, recommendation cards | The "Preview" explainer paragraph (keep a small `Preview` badge in the header) |
 
 ## 5. Employer site (`apps/employer`): cuts
@@ -68,12 +68,12 @@ We use Fluent tokens + Fluent icons + Tailwind, **not** the `@fluentui/react-com
 | Area | Keep | Remove / change |
 |---|---|---|
 | Shell | Left nav (Dashboard, Talent) with Fluent icons, company switcher at top; top bar with **Add challenge** (primary), bell, menu (Reset demo data) | The header talent search (Talent page has it), the "Active challenges" list in the nav, "Open the student site", the "Live" indicator text, the skip-link stays (a11y). |
-| Dashboard | Title `Orbitline Logistics`; 4 stat tiles (Submissions, To review, Escrowed, Interviews); challenges table; activity feed | The meta line under the title, the 5th tile, section descriptions, the duplicate `New` button |
+| Dashboard | Title `Orbitline Logistics`; 4 stat tiles (Submissions, To review, Active challenges, Interviews); challenges table; activity feed | The meta line under the title, the 5th tile, section descriptions, the duplicate `New` button |
 | Challenge | Header meta + Blind review switch; TabList Submissions / Leaderboard / Brief; **Publish results** only on the Leaderboard tab | "View as a student", the header Publish button, the All/Needs review/Scored/⭐ filter chips (one `To review` toggle instead), per-row shortlist stars |
 | Review | Submission viewer (README collapsed to ~12 lines with "Show all", file tree + preview, notes, AI use, download), scoring panel (criterion name + 1–5 buttons + live total), feedback (required), **Save & next** | Keyboard legend, "Save without moving on", "Use a feedback template", prev/next arrows, shortlist button, criterion description text (put it in a tooltip) |
-| Wizard | 3 steps: **Task** · **Judging** · **Reward** (publish from step 3). **Use example** stays (demo). Fields: title, field, summary (counter), brief, deliverables, hours (1–5), level, hiring for, classroom concepts. Reward step: reward type (3 radio cards, one line each), amounts, cap (number + "No cap"), deadline, escrow total (pool + 15% fee = total; 3 lines). | Every helper paragraph, the "Show student card preview" toggle, "Start over", the separate Review step (the reward step shows the student card on the right at ≥ 1100px only) |
+| Wizard | 3 steps: **Task** · **Judging** · **Limits** (publish from step 3). **Use example** stays (demo). Fields: title, field, summary (counter), brief, deliverables, hours (1–5), level, hiring for, classroom concepts. Limits step: cap (number + "No cap") and deadline. | Every helper paragraph, the "Show student card preview" toggle, "Start over", the separate Review step (the limits step shows the student card on the right at ≥ 1100px only) |
 | Publish success | `Challenge is live` + card + `View challenge` / `Dashboard` | The 3 explanation bullets, confetti |
-| Award dialog | Ranks + payouts + 1 line ("Reveals names and releases $525 from escrow.") → `Publish & pay` | The long warning paragraph |
+| Award dialog | Top 3 + 1 line ("Reveals names and sends feedback to students.") → `Publish` | The long warning paragraph |
 | Talent | Search + field filter + list | Other filters |
 | Candidate | Same profile as the student site + **Invite to interview** | Text blocks as in §4 Profile |
 
@@ -111,7 +111,7 @@ VITE_API_URL=http://localhost:4110 npm --prefix apps/student run dev -- --port 5
 ## 8. Definition of done
 
 - [ ] Word counts on Home, Explore, Challenge and the Wizard are at least halved (report before → after).
-- [ ] No gradients, emoji, Inter, lucide, or confetti outside the payout moment. `grep` proves it.
+- [ ] No gradients, emoji, Inter, lucide, or confetti outside the placement moment. `grep` proves it.
 - [ ] Both sites use `shared/fluent-tokens.css`, Fluent icons, the same brand mark, the same button / card / tab primitives.
 - [ ] One primary button per view. Every control listed under "Remove" is gone.
 - [ ] Typecheck and production build pass, with no console errors, at 720 px and 1440 px.

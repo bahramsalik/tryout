@@ -1490,7 +1490,6 @@ const mod: ChallengeModule = {
         weight: 10,
       },
     ],
-    reward: { mode: 'top3', amounts: [300, 150, 75] },
     applicantCap: 40,
     status: 'open',
     hiringFor: 'Junior Backend Engineer · Full-time · Remote (US)',

@@ -23,7 +23,7 @@ import { practiceReview, synthesizeAiHints } from './ai.ts';
 import type { Participation, SubmissionRecord } from './db.ts';
 import { badRequest, conflict, forbidden, notFound } from './errors.ts';
 import { emit } from './events.ts';
-import { aliasCode, applyAward, assignAlias, clipWords, computeAward, countWords, ordinal, usd } from './logic.ts';
+import { aliasCode, applyAward, assignAlias, clipWords, computeAward, countWords, ordinal } from './logic.ts';
 import type { EmployerPersona, StudentPersona } from './persona.ts';
 import { randomId } from './rng.ts';
 import { getDb, persist, writeUpload } from './store.ts';
@@ -98,7 +98,6 @@ export function createChallenge(p: EmployerPersona, input: CreateChallengeInput)
     brief: input.brief,
     deliverables: input.deliverables.map((d) => d.trim()).filter(Boolean),
     rubric: input.rubric,
-    reward: input.reward,
     applicantCap: input.applicantCap,
     deadline: new Date(input.deadline).toISOString(),
     status: 'open',
@@ -239,7 +238,6 @@ export function submitWork(
     feedback: null,
     scoredAt: null,
     rank: null,
-    payout: null,
     shortlisted: false,
     alias: participation.alias,
     scoredBy: null,
@@ -356,15 +354,15 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
   const events: ServerEvent[] = [
     {
       type: 'challenge.awarded',
-      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank, payout: l.payout })) },
+      payload: { challengeId: ch.id, companyId: ch.companyId, results: lines.map((l) => ({ studentId: l.sub.studentId, rank: l.rank })) },
     },
   ];
   for (const l of lines) {
-    if (l.payout > 0) {
+    if (l.status === 'awarded') {
       notification(events, {
         recipientId: l.sub.studentId,
         kind: 'awarded',
-        title: `${ordinal(l.rank)} place · ${usd(l.payout)}`,
+        title: `${ordinal(l.rank)} place`,
         body: bodyTitle(ch.title),
         link: `/challenges/${ch.id}`,
       });
@@ -381,7 +379,7 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
   commit(events);
   return {
     challenge: challengeView(ch, p),
-    results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: l.rank, payout: l.payout, status: l.status })),
+    results: lines.map((l) => ({ submissionId: l.sub.id, studentId: l.sub.studentId, rank: l.rank, status: l.status })),
   };
 }
 

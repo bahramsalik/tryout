@@ -772,7 +772,6 @@ const mod: ChallengeModule = {
         weight: 15,
       },
     ],
-    reward: { mode: 'top3', amounts: [200, 120, 75] },
     applicantCap: 30,
     status: 'awarded',
     hiringFor: 'Data Analyst I · Full-time · Minneapolis, MN (hybrid)',

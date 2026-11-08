@@ -386,7 +386,6 @@ const mod: ChallengeModule = {
       { id: 'decision_rule', name: 'Decision rule', weight: 15, description: 'A pre-registered rule with one read at a fixed sample, guardrail thresholds and a stated action for a win, a loss and a tie.' },
       { id: 'communication', name: 'Communication', weight: 15, description: 'A plain-language answer to "by Friday?" that is honest, gives the stakeholder real options and could be forwarded as-is.' },
     ],
-    reward: { mode: 'none', amounts: [] },
     applicantCap: null,
     status: 'open',
     hiringFor: null,

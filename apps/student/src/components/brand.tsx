@@ -6,7 +6,6 @@ import {
   DesignIdeas20Regular,
   Lightbulb20Regular,
   Megaphone20Regular,
-  Money16Regular,
   Money20Regular,
   People16Regular,
   Shield20Regular,
@@ -18,7 +17,7 @@ import {
 import type { ReactNode } from 'react';
 import { DIFFICULTY_LABEL, type ChallengeType, type ChallengeView, type Company } from '@shared/types';
 import { cn } from '@/lib/cn';
-import { countdown, money, ordinal } from '@/lib/format';
+import { countdown, ordinal } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { Badge } from './ui';
 
@@ -85,12 +84,6 @@ export function Meta({ icon: Icon, children, className, title }: { icon: FluentI
   );
 }
 
-export function rewardLabel(c: Pick<ChallengeView, 'kind' | 'rewardTotal' | 'reward'>): string {
-  if (c.kind === 'practice') return 'Practice';
-  if (c.reward.mode === 'none' || c.rewardTotal <= 0) return 'No bounty';
-  return money(c.rewardTotal);
-}
-
 export function Countdown({ deadline, className }: { deadline: string | null; className?: string }) {
   const now = useNow(30_000);
   if (!deadline) return null;
@@ -103,13 +96,10 @@ export function Countdown({ deadline, className }: { deadline: string | null; cl
   );
 }
 
-/** reward · hours · level · spots · time left */
+/** hours · level · spots · time left */
 export function ChallengeMeta({ c, level, spots = true, className }: { c: ChallengeView; level?: boolean; spots?: boolean; className?: string }) {
   return (
     <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', className)}>
-      <Meta icon={Money16Regular} className={cn(c.kind === 'live' && c.rewardTotal > 0 && 'font-semibold text-fg1')}>
-        {rewardLabel(c)}
-      </Meta>
       <Meta icon={Clock16Regular}>~{c.estHours} h</Meta>
       {level ? <Meta icon={TargetArrow16Regular}>{DIFFICULTY_LABEL[c.difficulty]}</Meta> : null}
       {spots && c.kind === 'live' ? (

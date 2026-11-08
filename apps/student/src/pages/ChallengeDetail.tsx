@@ -8,7 +8,6 @@ import { AnchorButton, Badge, Button, ButtonLink, Card, ErrorState, Skeleton, Ta
 import { errorMessage, isApiError, starterKitUrl } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { isPastDeadline } from '@/lib/derive';
-import { money } from '@/lib/format';
 import { useChallenge, useJoinChallenge, useSubmission } from '@/lib/queries';
 import { useNow } from '@/lib/useNow';
 
@@ -94,18 +93,12 @@ function CriterionScores({ rubric, scores }: { rubric: RubricCriterion[]; scores
 
 function ResultCard({ c, sub }: { c: ChallengeView; sub: SubmissionView | undefined }) {
   if (!sub) return <Skeleton className="h-40 rounded-lg" />;
-  const paid = (sub.payout ?? 0) > 0;
   const coach = sub.reviewer === 'coach';
   return (
     <Card className="space-y-4 p-5">
       <div className="flex flex-wrap items-center gap-3">
         {sub.totalScore !== null ? <Score score={sub.totalScore} /> : null}
         <RankBadge rank={sub.rank} />
-        {paid ? (
-          <Badge color="success" appearance="filled">
-            {money(sub.payout)} paid
-          </Badge>
-        ) : null}
         <span className="ml-auto text-caption text-fg3">{coach ? 'Coach review' : `Scored by ${c.company?.name ?? 'employer'}`}</span>
       </div>
       <CriterionScores rubric={c.rubric} scores={sub.scores} />
@@ -175,9 +168,9 @@ function RubricTab({ rubric }: { rubric: RubricCriterion[] }) {
 
 function RulesTab({ c }: { c: ChallengeView }) {
   const rules = [
-    c.kind === 'practice' ? 'Free practice, scored by Coach' : c.rewardTotal > 0 ? `${money(c.rewardTotal)} held in escrow until results` : 'No bounty; a hiring signal',
+    c.kind === 'practice' ? 'Practice task, scored by Coach' : 'Your score is added to your Proof Profile',
     'Every submission gets scores and feedback',
-    'You keep your IP unless paid',
+    'You keep your IP',
     `About ${c.estHours} h of work; ${PLATFORM_RULES.maxEstHours} h max`,
   ];
   return (

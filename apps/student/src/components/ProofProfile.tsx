@@ -1,13 +1,11 @@
 import { Link } from 'react-router';
 import type { ProfileHistoryItem, StudentProfile } from '@shared/types';
-import { money } from '@/lib/format';
 import { CompanyLogo, Placements, RankBadge, StatTile } from './brand';
 import { SkillsRadar } from './SkillsRadar';
 import { Avatar, Badge, Card, EmptyState, SectionTitle, Skeleton } from './ui';
 
 function HistoryRow({ h, linkable }: { h: ProfileHistoryItem; linkable: boolean }) {
   const published = h.totalScore !== null;
-  const paid = (h.payout ?? 0) > 0;
   const title = linkable ? (
     <Link to={`/challenges/${h.challengeId}`} className="block truncate text-body font-semibold text-fg1 hover:text-brand-fg2">
       {h.challengeTitle}
@@ -28,11 +26,6 @@ function HistoryRow({ h, linkable }: { h: ProfileHistoryItem; linkable: boolean 
       <span className="flex shrink-0 items-center gap-2">
         {!published ? <Badge color="brand">Under review</Badge> : null}
         <RankBadge rank={h.rank} />
-        {paid ? (
-          <Badge color="success" appearance="filled">
-            {money(h.payout)}
-          </Badge>
-        ) : null}
         {published ? <span className="w-8 text-right text-subtitle2 font-semibold tabular-nums">{h.totalScore}</span> : null}
       </span>
     </li>
@@ -82,7 +75,7 @@ export function ProofProfile({ profile: p, publicView }: { profile: StudentProfi
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile label="Verified hours" value={s.verifiedHours} />
         <StatTile label="Tasks" value={s.tasksCompleted} />
-        <StatTile label="Earned" value={money(s.bountiesEarned)} />
+        <StatTile label="Avg score" value={s.avgScore ?? '–'} />
         <StatTile label="Placements" value={<Placements {...s.placements} />} />
       </div>
 

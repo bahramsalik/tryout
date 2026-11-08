@@ -8,17 +8,9 @@ import {
   Money20Regular,
   Shield20Regular,
 } from '@fluentui/react-icons';
-import { Check, Clock, EyeOff, Lock, Trophy, TrophyFilled } from '@/components/icons';
-import {
-  REWARD_MODE_LABEL,
-  TYPE_META,
-  rewardTotal,
-  type ChallengeStatus,
-  type ChallengeType,
-  type Company,
-  type Reward,
-} from '@shared/types';
-import { initials, money, timeLeft } from '@/lib/format';
+import { Check, Clock, EyeOff, TrophyFilled } from '@/components/icons';
+import { TYPE_META, type ChallengeStatus, type ChallengeType, type Company } from '@shared/types';
+import { initials, timeLeft } from '@/lib/format';
 import { Badge, cn } from './ui';
 
 /* ───────────────────────────── Brand mark ─────────────────────────────
@@ -72,46 +64,6 @@ export function TypeChip({ type, className }: { type: ChallengeType; className?:
       {meta.label}
     </span>
   );
-}
-
-/* ───────────────────────────── Money ───────────────────────────── */
-
-export function RewardBadge({ reward, className }: { reward: Reward; className?: string; size?: 'sm' | 'md' }) {
-  const total = rewardTotal(reward);
-  if (reward.mode === 'none' || total === 0) return <Badge className={className}>No reward</Badge>;
-  return (
-    <Badge className={className} icon={<Trophy />}>
-      <span className="tabular-nums">{money(total)}</span>
-      <span className="font-normal">· {reward.mode === 'winner' ? 'Winner' : 'Top 3'}</span>
-    </Badge>
-  );
-}
-
-export function rewardSummary(reward: Reward): string {
-  if (reward.mode === 'winner') return `Winner takes ${money(reward.amounts[0] ?? 0)}`;
-  if (reward.mode === 'top3') return reward.amounts.map((a) => money(a)).join(' / ');
-  return REWARD_MODE_LABEL.none;
-}
-
-export function EscrowChip({
-  amount,
-  state = 'escrowed',
-  className,
-}: {
-  amount: number;
-  state?: 'escrowed' | 'paid';
-  className?: string;
-}) {
-  if (amount <= 0) return null;
-  return (
-    <Badge tone={state === 'paid' ? 'emerald' : 'slate'} icon={<Lock />} className={className}>
-      <span className="tabular-nums">{money(amount)}</span> {state === 'escrowed' ? 'escrowed' : 'paid'}
-    </Badge>
-  );
-}
-
-export function Money({ amount, className }: { amount: number; className?: string }) {
-  return <span className={cn('font-semibold tabular-nums', className)}>{money(amount)}</span>;
 }
 
 /* ───────────────────────────── People & companies ───────────────────────────── */

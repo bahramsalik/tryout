@@ -460,7 +460,6 @@ const mod: ChallengeModule = {
       { id: 'exec_communication', name: 'Executive communication', description: 'The memo gives the answer in its first two sentences, separates one-time items from recurring ones, and fits on one page.', weight: 25 },
       { id: 'recommendations', name: 'Recommendations', description: 'Two or three specific actions, each with a dollar impact, that address the recurring drivers.', weight: 20 },
     ],
-    reward: { mode: 'top3', amounts: [200, 100, 50] },
     applicantCap: 40,
     status: 'open',
     hiringFor: 'Financial Analyst (Rotational) · Full-time · Charlotte, NC',

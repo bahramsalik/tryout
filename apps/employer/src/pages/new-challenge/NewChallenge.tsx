@@ -10,11 +10,11 @@ import { qk, queryClient } from '@/lib/queries';
 import { StudentCard } from '@/components/StudentPreview';
 import { Button, ButtonLink, Card, InlineError, PageHeader, TabList, cn } from '@/components/ui';
 import { draftToInput, draftToPreview, emptyDraft, inputToDraft, stepValid, validateStep, type Draft } from './draft';
-import { StepRewards } from './StepRewards';
+import { StepLimits } from './StepLimits';
 import { StepRubric } from './StepRubric';
 import { StepTask } from './StepTask';
 
-const STEPS = ['Task', 'Judging', 'Reward'] as const;
+const STEPS = ['Task', 'Judging', 'Limits'] as const;
 const LAST = STEPS.length - 1;
 
 function draftKey(personaId: string) {
@@ -132,7 +132,7 @@ export function NewChallengePage() {
         <Card className="@container p-5">
           {step === 0 && <StepTask draft={draft} set={set} errors={errors} company={company} />}
           {step === 1 && <StepRubric draft={draft} set={set} errors={errors} />}
-          {step === 2 && <StepRewards draft={draft} set={set} errors={errors} />}
+          {step === 2 && <StepLimits draft={draft} set={set} errors={errors} />}
 
           <InlineError error={publish.error} className="mt-4" />
           <div className="mt-6 flex items-center gap-2">

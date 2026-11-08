@@ -1,8 +1,7 @@
 import { Link } from 'react-router';
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from 'recharts';
-import { BadgeCheck, Clock, Coins, Trophy, TrophyFilled } from '@/components/icons';
+import { BadgeCheck, Clock, Gauge, Trophy, TrophyFilled } from '@/components/icons';
 import { CHALLENGE_TYPES, TYPE_META, type ProfileHistoryItem, type StudentStats } from '@shared/types';
-import { money } from '@/lib/format';
 import { CompanyLogo, MEDAL_COLOR, MedalBadge, ScorePill } from './brand';
 import { StatTile } from './StatTile';
 import { Card, CardHeader, EmptyState } from './ui';
@@ -13,7 +12,7 @@ export function ProofStats({ stats }: { stats: StudentStats }) {
     <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
       <StatTile label="Verified hours" value={stats.verifiedHours} suffix="h" icon={<Clock aria-hidden />} />
       <StatTile label="Tasks" value={stats.tasksCompleted} icon={<BadgeCheck aria-hidden />} />
-      <StatTile label="Earned" value={stats.bountiesEarned} format="money" icon={<Coins aria-hidden />} />
+      <StatTile label="Avg score" value={stats.avgScore ?? 0} icon={<Gauge aria-hidden />} />
       <Card className="p-4">
         <p className="flex items-center gap-1.5 text-sm text-slate-500 [&_svg]:size-4">
           <Trophy aria-hidden />
@@ -114,7 +113,6 @@ function HistoryRow({ item: h }: { item: ProfileHistoryItem }) {
       </div>
       <div className="flex shrink-0 items-start gap-3 text-sm">
         {h.rank != null && h.rank <= 3 && <MedalBadge rank={h.rank} />}
-        {h.payout ? <span className="tabular-nums">{money(h.payout)}</span> : null}
         {h.totalScore != null ? <ScorePill score={h.totalScore} className="text-right" /> : <span className="text-slate-500">–</span>}
       </div>
     </div>

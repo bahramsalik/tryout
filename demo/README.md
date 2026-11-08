@@ -19,14 +19,14 @@ This is the operator's checklist for the 3-minute demo in [SPEC.md §4](../SPEC.
    - `demo/maya-rate-limiter.zip`, Maya's submission. It's a real, working solution: `npm test` gives 28/28 passing.
    - `demo/approach-notes.md`, to paste into the *Approach notes* field.
    - The AI disclosure line below.
-5. Check the starting state on Maya's profile: `1st` and `3rd` badges, $325 earned, 11 verified hours. She has joined *Add rate limiting to our Shipment Tracking API* but hasn't submitted yet.
+5. Check the starting state on Maya's profile: `1st` and `3rd` badges, 11 verified hours. She has joined *Add rate limiting to our Shipment Tracking API* but hasn't submitted yet.
 
 ## Paste-ready text
 
 **AI disclosure (student submit form):**
 > Used an AI assistant to compare rate-limiting algorithms and sanity-check my Retry-After rounding; I rejected its suggestion to call Date.now() in the middleware. Code and tests are mine.
 
-**Rubric clicks (employer review)** for a total of **88**, which puts Maya **2nd** behind Hana's 91 and pays her $150. Her notification reads `2nd place · $150`.
+**Rubric clicks (employer review)** for a total of **88**, which puts Maya **2nd** behind Hana's 91. Her notification reads `2nd place`.
 
 | Criterion | Weight | Click |
 |---|---|---|

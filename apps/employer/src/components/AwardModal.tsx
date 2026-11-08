@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
-import { payoutForRank, rewardTotal, type AwardResponse, type ChallengeView, type SubmissionView } from '@shared/types';
+import { PLATFORM_RULES, type AwardResponse, type ChallengeView, type SubmissionView } from '@shared/types';
 import { api } from '@/lib/api';
-import { money } from '@/lib/format';
 import { qk, queryClient, isScored, rankSubmissions, useInvitesByStudent } from '@/lib/queries';
 import { Avatar, MedalBadge, ScorePill } from './brand';
 import type { InviteTarget } from './InviteModal';
@@ -49,10 +48,7 @@ function AwardFlow({
   const [result, setResult] = useState<AwardResponse | null>(null);
   const ranked = useMemo(() => rankSubmissions(submissions), [submissions]);
   const unscored = submissions.filter((s) => !isScored(s) || !s.feedback?.trim());
-  const reward = challenge.reward;
-  const paidPlaces = reward.mode === 'winner' ? 1 : reward.mode === 'top3' ? 3 : 0;
-  const podium = ranked.slice(0, Math.max(paidPlaces, 3));
-  const totalPayout = ranked.reduce((sum, _s, i) => sum + payoutForRank(reward, i + 1), 0);
+  const podium = ranked.slice(0, PLATFORM_RULES.placementCount);
   const invites = useInvitesByStudent();
   const byStudent = useMemo(() => new Map(submissions.map((s) => [s.studentId, s])), [submissions]);
 
@@ -95,8 +91,7 @@ function AwardFlow({
   /* ── Done: identities revealed ── */
   if (result) {
     const results = [...result.results].sort((a, b) => a.rank - b.rank);
-    const paid = results.filter((r) => r.payout > 0);
-    const shown = (paid.length ? paid : results.slice(0, 3)).slice(0, 3);
+    const shown = results.slice(0, PLATFORM_RULES.placementCount);
     return (
       <>
         <DialogHeader id="award-title" title="Results published" onClose={onClose} />
@@ -117,7 +112,6 @@ function AwardFlow({
                   >
                     {sub.student.name}
                   </Link>
-                  <span className="w-14 text-right text-sm tabular-nums">{r.payout > 0 ? money(r.payout) : ''}</span>
                   <Button
                     size="sm"
                     variant={invites.get(r.studentId) ? 'subtle' : 'secondary'}
@@ -152,21 +146,18 @@ function AwardFlow({
       <DialogBody className="space-y-3">
         <ol>
           {podium.map((s, i) => {
-            const payout = payoutForRank(reward, i + 1);
             return (
               <li key={s.id} className="flex items-center gap-3 border-b border-slate-200 py-2 last:border-0">
                 <MedalBadge rank={i + 1} />
                 <Avatar name={s.student.name} color={s.student.avatarColor} size={28} blind={blind} />
                 <span className="min-w-0 flex-1 truncate text-sm font-semibold">{blind ? s.alias : s.student.name}</span>
                 <ScorePill score={s.totalScore ?? 0} className="text-right" />
-                <span className="w-14 text-right text-sm tabular-nums">{payout > 0 ? money(payout) : '–'}</span>
               </li>
             );
           })}
         </ol>
         <p className="text-sm text-slate-600">
-          {blind ? 'Reveals names and releases ' : 'Releases '}
-          {rewardTotal(reward) > 0 ? `${money(totalPayout)} from escrow.` : 'feedback to students.'}
+          {blind ? 'Reveals names and sends feedback to students.' : 'Sends feedback to students.'}
         </p>
         <InlineError error={award.error} />
       </DialogBody>
@@ -175,7 +166,7 @@ function AwardFlow({
           Cancel
         </Button>
         <Button variant="primary" loading={award.isPending} onClick={() => award.mutate()} disabled={ranked.length === 0}>
-          {totalPayout > 0 ? 'Publish & pay' : 'Publish'}
+          Publish
         </Button>
       </DialogFooter>
     </>

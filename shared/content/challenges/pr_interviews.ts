@@ -612,7 +612,6 @@ const mod: ChallengeModule = {
       { id: 'recommendations', name: 'Recommendations', description: 'Recommends a specific next bet that follows from the evidence, says what not to build and why, and lists open questions and success signals.', weight: 15 },
       { id: 'clarity', name: 'Clarity', description: 'A busy team can grasp the conclusion from the README in five minutes, and the detail files support it without repeating it.', weight: 10 },
     ],
-    reward: { mode: 'none', amounts: [] },
     applicantCap: null,
     status: 'open',
     hiringFor: null,

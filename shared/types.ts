@@ -18,7 +18,6 @@ export type ChallengeKind = 'live' | 'practice';
 /** `open` accepts joins/submissions · `reviewing` closed to submissions · `awarded` results published. */
 export type ChallengeStatus = 'open' | 'reviewing' | 'awarded';
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
-export type RewardMode = 'winner' | 'top3' | 'none';
 export type SubmissionStatus = 'submitted' | 'scored' | 'awarded' | 'not_selected';
 /** `coach` = instant dummy-AI review used for practice tasks. */
 export type ReviewerKind = 'employer' | 'coach';
@@ -28,7 +27,7 @@ export type NotificationKind =
   | 'new_challenge' // student: a challenge matching their interests was published
   | 'submission_received' // employer: a student submitted
   | 'results' // student: results published, not placed (feedback is ready)
-  | 'awarded' // student: placed and paid
+  | 'awarded' // student: placed
   | 'interview' // student: interview invite received
   | 'invite_response' // employer: student accepted/declined an invite
   | 'coach_review' // student: practice task reviewed by Coach
@@ -74,12 +73,6 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
   advanced: 'Advanced',
 };
 
-export const REWARD_MODE_LABEL: Record<RewardMode, string> = {
-  winner: 'Winner takes all',
-  top3: 'Top 3 paid',
-  none: 'No bounty · feedback guaranteed',
-};
-
 export const PLATFORM_RULES = {
   minEstHours: 1,
   /** Hard rule: every task must fit in 5 hours. */
@@ -93,10 +86,8 @@ export const PLATFORM_RULES = {
   verifiedPassScore: 60,
   /** Seeded background (generated) submissions never total more than this. */
   generatedScoreCeiling: 85,
-  /** Shown in the employer escrow summary. */
-  platformFeePct: 15,
-  /** Default Top-3 split of the bounty pool. */
-  top3DefaultSplit: [0.5, 0.3, 0.2],
+  /** Top finishers who get a placement medal when results are published. */
+  placementCount: 3,
   defaultDeadlineDays: 7,
 } as const;
 
@@ -147,12 +138,6 @@ export interface RubricCriterion {
   weight: number;
 }
 
-export interface Reward {
-  mode: RewardMode;
-  /** Integer USD. winner → [first]; top3 → [first, second, third]; none → []. */
-  amounts: number[];
-}
-
 /** "From the classroom": the theory a task applies. */
 export interface ClassroomConcept {
   concept: string; // "Token bucket algorithm"
@@ -190,7 +175,6 @@ export interface Challenge {
   brief: string;
   deliverables: string[];
   rubric: RubricCriterion[];
-  reward: Reward;
   /** null = no cap. */
   applicantCap: number | null;
   /** ISO. null = evergreen (practice). */
@@ -221,7 +205,6 @@ export interface ChallengeView extends Omit<Challenge, 'starterFiles'> {
   scoredCount: number;
   /** null when uncapped. */
   spotsLeft: number | null;
-  rewardTotal: number;
   hasStarterKit: boolean;
   /** Present when the requesting persona is a student. */
   viewer?: ChallengeViewer;
@@ -231,7 +214,7 @@ export interface ChallengeView extends Omit<Challenge, 'starterFiles'> {
 
 export type ChallengeSummary = Pick<
   ChallengeView,
-  'id' | 'title' | 'type' | 'kind' | 'status' | 'estHours' | 'rubric' | 'reward' | 'company' | 'companyId' | 'deadline'
+  'id' | 'title' | 'type' | 'kind' | 'status' | 'estHours' | 'rubric' | 'company' | 'companyId' | 'deadline'
 >;
 
 export interface AutoCheck {
@@ -270,7 +253,6 @@ export interface Submission {
   feedback: string | null;
   scoredAt: string | null;
   rank: number | null;
-  payout: number | null; // USD
   shortlisted: boolean;
 }
 
@@ -288,7 +270,6 @@ export interface StudentStats {
   practiceHours: number;
   /** Employer-scored submissions (any score). */
   tasksCompleted: number;
-  bountiesEarned: number; // USD
   placements: { first: number; second: number; third: number };
   avgScore: number | null; // employer-scored only
   /** One entry per type the student has scored work in (radar chart; missing types = 0). */
@@ -309,7 +290,6 @@ export interface ProfileHistoryItem {
   /** Visible only when results are published (or practice/coach). */
   totalScore: number | null;
   rank: number | null;
-  payout: number | null;
   feedbackExcerpt: string | null;
   estHours: number;
   /** True when the viewer may open the files (the student themself, or the challenge owner's employer users). */
@@ -372,8 +352,6 @@ export interface EmployerDashboard {
     totalSubmissions: number;
     awaitingReview: number;
     avgScore: number | null;
-    bountiesEscrowed: number; // reward totals of not-yet-awarded live challenges
-    bountiesPaid: number;
     interviewsSent: number;
   };
   /** All of the company's live challenges, any status, newest first. */
@@ -403,7 +381,6 @@ export interface CreateChallengeInput {
   brief: string;
   deliverables: string[];
   rubric: RubricCriterion[];
-  reward: Reward;
   applicantCap: number | null;
   deadline: string; // ISO
   hiringFor?: string | null;
@@ -417,7 +394,7 @@ export interface ScoreSubmissionInput {
 
 export interface AwardResponse {
   challenge: ChallengeView;
-  results: { submissionId: string; studentId: string; rank: number; payout: number; status: SubmissionStatus }[];
+  results: { submissionId: string; studentId: string; rank: number; status: SubmissionStatus }[];
 }
 
 export interface FilePreview {
@@ -472,7 +449,7 @@ export type ServerEvent =
     }
   | { type: 'submission.created'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null } }
   | { type: 'submission.scored'; payload: { submissionId: string; challengeId: string; studentId: string; companyId: string | null; totalScore: number } }
-  | { type: 'challenge.awarded'; payload: { challengeId: string; companyId: string | null; results: { studentId: string; rank: number; payout: number }[] } }
+  | { type: 'challenge.awarded'; payload: { challengeId: string; companyId: string | null; results: { studentId: string; rank: number }[] } }
   | { type: 'invite.created'; payload: { invite: InterviewInvite } }
   | { type: 'invite.updated'; payload: { invite: InterviewInvite } }
   | { type: 'notification.created'; payload: { notification: Notification } }
@@ -567,27 +544,9 @@ export interface SeedContent {
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
 
-export function rewardTotal(reward: Reward): number {
-  return reward.amounts.reduce((sum, amount) => sum + amount, 0);
-}
-
 /** Weighted total 0–100; missing criteria count as 0. Used by the API and the review UI's live total. */
 export function computeTotalScore(rubric: RubricCriterion[], scores: Record<string, number>): number {
   const raw = rubric.reduce((sum, c) => sum + ((scores[c.id] ?? 0) / PLATFORM_RULES.scoreMax) * c.weight, 0);
   return Math.round(raw);
 }
 
-/** Payout for a 1-based rank under a reward (0 when that rank isn't paid). */
-export function payoutForRank(reward: Reward, rank: number): number {
-  if (reward.mode === 'winner') return rank === 1 ? (reward.amounts[0] ?? 0) : 0;
-  if (reward.mode === 'top3') return rank >= 1 && rank <= 3 ? (reward.amounts[rank - 1] ?? 0) : 0;
-  return 0;
-}
-
-/** Splits a Top-3 pool using the default 50/30/20 split (rounded to whole dollars). */
-export function splitTop3(pool: number): number[] {
-  const [a, b] = PLATFORM_RULES.top3DefaultSplit;
-  const first = Math.round(pool * a);
-  const second = Math.round(pool * b);
-  return [first, second, pool - first - second];
-}

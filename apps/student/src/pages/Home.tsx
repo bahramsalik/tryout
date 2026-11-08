@@ -6,7 +6,7 @@ import { ChallengeCard, ChallengeCardSkeleton } from '@/components/ChallengeCard
 import { ButtonLink, Card, ErrorState, MessageBar, PageHeader, SectionTitle, Skeleton } from '@/components/ui';
 import { errorMessage } from '@/lib/api';
 import { continueItems, recommendedLive } from '@/lib/derive';
-import { firstName, money } from '@/lib/format';
+import { firstName } from '@/lib/format';
 import { useChallenges, useCurrentStudent, useInvites, useMe, useStudentProfile } from '@/lib/queries';
 import { useNow } from '@/lib/useNow';
 
@@ -22,7 +22,7 @@ function Stats({ studentId }: { studentId?: string }) {
         <>
           <StatTile label="Verified hours" value={s.verifiedHours} />
           <StatTile label="Tasks" value={s.tasksCompleted} />
-          <StatTile label="Earned" value={money(s.bountiesEarned)} />
+          <StatTile label="Avg score" value={s.avgScore ?? '–'} />
           <StatTile label="Placements" value={<Placements {...s.placements} />} />
         </>
       )}
