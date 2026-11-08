@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { ArrowLeft, Trophy } from '@/components/icons';
 import { TYPE_META, placementsFor, type ChallengeView, type SubmissionView } from '@shared/types';
 import { ApiError } from '@/lib/api';
-import { dateTime, timeAgo, timeLeft } from '@/lib/format';
+import { dateTime, timeAgo, timeLeft, usd } from '@/lib/format';
 import { useDocumentTitle } from '@/lib/hooks';
 import { usePersona } from '@/lib/persona';
 import { isScored, rankSubmissions, useChallenge, useSubmissions } from '@/lib/queries';
@@ -154,6 +154,7 @@ function MetaLine({ challenge: c, avg }: { challenge: ChallengeView; avg: number
     TYPE_META[c.type]?.label ?? c.type,
     `${c.participantCount}${c.applicantCap != null ? `/${c.applicantCap}` : ''} joined`,
   ];
+  if ((c.prizePool ?? 0) > 0 && placementsFor(c) > 0) parts.push(usd(c.prizePool!) + ' prize');
   if (avg != null) parts.push(`avg ${avg}`);
   if (c.status !== 'awarded') {
     const t = timeLeft(c.deadline, now);

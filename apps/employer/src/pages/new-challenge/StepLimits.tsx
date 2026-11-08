@@ -54,6 +54,27 @@ export function StepLimits({ draft, set, errors }: { draft: Draft; set: (patch: 
           <option value={3}>Top 3 get medals</option>
         </select>
       </Field>
+      {(draft.placements ?? 0) > 0 && (
+        <Field label="Prize (optional)" htmlFor="f-prize">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-slate-500">$</span>
+              <Input
+                id="f-prize"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={10}
+                placeholder="None"
+                value={draft.prizePool > 0 ? draft.prizePool : ''}
+                onChange={(e) => set({ prizePool: e.target.value === '' ? 0 : Math.max(0, Math.round(Number(e.target.value))) })}
+                className="w-32 pl-6 tabular-nums"
+              />
+            </div>
+            {draft.placements === 3 && <span className="text-sm text-slate-600">Split 50 / 30 / 20</span>}
+          </div>
+        </Field>
+      )}
     </div>
   );
 }

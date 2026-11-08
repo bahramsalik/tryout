@@ -4,6 +4,11 @@ export function count(n: number | null | undefined): string {
   return num.format(n ?? 0);
 }
 
+/** Whole dollars, e.g. $1,250. */
+export function usd(n: number): string {
+  return '$' + n.toLocaleString('en-US');
+}
+
 export function plural(n: number, one: string, many = `${one}s`): string {
   return `${count(n)} ${n === 1 ? one : many}`;
 }

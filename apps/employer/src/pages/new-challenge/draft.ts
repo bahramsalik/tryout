@@ -37,6 +37,8 @@ export interface Draft {
   cap: number;
   /** Medals for the top N finishers; 0 = none. */
   placements: number;
+  /** Optional prize in whole dollars (needs an award). */
+  prizePool: number;
   deadline: string;
 }
 
@@ -59,6 +61,7 @@ export function emptyDraft(): Draft {
     capped: true,
     cap: 50,
     placements: 0, // awards are optional: off unless the employer adds one
+    prizePool: 0, // so is the prize
     deadline: daysFromNow(PLATFORM_RULES.defaultDeadlineDays),
   };
 }
@@ -152,6 +155,7 @@ export function draftToInput(d: Draft): CreateChallengeInput {
     rubric: rubricWithIds(d.rubric),
     applicantCap: d.capped ? d.cap : null,
     placements: d.placements ?? 0,
+    ...((d.placements ?? 0) > 0 && (d.prizePool ?? 0) > 0 ? { prizePool: Math.round(d.prizePool) } : {}),
     deadline: new Date(d.deadline).toISOString(),
     hiringFor: d.hiringFor.trim() || null,
   };
@@ -180,6 +184,7 @@ export function inputToDraft(input: Partial<CreateChallengeInput> & { deadlineIn
     capped: input.applicantCap !== null,
     cap: input.applicantCap ?? base.cap,
     placements: input.placements ?? base.placements,
+    prizePool: input.prizePool ?? base.prizePool,
     deadline,
   };
 }
@@ -201,6 +206,8 @@ export function draftToPreview(d: Draft, company: Company | null): PreviewChalle
     deliverables: d.deliverables,
     rubric: d.rubric.map((r, i) => ({ id: r.key || String(i), name: r.name, description: r.description, weight: r.weight || 0 })),
     applicantCap: d.capped ? d.cap || null : null,
+    placements: d.placements ?? 0,
+    prizePool: (d.placements ?? 0) > 0 ? d.prizePool : 0,
     deadline: d.deadline,
     hiringFor: d.hiringFor.trim() || null,
     company,
