@@ -119,3 +119,25 @@ export function useSidebar(): [boolean, () => void] {
   const { open } = useSyncExternalStore(sidebarStore.subscribe, sidebarStore.get);
   return [open, () => sidebarStore.set({ open: !sidebarStore.get().open })];
 }
+
+/* ───────────── Page title (shown in the top bar) ───────────── */
+
+let pageTitle: string | null = null;
+const pageTitleListeners = new Set<Listener>();
+
+/** Called by PageHeader. The top bar shows the current page's title, like a chat title. */
+export function setPageTitle(title: string | null) {
+  if (pageTitle === title) return;
+  pageTitle = title;
+  pageTitleListeners.forEach((l) => l());
+}
+
+export function usePageTitle(): string | null {
+  return useSyncExternalStore(
+    (l) => {
+      pageTitleListeners.add(l);
+      return () => pageTitleListeners.delete(l);
+    },
+    () => pageTitle,
+  );
+}

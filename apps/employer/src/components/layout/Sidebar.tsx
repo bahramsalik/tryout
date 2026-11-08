@@ -69,7 +69,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto px-2 pt-1 pb-3 lg:px-3">
+      <div className="mt-auto border-t border-[var(--colorNeutralStroke2)] px-2 py-3 lg:px-3">
         <CompanySwitcher wide={wide} />
       </div>
     </aside>

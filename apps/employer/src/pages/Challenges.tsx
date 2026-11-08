@@ -1,8 +1,7 @@
-import { Plus } from '@/components/icons';
 import { useDocumentTitle } from '@/lib/hooks';
 import { useDashboard } from '@/lib/queries';
 import { ChallengesTable } from '@/components/ChallengesTable';
-import { ButtonLink, ErrorState, PageHeader } from '@/components/ui';
+import { ErrorState, PageHeader } from '@/components/ui';
 
 /**
  * Challenges page: every challenge the company has posted, ongoing and done.
@@ -15,14 +14,7 @@ export function ChallengesPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl">
-      <PageHeader
-        title="Challenges"
-        actions={
-          <ButtonLink to="/challenges/new" variant="primary" icon={<Plus className="size-5" aria-hidden />}>
-            Add challenge
-          </ButtonLink>
-        }
-      />
+      <PageHeader title="Challenges" />
 
       {isError ? (
         <ErrorState error={error} onRetry={() => refetch()} />

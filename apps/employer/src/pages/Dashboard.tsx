@@ -3,7 +3,6 @@ import { ClipboardCheck, Inbox, Trophy, UserPlus } from '@/components/icons';
 import type { ActivityItem, EmployerDashboard } from '@shared/types';
 import { timeAgo } from '@/lib/format';
 import { useDocumentTitle, useNewIds } from '@/lib/hooks';
-import { usePersona } from '@/lib/persona';
 import { useDashboard } from '@/lib/queries';
 import { useNow } from '@/components/brand';
 import { ChallengesTable } from '@/components/ChallengesTable';
@@ -11,13 +10,12 @@ import { StatTile } from '@/components/StatTile';
 import { Badge, Card, CardHeader, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui';
 
 export function DashboardPage() {
-  const { company } = usePersona();
   const { data, isPending, isError, error, refetch } = useDashboard();
   useDocumentTitle('Dashboard');
 
   return (
     <div className="mx-auto w-full max-w-7xl">
-      <PageHeader title={data?.company.name ?? company?.name ?? 'Dashboard'} />
+      <PageHeader title="Dashboard" />
 
       {isError ? (
         <ErrorState error={error} onRetry={() => refetch()} />

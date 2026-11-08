@@ -1,5 +1,6 @@
 import {
   forwardRef,
+  useEffect,
   useId,
   type ButtonHTMLAttributes,
   type CSSProperties,
@@ -11,6 +12,7 @@ import {
 import { Link, type LinkProps } from 'react-router';
 import { AlertTriangle, CheckCircle2, Info, X } from '@/components/icons';
 import { errorMessage } from '@/lib/api';
+import { setPageTitle } from '@/lib/stores';
 
 /* Fluent 2 primitives built on the tokens in shared/fluent-tokens.css (no @fluentui/react-components). */
 
@@ -606,7 +608,10 @@ export function useStableId(prefix: string) {
   return `${prefix}-${useId().replace(/:/g, '')}`;
 }
 
-/** Page header: title + at most one meta line. */
+/**
+ * Page header. A string title is shown in the top bar (top left), so here it stays only as a
+ * screen-reader heading; what remains on the page is the optional meta line and actions.
+ */
 export function PageHeader({
   title,
   meta,
@@ -618,6 +623,26 @@ export function PageHeader({
   actions?: ReactNode;
   className?: string;
 }) {
+  const topBarTitle = typeof title === 'string' ? title : null;
+  useEffect(() => {
+    setPageTitle(topBarTitle);
+    return () => setPageTitle(null);
+  }, [topBarTitle]);
+
+  if (topBarTitle !== null) {
+    return (
+      <>
+        <h1 className="sr-only">{topBarTitle}</h1>
+        {(meta || actions) && (
+          <div className={cn('mb-4 flex flex-wrap items-center justify-between gap-3', className)}>
+            <div className="min-w-0 text-sm text-[var(--colorNeutralForeground3)]">{meta}</div>
+            {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className={cn('mb-4 flex flex-wrap items-start justify-between gap-3', className)}>
       <div className="min-w-0">

@@ -16,17 +16,23 @@ import type { Notification, NotificationKind } from '@shared/types';
 import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/format';
 import { qk, queryClient, useNotifications } from '@/lib/queries';
-import { clearBlind, useSidebar } from '@/lib/stores';
+import { clearBlind, usePageTitle, useSidebar } from '@/lib/stores';
 import { Dialog, DialogBody, DialogFooter, DialogHeader, MenuItem, Popover } from '../overlay';
 import { Button, ButtonLink, InlineError, Skeleton, cn } from '../ui';
 import { SidebarToggle } from './Sidebar';
 
 export function TopBar() {
   const [sidebarOpen] = useSidebar();
+  const title = usePageTitle();
   return (
     <header className="sticky top-0 z-20 flex h-12 shrink-0 items-center gap-1 border-b border-[var(--colorNeutralStroke2)] bg-[var(--colorNeutralBackground1)] px-3 sm:px-6">
       {/* With the sidebar open on a wide screen the toggle sits beside the logo; here it covers the hidden and narrow cases. */}
       <SidebarToggle className={sidebarOpen ? 'lg:hidden' : undefined} />
+      {title && (
+        <span className="ml-1 min-w-0 truncate text-base font-semibold text-[var(--colorNeutralForeground1)]" aria-hidden>
+          {title}
+        </span>
+      )}
       <div className="ml-auto flex items-center gap-1">
         <ButtonLink to="/challenges/new" variant="primary" icon={<Plus className="size-5" aria-hidden />}>
           Add challenge
