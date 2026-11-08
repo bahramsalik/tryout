@@ -29,7 +29,7 @@ export function CandidatePage() {
 
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="mx-auto w-full max-w-7xl">
       <Link to="/talent" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
         <ArrowLeft className="size-4" aria-hidden /> Talent
       </Link>
@@ -57,7 +57,7 @@ export function CandidatePage() {
 
 function CandidateSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-4" aria-busy>
+    <div className="mx-auto w-full max-w-7xl space-y-4" aria-busy>
       <Skeleton className="h-16 w-1/2" />
       <div className="grid grid-cols-2 gap-3 @3xl:grid-cols-4">
         {[0, 1, 2, 3].map((i) => (

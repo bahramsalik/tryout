@@ -107,7 +107,7 @@ export function NewChallengePage() {
   if (published) return <PublishedScreen challenge={published} />;
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="mx-auto w-full max-w-7xl">
       <Link to="/challenges" className="mb-2 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900">
         <ArrowLeft className="size-4" aria-hidden /> Challenges
       </Link>

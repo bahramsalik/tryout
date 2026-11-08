@@ -43,7 +43,7 @@ export function AppShell() {
           <main
             id="main"
             ref={mainRef}
-            className="@container min-h-0 min-w-0 flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable] min-[760px]:p-6"
+            className="@container min-h-0 min-w-0 flex-1 overflow-y-auto p-4 [scrollbar-gutter:stable_both-edges] min-[760px]:p-6"
           >
             <Outlet />
           </main>
