@@ -2,7 +2,7 @@ import { ArrowDownload20Regular, Checkmark16Regular, Checkmark20Regular, Chevron
 import { useState } from 'react';
 import { useParams, useSearchParams } from 'react-router';
 import { PLATFORM_RULES, type ChallengeView, type RubricCriterion, type SubmissionView } from '@shared/types';
-import { ChallengeMeta, CompanyLogo, RankBadge, Score } from '@/components/brand';
+import { ChallengeMeta, CompanyLogo, RankBadge, Score, VerifiedBadge } from '@/components/brand';
 import { Markdown } from '@/components/Markdown';
 import { AnchorButton, Badge, Button, ButtonLink, Card, ErrorState, Skeleton, TabList } from '@/components/ui';
 import { errorMessage, isApiError, starterKitUrl } from '@/lib/api';
@@ -99,7 +99,9 @@ function ResultCard({ c, sub }: { c: ChallengeView; sub: SubmissionView | undefi
       <div className="flex flex-wrap items-center gap-3">
         {sub.totalScore !== null ? <Score score={sub.totalScore} /> : null}
         <RankBadge rank={sub.rank} placed={sub.status === 'awarded'} />
-        <span className="ml-auto text-caption text-fg3">{coach ? 'Coach review' : `Scored by ${c.company?.name ?? 'employer'}`}</span>
+        <span className="ml-auto text-caption text-fg3">
+          {sub.verified ? <VerifiedBadge company={c.company?.name} /> : coach ? 'Coach review' : null}
+        </span>
       </div>
       <CriterionScores rubric={c.rubric} scores={sub.scores} />
       {sub.feedback ? <blockquote className="border-l-2 border-stroke1 pl-3 text-body text-fg2">{sub.feedback}</blockquote> : null}

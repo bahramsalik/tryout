@@ -138,6 +138,16 @@ export function Placements({ first, second, third }: { first: number; second: nu
   );
 }
 
+/** Shown only on results a person confirmed. Names the company that verified it. */
+export function VerifiedBadge({ company, className }: { company?: string | null; className?: string }) {
+  const label = company ? `Verified by ${company}` : 'Verified';
+  return (
+    <Badge color="success" icon={Checkmark16Filled} className={cn('max-w-56 min-w-0', className)} title={label}>
+      <span className="truncate">{label}</span>
+    </Badge>
+  );
+}
+
 /** `placed` = the submission earned a placement medal (a challenge can turn medals off). */
 export function RankBadge({ rank, placed = true, className }: { rank: number | null; placed?: boolean; className?: string }) {
   if (!rank) return null;

@@ -8,7 +8,7 @@ import {
   Money20Regular,
   Shield20Regular,
 } from '@fluentui/react-icons';
-import { Check, Clock, EyeOff, TrophyFilled } from '@/components/icons';
+import { BadgeCheck, Check, Clock, EyeOff, TrophyFilled } from '@/components/icons';
 import { TYPE_META, type ChallengeStatus, type ChallengeType, type Company } from '@shared/types';
 import { initials, timeLeft } from '@/lib/format';
 import { Badge, cn } from './ui';
@@ -245,6 +245,16 @@ const ORDINAL = ['', '1st', '2nd', '3rd'];
 export const MEDAL_COLOR: Record<number, string> = { 1: '#C19C00', 2: '#7A7574', 3: '#A74109' };
 
 /** `1st` / `2nd` / `3rd` badge with a colored Fluent trophy; plain rank number after that. */
+/** Shown only on results a person confirmed. Names the company that verified it. */
+export function VerifiedBadge({ company, className }: { company?: string | null; className?: string }) {
+  const label = company ? `Verified by ${company}` : 'Verified';
+  return (
+    <Badge tone="emerald" icon={<BadgeCheck />} className={cn('max-w-56', className)} title={label}>
+      <span className="truncate">{label}</span>
+    </Badge>
+  );
+}
+
 /** `medal` = this rank earns a placement medal (a challenge can turn medals off); otherwise just "#rank". */
 export function MedalBadge({ rank, medal = true, className }: { rank: number; medal?: boolean; className?: string }) {
   if (rank > 3 || !medal) {

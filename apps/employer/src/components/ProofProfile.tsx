@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { BadgeCheck, Clock, Gauge, Trophy, TrophyFilled } from '@/components/icons';
 import { CHALLENGE_TYPES, TYPE_META, type ProfileHistoryItem, type StudentStats } from '@shared/types';
-import { CompanyLogo, MEDAL_COLOR, MedalBadge, ScorePill } from './brand';
+import { CompanyLogo, MEDAL_COLOR, MedalBadge, ScorePill, VerifiedBadge } from './brand';
 import { StatTile } from './StatTile';
 import { Card, CardHeader, EmptyState } from './ui';
 
@@ -89,6 +89,7 @@ export function ProofHistory({ items }: { items: ProfileHistoryItem[]; companyNa
   return (
     <Card className="overflow-hidden">
       <CardHeader title="History" />
+      <p className="px-4 pb-2 text-xs text-slate-500">Scores are graded automatically against the company's rubric. Verified means a person at the company confirmed the result.</p>
       {items.length === 0 ? (
         <EmptyState compact title="No submissions yet" />
       ) : (
@@ -112,6 +113,7 @@ function HistoryRow({ item: h }: { item: ProfileHistoryItem }) {
         {h.feedbackExcerpt && <p className="mt-1 truncate text-sm text-slate-700">{h.feedbackExcerpt}</p>}
       </div>
       <div className="flex shrink-0 items-start gap-3 text-sm">
+        {h.verified && <VerifiedBadge company={h.company?.name} />}
         {h.status === 'awarded' && h.rank != null && <MedalBadge rank={h.rank} />}
         {h.totalScore != null ? <ScorePill score={h.totalScore} className="text-right" /> : <span className="text-slate-500">–</span>}
       </div>

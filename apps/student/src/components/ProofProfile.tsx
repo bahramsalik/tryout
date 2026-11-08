@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import type { ProfileHistoryItem, StudentProfile } from '@shared/types';
-import { CompanyLogo, Placements, RankBadge, StatTile } from './brand';
+import { CompanyLogo, Placements, RankBadge, StatTile, VerifiedBadge } from './brand';
 import { SkillsRadar } from './SkillsRadar';
 import { Avatar, Badge, Card, EmptyState, SectionTitle, Skeleton } from './ui';
 
@@ -25,6 +25,7 @@ function HistoryRow({ h, linkable }: { h: ProfileHistoryItem; linkable: boolean 
       </div>
       <span className="flex shrink-0 items-center gap-2">
         {!published ? <Badge color="brand">Under review</Badge> : null}
+        {h.verified ? <VerifiedBadge company={h.company?.name} /> : null}
         <RankBadge rank={h.rank} placed={h.status === 'awarded'} />
         {published ? <span className="w-8 text-right text-subtitle2 font-semibold tabular-nums">{h.totalScore}</span> : null}
       </span>
@@ -87,6 +88,7 @@ export function ProofProfile({ profile: p, publicView }: { profile: StudentProfi
 
         <Card className="min-w-0 px-5 pt-5">
           <SectionTitle className="mb-0">History</SectionTitle>
+          <p className="mt-1 text-caption text-fg3">Scores are graded automatically against the company's rubric. Verified means a person at the company confirmed the result.</p>
           {history.length === 0 ? (
             <EmptyState title="No work yet" className="my-5" />
           ) : (
