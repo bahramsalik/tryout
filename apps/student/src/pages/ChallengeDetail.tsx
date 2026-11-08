@@ -8,6 +8,7 @@ import { AnchorButton, Badge, Button, ButtonLink, Card, ErrorState, Skeleton, Sp
 import { errorMessage, isApiError, starterKitUrl } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { isPastDeadline } from '@/lib/derive';
+import { usd } from '@/lib/format';
 import { useChallenge, useJoinChallenge, useSubmission } from '@/lib/queries';
 import { useNow } from '@/lib/useNow';
 
@@ -117,6 +118,7 @@ function ResultCard({ c, sub }: { c: ChallengeView; sub: SubmissionView | undefi
       <div className="flex flex-wrap items-center gap-3">
         {sub.totalScore !== null ? <Score score={sub.totalScore} /> : null}
         <RankBadge rank={sub.rank} placed={sub.status === 'awarded'} />
+        {sub.prize ? <Badge color="success" appearance="filled">{usd(sub.prize)} prize</Badge> : null}
         <span className="ml-auto text-caption text-fg3">
           {sub.verified ? <VerifiedBadge company={c.company?.name} /> : coach ? 'Coach review' : null}
         </span>

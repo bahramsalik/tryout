@@ -6,6 +6,7 @@ import {
   DesignIdeas20Regular,
   Lightbulb20Regular,
   Megaphone20Regular,
+  Money16Regular,
   Money20Regular,
   People16Regular,
   Shield20Regular,
@@ -15,9 +16,9 @@ import {
   type FluentIcon,
 } from '@fluentui/react-icons';
 import type { ReactNode } from 'react';
-import { DIFFICULTY_LABEL, type ChallengeType, type ChallengeView, type Company } from '@shared/types';
+import { DIFFICULTY_LABEL, prizeTotal, type ChallengeType, type ChallengeView, type Company } from '@shared/types';
 import { cn } from '@/lib/cn';
-import { countdown, ordinal } from '@/lib/format';
+import { countdown, ordinal, usd } from '@/lib/format';
 import { useNow } from '@/lib/useNow';
 import { Badge } from './ui';
 
@@ -100,6 +101,11 @@ export function Countdown({ deadline, className }: { deadline: string | null; cl
 export function ChallengeMeta({ c, level, spots = true, className }: { c: ChallengeView; level?: boolean; spots?: boolean; className?: string }) {
   return (
     <div className={cn('flex flex-wrap items-center gap-x-3 gap-y-1', className)}>
+      {c.kind === 'live' && prizeTotal(c) > 0 ? (
+        <Meta icon={Money16Regular} className="font-semibold text-fg1">
+          {usd(prizeTotal(c))} prize
+        </Meta>
+      ) : null}
       <Meta icon={Clock16Regular}>~{c.estHours} h</Meta>
       {level ? <Meta icon={TargetArrow16Regular}>{DIFFICULTY_LABEL[c.difficulty]}</Meta> : null}
       {spots && c.kind === 'live' ? (

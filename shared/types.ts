@@ -544,6 +544,11 @@ export function needsRecruiterReview(s: { totalScore: number | null; reviewer: R
   return s.reviewer === 'ai' && !s.verifiedBy && !s.verified && s.totalScore >= PLATFORM_RULES.reviewThreshold;
 }
 
+/** The total prize a challenge advertises (0 when it has none or has no award). */
+export function prizeTotal(challenge: { placements?: number; prizePool?: number }): number {
+  return placementsFor(challenge) > 0 ? (challenge.prizePool ?? 0) : 0;
+}
+
 /** Prize for a 1-based place (0 when none). Top 1 gets it all; top 3 split it 50 / 30 / 20; other counts split evenly. */
 export function prizeForPlace(challenge: { placements?: number; prizePool?: number }, rank: number): number {
   const places = placementsFor(challenge);

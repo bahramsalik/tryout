@@ -1,7 +1,7 @@
 import { Search20Regular } from '@fluentui/react-icons';
 import { useMemo, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
-import { CHALLENGE_TYPES, TYPE_META, type ChallengeKind, type ChallengeType } from '@shared/types';
+import { CHALLENGE_TYPES, TYPE_META, prizeTotal, type ChallengeKind, type ChallengeType } from '@shared/types';
 import { typeIcon } from '@/components/brand';
 import { ChallengeCard, ChallengeCardSkeleton } from '@/components/ChallengeCard';
 import { EmptyState, ErrorState, Input, PageHeader, TabList } from '@/components/ui';
@@ -38,6 +38,7 @@ export function ExplorePage() {
   const mode: ChallengeKind = params.get('mode') === 'practice' ? 'practice' : 'live';
   const type = isType(params.get('type')) ? (params.get('type') as ChallengeType) : null;
   const q = params.get('q') ?? '';
+  const prizeOnly = mode === 'live' && params.get('prize') === '1';
 
   const update = (patch: Record<string, string | null>) => {
     setParams(
@@ -67,6 +68,7 @@ export function ExplorePage() {
     const needle = q.trim().toLowerCase();
     const filtered = inMode.filter((c) => {
       if (type && c.type !== type) return false;
+      if (prizeOnly && prizeTotal(c) <= 0) return false;
       if (needle) {
         const hay = [c.title, c.summary, c.company?.name ?? 'tryout practice', c.type, ...c.skills, ...c.classroomConcepts.map((x) => x.concept)]
           .join(' ')
@@ -78,7 +80,7 @@ export function ExplorePage() {
     // New challenges that arrive live go first, then live = soonest deadline, practice = newest.
     const sorted = sortChallenges(filtered, mode === 'live' ? 'deadline' : 'newest');
     return [...sorted.filter((c) => freshIds.has(c.id)), ...sorted.filter((c) => !freshIds.has(c.id))];
-  }, [inMode, type, mode, q, freshIds]);
+  }, [inMode, type, mode, q, prizeOnly, freshIds]);
 
   return (
     <div className="space-y-4">
@@ -88,7 +90,7 @@ export function ExplorePage() {
         <TabList<ChallengeKind>
           ariaLabel="Challenge kind"
           value={mode}
-          onChange={(k) => update({ mode: k === 'live' ? null : 'practice', type: null })}
+          onChange={(k) => update({ mode: k === 'live' ? null : 'practice', type: null, prize: null })}
           items={[
             { value: 'live', label: 'Live', count: challenges.isLoading ? undefined : liveCount },
             { value: 'practice', label: 'Practice', count: challenges.isLoading ? undefined : practiceCount },
@@ -105,6 +107,11 @@ export function ExplorePage() {
         <Pill active={!type} onClick={() => update({ type: null })}>
           All <span className="tabular-nums text-fg3">{inMode.length}</span>
         </Pill>
+        {mode === 'live' && inMode.some((c) => prizeTotal(c) > 0) ? (
+          <Pill active={prizeOnly} onClick={() => update({ prize: prizeOnly ? null : '1' })}>
+            Has prize
+          </Pill>
+        ) : null}
         {CHALLENGE_TYPES.filter((t) => counts[t]).map((t) => {
           const Icon = typeIcon(t);
           return (

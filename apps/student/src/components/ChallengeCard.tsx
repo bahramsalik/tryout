@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
-import type { ChallengeView } from '@shared/types';
+import { prizeTotal, type ChallengeView } from '@shared/types';
+import { usd } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { ChallengeMeta, CompanyLogo } from './brand';
 import { Badge, Skeleton } from './ui';
@@ -61,7 +62,7 @@ export function MiniChallengeCard({ challenge: c, onNavigate }: { challenge: Cha
       <div className="min-w-0 flex-1">
         <div className="truncate text-body font-semibold text-fg1">{c.title}</div>
         <div className="truncate text-caption text-fg3">
-          {c.company?.name ?? 'Tryout Practice'} · ~{c.estHours} h
+          {c.company?.name ?? 'Tryout Practice'} · ~{c.estHours} h{c.kind === 'live' && prizeTotal(c) > 0 ? ` · ${usd(prizeTotal(c))} prize` : ''}
         </div>
       </div>
       <ViewerBadge challenge={c} />
