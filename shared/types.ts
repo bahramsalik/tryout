@@ -178,6 +178,8 @@ export interface Challenge {
   applicantCap: number | null;
   /** How many top finishers get a medal when results are published. 0 = no medals. Omitted = PLATFORM_RULES.placementCount. */
   placements?: number;
+  /** Optional prize, in whole dollars, split across the award places (needs placements above 0). Paid out (simulated) to Verified winners only. */
+  prizePool?: number;
   /** ISO. null = evergreen (practice). */
   deadline: string | null;
   status: ChallengeStatus;
@@ -251,6 +253,8 @@ export interface Submission {
   reviewer: ReviewerKind | null;
   /** Id of the person who confirmed this result (a recruiter, or anyone who is not the AI). Absent = not confirmed. */
   verifiedBy?: string | null;
+  /** Prize this result won, in whole dollars. Set when results are published, and only for Verified winners. */
+  prize?: number;
   /** AI grading only: criterionId → what in the work justified the score. */
   scoreNotes?: Record<string, string>;
   /** Live work waiting for its AI grade: `grading` = in progress, `delayed` = could not be graded yet (it is retried). Absent once graded. */
@@ -378,6 +382,8 @@ export interface CreateChallengeInput {
   applicantCap: number | null;
   /** 0 = no medals. Omitted = PLATFORM_RULES.placementCount. */
   placements?: number;
+  /** Optional prize in whole dollars; needs placements above 0. */
+  prizePool?: number;
   deadline: string; // ISO
   hiringFor?: string | null;
 }
@@ -536,6 +542,21 @@ export interface SeedContent {
 export function needsRecruiterReview(s: { totalScore: number | null; reviewer: ReviewerKind | null; verifiedBy?: string | null; verified?: boolean }): boolean {
   if (s.totalScore === null) return true;
   return s.reviewer === 'ai' && !s.verifiedBy && !s.verified && s.totalScore >= PLATFORM_RULES.reviewThreshold;
+}
+
+/** Prize for a 1-based place (0 when none). Top 1 gets it all; top 3 split it 50 / 30 / 20; other counts split evenly. */
+export function prizeForPlace(challenge: { placements?: number; prizePool?: number }, rank: number): number {
+  const places = placementsFor(challenge);
+  const pool = challenge.prizePool ?? 0;
+  if (pool <= 0 || rank < 1 || rank > places) return 0;
+  if (places === 1) return pool;
+  if (places === 3) {
+    const first = Math.round(pool * 0.5);
+    const second = Math.round(pool * 0.3);
+    return [first, second, pool - first - second][rank - 1] ?? 0;
+  }
+  const share = Math.floor(pool / places);
+  return rank === 1 ? pool - share * (places - 1) : share;
 }
 
 /** A result is "verified" when a person confirmed it: the employer scored it, or someone confirmed an AI grade. */

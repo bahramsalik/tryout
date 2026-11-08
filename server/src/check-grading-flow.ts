@@ -73,7 +73,7 @@ const { getDb } = await import('./store.ts');
 const actions = await import('./actions.ts');
 const views = await import('./views.ts');
 const { writeUpload } = await import('./store.ts');
-const { computeTotalScore, needsRecruiterReview } = await import('../../shared/types.ts');
+const { computeTotalScore, needsRecruiterReview, prizeForPlace } = await import('../../shared/types.ts');
 
 await initData();
 const db = getDb();
@@ -162,6 +162,48 @@ await test('publishing a challenge with no award ranks nobody and awards nothing
   assert.ok(mine.every((x) => x.status !== 'awarded'), 'nobody placed');
   assert.ok(res.results.every((r) => r.rank === null && r.status !== 'awarded'));
   assert.equal(db.notifications.filter((n: Notification) => n.title.includes(' place')).length, placeNotificationsBefore, 'no "place" notifications');
+});
+
+await test('pays a prize only to a Verified winner', () => {
+  // A fresh challenge: Top 1, a 300 prize, two AI-graded submissions that nobody has confirmed yet.
+  const prizeCh = { ...ch, id: 'ch_prize_test', status: 'open' as const, placements: 1, prizePool: 300 };
+  delete (prizeCh as { awardedAt?: unknown }).awardedAt;
+  db.challenges.push(prizeCh);
+  const mk = (id: string, studentId: string, score: number) => ({
+    ...sub,
+    id,
+    challengeId: prizeCh.id,
+    studentId,
+    totalScore: score,
+    reviewer: 'ai' as const,
+    verifiedBy: null,
+    scoredBy: 'ai',
+    status: 'scored' as const,
+    rank: null,
+    feedback: 'Good work. Add more tests to cover the edge cases.',
+    scores: Object.fromEntries(ch.rubric.map((c) => [c.id, 4])),
+  });
+  const top = mk('sub_prize_top', 'stu_hana', 90);
+  const second = mk('sub_prize_second', 'stu_arjun', 80);
+  db.submissions.push(top, second);
+
+  assert.throws(() => actions.awardChallenge(employerP, prizeCh), /prizes go to verified results only/);
+  assert.equal(top.prize, undefined, 'nothing is paid while the winner is unconfirmed');
+  assert.equal(prizeCh.status, 'open');
+
+  actions.verifySubmission(employerP, top);
+  actions.awardChallenge(employerP, prizeCh);
+  assert.equal(top.prize, 300);
+  assert.equal(second.prize, undefined);
+  const note = db.notifications.find((n: Notification) => n.recipientId === 'stu_hana' && n.title.includes('300'));
+  assert.ok(note, 'the winner is told about the prize');
+});
+
+await test('splits a Top 3 prize 50 / 30 / 20', () => {
+  const three = { placements: 3, prizePool: 500 };
+  assert.deepEqual([1, 2, 3, 4].map((rank) => prizeForPlace(three, rank)), [250, 150, 100, 0]);
+  assert.equal(prizeForPlace({ placements: 0, prizePool: 500 }, 1), 0);
+  assert.equal(prizeForPlace({ placements: 1 }, 1), 0);
 });
 
 await test('leaves work "delayed" instead of inventing a score when the API fails', async () => {

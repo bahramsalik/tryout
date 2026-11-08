@@ -7,6 +7,8 @@ import {
   PLATFORM_RULES,
   computeTotalScore,
   placementsFor,
+  prizeForPlace,
+  isVerified,
   type AwardResponse,
   type Challenge,
   type ChallengeView,
@@ -99,6 +101,7 @@ export function createChallenge(p: EmployerPersona, input: CreateChallengeInput)
     rubric: input.rubric,
     applicantCap: input.applicantCap,
     ...(input.placements !== undefined ? { placements: input.placements } : {}),
+    ...(input.prizePool ? { prizePool: input.prizePool } : {}),
     deadline: new Date(input.deadline).toISOString(),
     status: 'open',
     hiringFor: input.hiringFor?.trim() || null,
@@ -440,7 +443,19 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
   }
   const lines = computeAward(ch, subs);
   const awardOn = placementsFor(ch) > 0; // an award is optional: without one nobody is ranked
+  // A prize goes only to Verified results: a person must confirm each prize place before it is paid.
+  const prizeOn = awardOn && (ch.prizePool ?? 0) > 0;
+  if (prizeOn) {
+    const unverified = lines.filter((l) => l.rank <= placementsFor(ch) && !isVerified(l.sub));
+    if (unverified.length) {
+      throw conflict(
+        'PRIZE_NEEDS_VERIFIED',
+        `Confirm the top ${unverified.length === 1 ? 'result' : unverified.length + ' results'} first: prizes go to verified results only.`,
+      );
+    }
+  }
   applyAward(lines, awardOn);
+  if (prizeOn) for (const l of lines) if (l.status === 'awarded') l.sub.prize = prizeForPlace(ch, l.rank);
   ch.status = 'awarded';
   ch.awardedAt = nowIso();
 
@@ -455,7 +470,7 @@ export function awardChallenge(p: EmployerPersona, ch: Challenge): AwardResponse
       notification(events, {
         recipientId: l.sub.studentId,
         kind: 'awarded',
-        title: `${ordinal(l.rank)} place`, // only placed when an award is on, so the rank is real
+        title: l.sub.prize ? ordinal(l.rank) + ' place · $' + l.sub.prize : ordinal(l.rank) + ' place', // only placed when an award is on, so the rank is real
         body: bodyTitle(ch.title),
         link: `/challenges/${ch.id}`,
       });

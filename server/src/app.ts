@@ -188,6 +188,7 @@ const createChallengeSchema = z
     rubric: z.array(criterionSchema).min(1).max(8),
     applicantCap: z.number().int().min(1).max(10_000).nullable(),
     placements: z.number().int().min(0).max(10).optional(),
+    prizePool: z.number().int().min(0).max(100_000).optional(),
     deadline: z.string().refine((s) => !Number.isNaN(Date.parse(s)), 'deadline must be an ISO date'),
     hiringFor: z.string().max(200).nullable().optional(),
   })
@@ -196,6 +197,9 @@ const createChallengeSchema = z
     if (sum !== 100) ctx.addIssue({ code: 'custom', path: ['rubric'], message: `Rubric weights must total 100 (currently ${sum})` });
     const ids = v.rubric.map((c) => c.id);
     if (new Set(ids).size !== ids.length) ctx.addIssue({ code: 'custom', path: ['rubric'], message: 'Rubric criterion ids must be unique' });
+    if ((v.prizePool ?? 0) > 0 && !((v.placements ?? 0) > 0)) {
+      ctx.addIssue({ code: 'custom', path: ['prizePool'], message: 'A prize needs an award (Top 1 or Top 3)' });
+    }
     if (Date.parse(v.deadline) <= Date.now()) ctx.addIssue({ code: 'custom', path: ['deadline'], message: 'Deadline must be in the future' });
   });
 
