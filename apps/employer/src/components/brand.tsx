@@ -206,7 +206,7 @@ export function Countdown({
 }) {
   const now = useNow();
   if (status === 'awarded') {
-    return <span className={cn('text-xs text-slate-500', className)}>Results published</span>;
+    return <span className={cn('text-xs whitespace-nowrap text-slate-500', className)}>Results published</span>;
   }
   const t = timeLeft(deadline, now);
   return (

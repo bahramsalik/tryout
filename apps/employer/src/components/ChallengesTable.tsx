@@ -138,7 +138,7 @@ export function ChallengesTable({
                 <th scope="col" className={`${th} w-28`}>
                   To review
                 </th>
-                <th scope="col" className={`${th} hidden w-28 @3xl:table-cell`}>
+                <th scope="col" className={`${th} hidden w-36 @3xl:table-cell`}>
                   Deadline
                 </th>
               </tr>
